@@ -14,6 +14,9 @@ $parameters = @{
     Server = '.database.windows.net'
     #Subnet = '' #Managed Instance subnet CIDR range, in case of managed instance this parameter is mandatory
     #Database = ''
+
+    ## Optional parameters (default values will be used if ommited)
+    SendAnonymousUsageData = $true  #Set as $true (default) or $false
 }
  
 $ProgressPreference = "SilentlyContinue";
