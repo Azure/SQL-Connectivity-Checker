@@ -13,7 +13,8 @@ using namespace System.net.Sockets
 using namespace System.Collections.Generic
 using namespace System.Diagnostics
 
-#Supports Single, Elastic Pools and Managed Instance (please provide FQDN, MI public endpoint is supported)
+# Parameter region for when script is run direcly
+# Supports Single, Elastic Pools and Managed Instance (please provide FQDN, MI public endpoint is supported)
 $Server = ''
 $Database = ''
 
@@ -168,9 +169,9 @@ function PrintLocalNetworkConfiguration() {
     $computerProperties = [System.Net.NetworkInformation.IPGlobalProperties]::GetIPGlobalProperties()
     $networkInterfaces = [System.Net.NetworkInformation.NetworkInterface]::GetAllNetworkInterfaces()
 
-    Write-Host 'Interface information for ' $computerProperties.HostName'.'$networkInterfaces.DomainName -ForegroundColor Green
+    Write-Host 'Interface information for '$computerProperties.HostName'.'$networkInterfaces.DomainName -ForegroundColor Green
 
-    foreach($networkInterface in $networkInterfaces) {
+    foreach ($networkInterface in $networkInterfaces) {
         if ($networkInterface.NetworkInterfaceType -eq 'Loopback') {
             continue
         }
@@ -183,11 +184,11 @@ function PrintLocalNetworkConfiguration() {
         Write-Host ' Operational status: ' $networkInterface.OperationalStatus
 
         Write-Host ' Unicast address list:'
-        Write-Host $('  ' + [String]::Join([Environment]::NewLine + '  ',  [System.Linq.Enumerable]::Select($properties.UnicastAddresses, [Func[System.Net.NetworkInformation.UnicastIPAddressInformation, IPAddress]] { $args[0].Address })))
-    
+        Write-Host $('  ' + [String]::Join([Environment]::NewLine + '  ', [System.Linq.Enumerable]::Select($properties.UnicastAddresses, [Func[System.Net.NetworkInformation.UnicastIPAddressInformation, IPAddress]] { $args[0].Address })))
+
         Write-Host ' DNS server address list:'
         Write-Host $('  ' + [String]::Join([Environment]::NewLine + '  ', $properties.DnsAddresses))
-        
+
         Write-Host
     }
 }
@@ -212,7 +213,7 @@ function CheckAffected20191014($gateway) {
 
 function RunSqlMIPublicEndpointConnectivityTests($resolvedAddress) {
     Write-Host 'Detected as Managed Instance using Public Endpoint' -ForegroundColor Yellow
-    
+
     Write-Host 'Public Endpoint connectivity test:' -ForegroundColor Green
     $testResult = Test-NetConnection $resolvedAddress -Port 3342 -WarningAction SilentlyContinue
 
@@ -230,72 +231,85 @@ function RunSqlMIPublicEndpointConnectivityTests($resolvedAddress) {
 
 function RunSqlMIVNetConnectivityTests($resolvedAddress) {
     Write-Host 'Detected as Managed Instance' -ForegroundColor Yellow
-    if (($null -eq $SubnetCIDR) -or !($SubnetCIDR -match '\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/\d{1,2}\b')){
-        Write-Host ' Subnet range is not specified or has incorrect format' -ForegroundColor Red
-        throw
-    }
-    
-    Write-Host 'Gateway connectivity tests:' -ForegroundColor Green
-    $currentIP = [byte[]]$SubnetCIDR.ToString().Split('/')[0].Split('.')
-    $mask = [int]$SubnetCIDR.ToString().Split('/')[1]
+    if (($null -eq $SubnetCIDR) -or !($SubnetCIDR -match '\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/\d{1,2}\b')) {
 
-    $clients = [List[Tuple[TcpClient, IAsyncResult]]]::new()
-    $successfulConnections = [List[IPAddress]]::new()
+        Write-Host ' Subnet range is not specified or has incorrect format, this will limit the tests, please provide a proper subnet range' -ForegroundColor Red
+        # Test 1433 on ILB anyway
+        Write-Host 'Gateway connectivity tests:' -ForegroundColor Green
+        $testResult = Test-NetConnection $resolvedAddress -Port 1433 -WarningAction SilentlyContinue
 
-    $totalAddresses = [int][Math]::Pow(2, 32 - $mask)
+        if ($testResult.TcpTestSucceeded) {
+            Write-Host ' -> TCP test succeed' -ForegroundColor Green
 
-    for ($batch = 0; $batch -lt $totalAddresses; $batch += 256) {
-        if (($totalAddresses - $batch) / 256 -eq 0) {
-            $curBatchSize = $totalAddresses - $batch
+            PrintAverageConnectionTime $resolvedAddress 1433
         }
         else {
-            $curBatchSize = 256
-        }
-        
-        for ($i = 0; $i -lt $curBatchSize; $i++) {
-            $client = [TcpClient]::new()
-            $ipAddress = [IPAddress]::new($currentIP)
-            
-            $asyncHandle = $client.BeginConnect($ipAddress, 1433, $null, $null)
-            
-            $clients.Add([Tuple[TcpClient, IAsyncResult]]::new($client, $asyncHandle))
-
-            if (($i + 1) % 16777216 -eq 0)
-            {
-                $currentIP[0]++;
-                $currentIP[1] = $currentIP[2] = $currentIP[3] = 0;
-            }
-            elseif (($i + 1) % 65536 -eq 0)
-            {
-                $currentIP[1]++;
-                $currentIP[2] = $currentIP[3] = 0;
-            }
-            elseif (($i + 1) % 256 -eq 0)
-            {
-                $currentIP[2]++;
-                $currentIP[3] = 0;
-            }
-            else
-            {
-                $currentIP[3]++;
-            }
+            Write-Host ' -> TCP test FAILED' -ForegroundColor Red
+            Write-Host ' Please make sure you fix the connectivity from this machine to' $resolvedAddress':1433 to avoid issues!' -ForegroundColor Red
+            Write-Host ' See more about connectivity architecture at https://docs.microsoft.com/en-us/azure/sql-database/sql-database-managed-instance-connectivity-architecture' -ForegroundColor Red
+            Write-Host
         }
     }
+    else {
+        Write-Host 'Gateway connectivity tests:' -ForegroundColor Green
+        $currentIP = [byte[]]$SubnetCIDR.ToString().Split('/')[0].Split('.')
+        $mask = [int]$SubnetCIDR.ToString().Split('/')[1]
 
-    Start-Sleep 10
+        $clients = [List[Tuple[TcpClient, IAsyncResult]]]::new()
+        $successfulConnections = [List[IPAddress]]::new()
 
-    foreach ($client in $clients) {
-        if ($client.Item1.Connected) {
-            $successfulConnections.Add(([IPEndPoint]$client.Item1.Client.RemoteEndPoint).Address)
+        $totalAddresses = [int][Math]::Pow(2, 32 - $mask)
+
+        for ($batch = 0; $batch -lt $totalAddresses; $batch += 256) {
+            if (($totalAddresses - $batch) / 256 -eq 0) {
+                $curBatchSize = $totalAddresses - $batch
+            }
+            else {
+                $curBatchSize = 256
+            }
+
+            for ($i = 0; $i -lt $curBatchSize; $i++) {
+                $client = [TcpClient]::new()
+                $ipAddress = [IPAddress]::new($currentIP)
+
+                $asyncHandle = $client.BeginConnect($ipAddress, 1433, $null, $null)
+
+                $clients.Add([Tuple[TcpClient, IAsyncResult]]::new($client, $asyncHandle))
+
+                if (($i + 1) % 16777216 -eq 0) {
+                    $currentIP[0]++;
+                    $currentIP[1] = $currentIP[2] = $currentIP[3] = 0;
+                }
+                elseif (($i + 1) % 65536 -eq 0) {
+                    $currentIP[1]++;
+                    $currentIP[2] = $currentIP[3] = 0;
+                }
+                elseif (($i + 1) % 256 -eq 0) {
+                    $currentIP[2]++;
+                    $currentIP[3] = 0;
+                }
+                else {
+                    $currentIP[3]++;
+                }
+            }
         }
 
-        try {
-            $client.Item1.Close()
-            $client.Item1.EndConnect($client.Item2)
-        } catch {}
-    }
+        Start-Sleep 10
 
-    PrintAverageConnectionTime $successfulConnections 1433
+        foreach ($client in $clients) {
+            if ($client.Item1.Connected) {
+                $successfulConnections.Add(([IPEndPoint]$client.Item1.Client.RemoteEndPoint).Address)
+            }
+
+            try {
+                $client.Item1.Close()
+                $client.Item1.EndConnect($client.Item2)
+            }
+            catch { }
+        }
+
+        PrintAverageConnectionTime $successfulConnections 1433
+    }
 }
 
 function PrintAverageConnectionTime($addressList, $port) {
@@ -316,23 +330,24 @@ function PrintAverageConnectionTime($addressList, $port) {
                 $sum += $stopwatch.ElapsedMilliseconds
 
                 $numSuccessful++
-            } catch {
+            }
+            catch {
                 $numFailed++
             }
             $client.Dispose()
         }
-        
+
         $avg = 0
         if ($numSuccessful -ne 0) {
             $avg = $sum / $numSuccessful
         }
-        
+
         $ilb = ''
         if ((IsManagedInstance $Server) -and !(IsManagedInstancePublicEndpoint $Server) -and ($ipAddress -eq $resolvedAddress)) {
             $ilb = ' [ilb]'
         }
 
-        Write-Host ' IP Address: '$ipAddress' Port: '$port' Successful connections: '$numSuccessful' Failed connections: '$numFailed' Average response time: '$avg' ms '$ilb    
+        Write-Host ' IP Address: '$ipAddress' Port: '$port' Successful connections: '$numSuccessful' Failed connections: '$numFailed' Average response time: '$avg' ms '$ilb
     }
 }
 
@@ -366,7 +381,7 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
             tracert -h 10 $Server
         }
     }
-    
+
     if ($gateway.TRs -and $gateway.Cluster -and $gateway.Cluster.Length -gt 0 ) {
         Write-Host
         Write-Host 'Redirect Policy related tests:' -ForegroundColor Green
@@ -419,7 +434,7 @@ try {
         | Add-Member -PassThru NoteProperty baseType 'EventData' `
         | Add-Member -PassThru NoteProperty baseData (New-Object PSObject `
             | Add-Member -PassThru NoteProperty ver 2 `
-            | Add-Member -PassThru NoteProperty name '0.8'));
+            | Add-Member -PassThru NoteProperty name '0.9.1'));
 
     $body = $body | ConvertTo-JSON -depth 5;
     Invoke-WebInvoke-WebRequest -Uri 'https://dc.services.visualstudio.com/v2/track' -Method 'POST' -UseBasicParsing -body $body > $null
@@ -449,7 +464,7 @@ try {
     }
     try {
         Write-Host '******************************************' -ForegroundColor Green
-        Write-Host '  Azure SQL Connectivity Checker v0.9  ' -ForegroundColor Green
+        Write-Host '  Azure SQL Connectivity Checker v0.9.1  ' -ForegroundColor Green
         Write-Host '******************************************' -ForegroundColor Green
         Write-Host
 
@@ -484,7 +499,7 @@ try {
         }
         $resolvedAddress = $dnsResult.AddressList[0].IPAddressToString
         $dbPort = 1433
-        
+
         #Run connectivity tests
         Write-Host
         if (IsManagedInstance $Server) {
@@ -551,7 +566,7 @@ try {
                 Stop-Transcript | Out-Null
             }
             catch [System.InvalidOperationException] { }
-            
+
             FilterTranscript
         }
     }
