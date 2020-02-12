@@ -17,6 +17,11 @@ using namespace System.Diagnostics
 # Supports Single, Elastic Pools and Managed Instance (please provide FQDN, MI public endpoint is supported)
 $Server = ''
 $Database = ''
+#Subnet = '' #Managed Instance subnet CIDR range, in case of managed instance this parameter is mandatory
+
+## Optional parameters (default values will be used if ommited)
+$SendAnonymousUsageData = $true  #Set as $true (default) or $false
+
 
 # Parameter region when Invoke-Command -ScriptBlock is used
 $parameters = $args[0]
@@ -24,6 +29,9 @@ if ($null -ne $parameters) {
     $Server = $parameters['Server']
     $Database = $parameters['Database']
     $SubnetCIDR = $parameters['Subnet']
+    if ($null -ne $parameters['SendAnonymousUsageData']) {
+        $SendAnonymousUsageData = $parameters['SendAnonymousUsageData']
+    }
 }
 
 $Server = $Server.Trim()
@@ -224,8 +232,7 @@ function RunSqlMIPublicEndpointConnectivityTests($resolvedAddress) {
     }
     else {
         Write-Host ' -> TCP test FAILED' -ForegroundColor Red
-        Write-Host ' Please make sure you fix the connectivity from this machine to' $resolvedAddress':3342 to avoid issues!' -ForegroundColor Red
-        Write-Host
+        Write-Host ' Please make sure you fix the connectivity from this machine to' $resolvedAddress':3342' -ForegroundColor Red
     }
 }
 
@@ -234,7 +241,7 @@ function RunSqlMIVNetConnectivityTests($resolvedAddress) {
     if (($null -eq $SubnetCIDR) -or !($SubnetCIDR -match '\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/\d{1,2}\b')) {
 
         Write-Host ' Subnet range is not specified or has incorrect format, this will limit the tests, please provide a proper subnet range' -ForegroundColor Red
-        # Test 1433 on ILB anyway
+        Write-Host
         Write-Host 'Gateway connectivity tests:' -ForegroundColor Green
         $testResult = Test-NetConnection $resolvedAddress -Port 1433 -WarningAction SilentlyContinue
 
@@ -245,9 +252,11 @@ function RunSqlMIVNetConnectivityTests($resolvedAddress) {
         }
         else {
             Write-Host ' -> TCP test FAILED' -ForegroundColor Red
-            Write-Host ' Please make sure you fix the connectivity from this machine to' $resolvedAddress':1433 to avoid issues!' -ForegroundColor Red
+            Write-Host ' Please make sure you fix the connectivity from this machine to' $resolvedAddress':1433' -ForegroundColor Red
             Write-Host ' See more about connectivity architecture at https://docs.microsoft.com/en-us/azure/sql-database/sql-database-managed-instance-connectivity-architecture' -ForegroundColor Red
             Write-Host
+            Write-Host ' IP routes for interface:' $testResult.InterfaceAlias
+            Get-NetAdapter $testResult.InterfaceAlias | Get-NetRoute
         }
     }
     else {
@@ -347,7 +356,7 @@ function PrintAverageConnectionTime($addressList, $port) {
             $ilb = ' [ilb]'
         }
 
-        Write-Host ' IP Address: '$ipAddress' Port: '$port' Successful connections: '$numSuccessful' Failed connections: '$numFailed' Average response time: '$avg' ms '$ilb
+        Write-Host '  IP Address:'$ipAddress'  Port:'$port'  Successful connections:'$numSuccessful'  Failed connections:'$numFailed'  Average response time:'$avg' ms '$ilb
     }
 }
 
@@ -418,28 +427,30 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
     }
 }
 
-try {
-    #Despite computername and username will be used to calculate a hash string, this will keep you anonymous but allow us to identify multiple runs from the same user
-    $StringBuilderHash = [System.Text.StringBuilder]::new()
-    [System.Security.Cryptography.HashAlgorithm]::Create("MD5").ComputeHash([System.Text.Encoding]::UTF8.GetBytes($env:computername + $env:username)) | ForEach-Object {
-        [Void]$StringBuilderHash.Append($_.ToString("x2"))
+function SendAnonymousUsageData {
+    try {
+        #Despite computername and username will be used to calculate a hash string, this will keep you anonymous but allow us to identify multiple runs from the same user
+        $StringBuilderHash = [System.Text.StringBuilder]::new()
+        [System.Security.Cryptography.HashAlgorithm]::Create("MD5").ComputeHash([System.Text.Encoding]::UTF8.GetBytes($env:computername + $env:username)) | ForEach-Object {
+            [Void]$StringBuilderHash.Append($_.ToString("x2"))
+        }
+
+        $body = New-Object PSObject `
+        | Add-Member -PassThru NoteProperty name 'Microsoft.ApplicationInsights.Event' `
+        | Add-Member -PassThru NoteProperty time $([System.dateTime]::UtcNow.ToString('o')) `
+        | Add-Member -PassThru NoteProperty iKey "a75c333b-14cb-4906-aab1-036b31f0ce8a" `
+        | Add-Member -PassThru NoteProperty tags (New-Object PSObject | Add-Member -PassThru NoteProperty 'ai.user.id' $StringBuilderHash.ToString()) `
+        | Add-Member -PassThru NoteProperty data (New-Object PSObject `
+            | Add-Member -PassThru NoteProperty baseType 'EventData' `
+            | Add-Member -PassThru NoteProperty baseData (New-Object PSObject `
+                | Add-Member -PassThru NoteProperty ver 2 `
+                | Add-Member -PassThru NoteProperty name '0.9.2'));
+
+        $body = $body | ConvertTo-JSON -depth 5;
+        Invoke-WebInvoke-WebRequest -Uri 'https://dc.services.visualstudio.com/v2/track' -Method 'POST' -UseBasicParsing -body $body > $null
     }
-
-    $body = New-Object PSObject `
-    | Add-Member -PassThru NoteProperty name 'Microsoft.ApplicationInsights.Event' `
-    | Add-Member -PassThru NoteProperty time $([System.dateTime]::UtcNow.ToString('o')) `
-    | Add-Member -PassThru NoteProperty iKey "a75c333b-14cb-4906-aab1-036b31f0ce8a" `
-    | Add-Member -PassThru NoteProperty tags (New-Object PSObject | Add-Member -PassThru NoteProperty 'ai.user.id' $StringBuilderHash.ToString()) `
-    | Add-Member -PassThru NoteProperty data (New-Object PSObject `
-        | Add-Member -PassThru NoteProperty baseType 'EventData' `
-        | Add-Member -PassThru NoteProperty baseData (New-Object PSObject `
-            | Add-Member -PassThru NoteProperty ver 2 `
-            | Add-Member -PassThru NoteProperty name '0.9.1'));
-
-    $body = $body | ConvertTo-JSON -depth 5;
-    Invoke-WebInvoke-WebRequest -Uri 'https://dc.services.visualstudio.com/v2/track' -Method 'POST' -UseBasicParsing -body $body > $null
+    catch { }
 }
-catch { }
 
 $ProgressPreference = "SilentlyContinue";
 
@@ -462,14 +473,21 @@ try {
         $canWriteFiles = $false
         Write-Host Warning: Cannot write log file -ForegroundColor Yellow
     }
+
+    if ($SendAnonymousUsageData) {
+        SendAnonymousUsageData
+    }
+
     try {
         Write-Host '******************************************' -ForegroundColor Green
-        Write-Host '  Azure SQL Connectivity Checker v0.9.1  ' -ForegroundColor Green
+        Write-Host '  Azure SQL Connectivity Checker v0.9.2  ' -ForegroundColor Green
         Write-Host '******************************************' -ForegroundColor Green
         Write-Host
 
         if (!$Server -or $Server.Length -eq 0) {
             Write-Host 'The $Server parameter is empty' -ForegroundColor Red -BackgroundColor Yellow
+            Write-Host 'Please see more details about how to use this tool at https://github.com/Azure/SQL-Connectivity-Checker' -ForegroundColor Red -BackgroundColor Yellow
+            Write-Host
             throw
         }
 
