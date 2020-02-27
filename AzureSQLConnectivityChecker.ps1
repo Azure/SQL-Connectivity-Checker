@@ -27,6 +27,8 @@ $SendAnonymousUsageData = $true  #Set as $true (default) or $false
 $parameters = $args[0]
 if ($null -ne $parameters) {
     $Server = $parameters['Server']
+    $User = $parameters['User']
+    $Password = $parameters['Password']
     $Database = $parameters['Database']
     $SubnetCIDR = $parameters['Subnet']
     if ($null -ne $parameters['SendAnonymousUsageData']) {
@@ -322,6 +324,7 @@ function RunSqlMIVNetConnectivityTests($resolvedAddress) {
 }
 
 function PrintAverageConnectionTime($addressList, $port) {
+    Write-Host 'Printing average connection times for 5 connection attempts:' -ForegroundColor Green
     $stopwatch = [StopWatch]::new()
 
     foreach ($ipAddress in $addressList) {
@@ -424,6 +427,60 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
             }
         }
         Write-Host ' Please check more about Azure SQL Connectivity Architecture at https://docs.microsoft.com/en-us/azure/sql-database/sql-database-connectivity-architecture' -ForegroundColor Yellow
+    }
+}
+
+function RunConnectivityPolicyTests($port) {
+    Write-Host
+    Write-Host 'Advanced connectivity policy tests:' -ForegroundColor Green
+
+    if ($null -eq $User -or $null -eq $Password -or $null -eq $Database) {
+        Write-Host ' User, Password and Database parameters must be specified in order to run advanced connectivity policy tests!' -ForegroundColor Red
+        return
+    }
+
+    try {
+        #DownloadModule
+        $path = 'C:\Users\v-micurc\source\repos\Azure\SQL-Connectivity-Checker\TDSClient\TDSClient\bin\Release\netstandard2.0\TDSClient.dll'
+        Import-Module $path
+
+        $log = [System.IO.File]::CreateText($env:TEMP + '\AzureSQLConnectivityCheckerConPolicyLog.txt')
+
+        [TDSClient.TDS.Utilities.LoggingUtilities]::SetLog($log)
+        try {
+            $tdsClient = [TDSClient.TDS.Client.TDSSQLTestClient]::new($Server, $port, $User, $Password, $Database)
+            $tdsClient.Connect()
+            $tdsClient.Disconnect()
+        } catch {
+            [TDSClient.TDS.Utilities.LoggingUtilities]::WriteLog('Fatal failure: ' + $_)
+        } finally {
+            $log.Close()
+            [TDSClient.TDS.Utilities.LoggingUtilities]::ClearLog()
+        }
+
+        $result = $([System.IO.File]::ReadAllText($env:TEMP + '\AzureSQLConnectivityCheckerConPolicyLog.txt'))
+        Write-Host $result
+
+        $match = [Regex]::Match($result, "Routing to: (.*)\.")
+        if ($match.Success) {
+            $array = $match.Groups[1].Value -split ':'
+            $server = $array[0]
+            $port = $array[1]
+            Write-Host 'Redirect connectivity policy has been detected, running additional tests:' -ForegroundColor Green
+            ValidateDNS $server
+            Write-Host
+            PrintAverageConnectionTime $server $port
+        } else {
+            Write-Host ' Proxy connection policy detected!' -ForegroundColor Green
+        }
+
+
+        [System.IO.File]::Delete($env:TEMP + '\AzureSQLConnectivityCheckerConPolicyLog.txt')
+        
+    } catch {
+        Write-Host $_
+    } finally {
+        Remove-Module 'TDSClient'
     }
 }
 
@@ -532,6 +589,9 @@ try {
         else {
             RunSqlDBConnectivityTests $resolvedAddress
         }
+
+        #Test connection policy
+        RunConnectivityPolicyTests $dbPort
 
         #Test master database
         TestConnectionToDatabase $Server $dbPort 'master'
