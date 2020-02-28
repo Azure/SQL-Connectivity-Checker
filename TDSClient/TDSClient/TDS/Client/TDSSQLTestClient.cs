@@ -114,6 +114,7 @@ namespace TDSClient.TDS.Client
                         {
                             LoggingUtilities.WriteLog($" Client recieved EnvChange routing token, client is being routed.");
                             Server = envChangeToken.Values["AlternateServer"];
+                            ServerName = Server;
                             Port = int.Parse(envChangeToken.Values["ProtocolProperty"]);
                             Reconnect = true;
                         }
