@@ -456,7 +456,8 @@ function RunConnectivityPolicyTests($port) {
 
         #ToDo change branch to master once this is merged into master
         Invoke-WebRequest -Uri 'https://github.com/Azure/SQL-Connectivity-Checker/raw/pr/2/TDSClient.dll' -OutFile "$env:TEMP\AzureSQLConnectivityChecker\TDSClient.dll"
-        Import-Module "$env:TEMP\AzureSQLConnectivityChecker\TDSClient.dll"
+        $assembly = [System.IO.File]::ReadAllBytes("$env:TEMP\AzureSQLConnectivityChecker\TDSClient.dll")
+        [System.Reflection.Assembly]::Load($assembly) 
 
         $log = [System.IO.File]::CreateText($env:TEMP + '\AzureSQLConnectivityChecker\ConnectivityPolicyLog.txt')
 
@@ -500,8 +501,6 @@ function RunConnectivityPolicyTests($port) {
     } catch {
         Write-Host 'Running advanced connectivity policy tests failed!' -ForegroundColor Red
         Write-Host $_
-    } finally {
-        Remove-Module 'TDSClient'
     }
 }
 
