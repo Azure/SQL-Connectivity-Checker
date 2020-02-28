@@ -455,6 +455,10 @@ function RunConnectivityPolicyTests($port) {
         }
 
         #ToDo change branch to master once this is merged into master
+        if (Test-Path "$env:TEMP\AzureSQLConnectivityChecker\TDSClient.dll") {
+            Remove-Item $env:TEMP\AzureSQLConnectivityChecker\TDSClient.dll
+        }
+
         Invoke-WebRequest -Uri 'https://github.com/Azure/SQL-Connectivity-Checker/raw/pr/2/TDSClient.dll' -OutFile "$env:TEMP\AzureSQLConnectivityChecker\TDSClient.dll"
         $assembly = [System.IO.File]::ReadAllBytes("$env:TEMP\AzureSQLConnectivityChecker\TDSClient.dll")
         [System.Reflection.Assembly]::Load($assembly) | Out-Null
