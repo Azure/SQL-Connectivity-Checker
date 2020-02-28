@@ -444,6 +444,10 @@ function RunConnectivityPolicyTests($port) {
     }
 
     try {
+        if (-Not (Test-Path "$env:TEMP\AzureSQLConnectivityChecker\")) {
+            New-Item "$env:TEMP\AzureSQLConnectivityChecker\" -ItemType directory | Out-Null
+        }
+
         #ToDo change branch to master once this is merged into master
         Invoke-WebRequest -Uri 'https://github.com/Azure/SQL-Connectivity-Checker/blob/pr/2/TDSClient.dll' -OutFile "$env:TEMP\AzureSQLConnectivityChecker\TDSClient.dll"
         Import-Module "$env:TEMP\AzureSQLConnectivityChecker\TDSClient.dll"
