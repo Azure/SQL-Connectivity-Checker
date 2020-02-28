@@ -21,6 +21,7 @@ $Database = ''
 
 ## Optional parameters (default values will be used if ommited)
 $SendAnonymousUsageData = $true  #Set as $true (default) or $false
+$RunAdvancedConnectivityPolicyTests = $true
 
 
 # Parameter region when Invoke-Command -ScriptBlock is used
@@ -33,6 +34,9 @@ if ($null -ne $parameters) {
     $SubnetCIDR = $parameters['Subnet']
     if ($null -ne $parameters['SendAnonymousUsageData']) {
         $SendAnonymousUsageData = $parameters['SendAnonymousUsageData']
+    }
+    if ($null -ne $parameters['RunAdvancedConnectivityPolicyTests']) {
+        $RunAdvancedConnectivityPolicyTests = $parameters['RunAdvancedConnectivityPolicyTests']
     }
 }
 
@@ -440,11 +444,11 @@ function RunConnectivityPolicyTests($port) {
     }
 
     try {
-        #DownloadModule
-        $path = 'C:\Users\v-micurc\source\repos\Azure\SQL-Connectivity-Checker\TDSClient\TDSClient\bin\Release\netstandard2.0\TDSClient.dll'
-        Import-Module $path
+        #ToDo change branch to master once this is merged into master
+        Invoke-WebRequest -Uri 'https://github.com/Azure/SQL-Connectivity-Checker/blob/pr/2/TDSClient.dll' -OutFile "$env:TEMP\AzureSQLConnectivityChecker\TDSClient.dll"
+        Import-Module "$env:TEMP\AzureSQLConnectivityChecker\TDSClient.dll"
 
-        $log = [System.IO.File]::CreateText($env:TEMP + '\AzureSQLConnectivityCheckerConPolicyLog.txt')
+        $log = [System.IO.File]::CreateText($env:TEMP + '\AzureSQLConnectivityChecker\ConnectivityPolicyLog.txt')
 
         [TDSClient.TDS.Utilities.LoggingUtilities]::SetLog($log)
         try {
@@ -458,7 +462,7 @@ function RunConnectivityPolicyTests($port) {
             [TDSClient.TDS.Utilities.LoggingUtilities]::ClearLog()
         }
 
-        $result = $([System.IO.File]::ReadAllText($env:TEMP + '\AzureSQLConnectivityCheckerConPolicyLog.txt'))
+        $result = $([System.IO.File]::ReadAllText($env:TEMP + '\AzureSQLConnectivityChecker\ConnectivityPolicyLog.txt'))
         Write-Host $result
 
         $match = [Regex]::Match($result, "Routing to: (.*)\.")
@@ -468,16 +472,23 @@ function RunConnectivityPolicyTests($port) {
             $port = $array[1]
             Write-Host 'Redirect connectivity policy has been detected, running additional tests:' -ForegroundColor Green
             ValidateDNS $server
+            
+            try {
+                $dnsResult = [System.Net.DNS]::GetHostEntry($Server)
+            }
+            catch {
+                Write-Host ' ERROR: Name resolution of' $Server 'failed' -ForegroundColor Red
+                throw
+            }
+            $resolvedAddress = $dnsResult.AddressList[0].IPAddressToString
+            
             Write-Host
-            PrintAverageConnectionTime $server $port
+            PrintAverageConnectionTime $resolvedAddress $port
         } else {
             Write-Host ' Proxy connection policy detected!' -ForegroundColor Green
         }
-
-
-        [System.IO.File]::Delete($env:TEMP + '\AzureSQLConnectivityCheckerConPolicyLog.txt')
-        
     } catch {
+        Write-Host 'Running advanced connectivity policy tests failed!' -ForegroundColor Red
         Write-Host $_
     } finally {
         Remove-Module 'TDSClient'
@@ -591,7 +602,9 @@ try {
         }
 
         #Test connection policy
-        RunConnectivityPolicyTests $dbPort
+        if ($RunAdvancedConnectivityPolicyTests) {
+            RunConnectivityPolicyTests $dbPort
+        }
 
         #Test master database
         TestConnectionToDatabase $Server $dbPort 'master'

@@ -12,15 +12,18 @@ This PowerShell script will run some connectivity checks from this machine to th
 ```powershell
 $parameters = @{
     Server = '.database.windows.net'
-    #Subnet = '' #Managed Instance subnet CIDR range, in case of managed instance this parameter is mandatory
+    #Subnet = '' #Managed Instance subnet CIDR range
+    #User = ''
+    #Password = ''
     #Database = ''
 
     ## Optional parameters (default values will be used if ommited)
     SendAnonymousUsageData = $true  #Set as $true (default) or $false
+    RunAdvancedConnectivityPolicyTests = $true #Set as $true (default) or $false, this will download library needed for running advanced connectivity policy tests
 }
  
 $ProgressPreference = "SilentlyContinue";
-$scriptUrlBase = 'raw.githubusercontent.com/Azure/SQL-Connectivity-Checker/master'
+$scriptUrlBase = 'raw.githubusercontent.com/Azure/SQL-Connectivity-Checker/pr/2'
 Invoke-Command -ScriptBlock ([Scriptblock]::Create((iwr ($scriptUrlBase+'/AzureSQLConnectivityChecker.ps1')).Content)) -ArgumentList $parameters
 #end
 ```
