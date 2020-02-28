@@ -449,7 +449,7 @@ function RunConnectivityPolicyTests($port) {
         }
 
         #ToDo change branch to master once this is merged into master
-        Invoke-WebRequest -Uri 'https://github.com/Azure/SQL-Connectivity-Checker/blob/pr/2/TDSClient.dll' -OutFile "$env:TEMP\AzureSQLConnectivityChecker\TDSClient.dll"
+        Invoke-WebRequest -Uri 'https://github.com/Azure/SQL-Connectivity-Checker/raw/pr/2/TDSClient.dll' -OutFile "$env:TEMP\AzureSQLConnectivityChecker\TDSClient.dll"
         Import-Module "$env:TEMP\AzureSQLConnectivityChecker\TDSClient.dll"
 
         $log = [System.IO.File]::CreateText($env:TEMP + '\AzureSQLConnectivityChecker\ConnectivityPolicyLog.txt')
