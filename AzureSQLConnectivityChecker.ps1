@@ -449,67 +449,15 @@ function RunConnectivityPolicyTests($port) {
         return
     }
 
-    
-    $job = Start-Job {
-
-        try {
-            if (-Not (Test-Path "$env:TEMP\AzureSQLConnectivityChecker\")) {
-                New-Item "$env:TEMP\AzureSQLConnectivityChecker\" -ItemType directory | Out-Null
-            }
-
-            #ToDo change branch to master once this is merged into master
-            if (Test-Path "$env:TEMP\AzureSQLConnectivityChecker\TDSClient.dll") {
-                Remove-Item $env:TEMP\AzureSQLConnectivityChecker\TDSClient.dll
-            }
-
-            Invoke-WebRequest -Uri 'https://github.com/Azure/SQL-Connectivity-Checker/raw/pr/2/TDSClient.dll' -OutFile "$env:TEMP\AzureSQLConnectivityChecker\TDSClient.dll"
-            $assembly = [System.IO.File]::ReadAllBytes("$env:TEMP\AzureSQLConnectivityChecker\TDSClient.dll")
-            [System.Reflection.Assembly]::Load($assembly) | Out-Null
-
-            $log = [System.IO.File]::CreateText($env:TEMP + '\AzureSQLConnectivityChecker\ConnectivityPolicyLog.txt')
-
-            [TDSClient.TDS.Utilities.LoggingUtilities]::SetLog($log)
-            try {
-                $tdsClient = [TDSClient.TDS.Client.TDSSQLTestClient]::new($Server, $port, $User, $Password, $Database)
-                $tdsClient.Connect()
-                $tdsClient.Disconnect()
-            } catch {
-                [TDSClient.TDS.Utilities.LoggingUtilities]::WriteLog('Failure: ' + $_)
-            } finally {
-                $log.Close()
-                [TDSClient.TDS.Utilities.LoggingUtilities]::ClearLog()
-            }
-
-            $result = $([System.IO.File]::ReadAllText($env:TEMP + '\AzureSQLConnectivityChecker\ConnectivityPolicyLog.txt'))
-            Write-Host $result
-
-            $match = [Regex]::Match($result, "Routing to: (.*)\.")
-            if ($match.Success) {
-                $array = $match.Groups[1].Value -split ':'
-                $server = $array[0]
-                $port = $array[1]
-                Write-Host 'Redirect connectivity policy has been detected, running additional tests:' -ForegroundColor Green
-                ValidateDNS $server
-
-                try {
-                    $dnsResult = [System.Net.DNS]::GetHostEntry($Server)
-                }
-                catch {
-                    Write-Host ' ERROR: Name resolution of' $Server 'failed' -ForegroundColor Red
-                    throw
-                }
-                $resolvedAddress = $dnsResult.AddressList[0].IPAddressToString
-
-                Write-Host
-                PrintAverageConnectionTime $resolvedAddress $port
-            } else {
-                Write-Host ' Proxy connection policy detected!' -ForegroundColor Green
-            }
-        } catch {
-            Write-Host 'Running advanced connectivity policy tests failed!' -ForegroundColor Red
-            Write-Host $_
-        }
+    $jobParameters = @{
+        Server = $Server
+        Database = $Database
+        Port = $port
+        User = $User
+        Password = $Password
     }
+    
+    $job = Start-Job -ArgumentList $jobParameters -FilePath '../AdvancedConnectivityPolicyTests.ps1'
 
     Wait-Job $job | Out-Null
     Receive-Job -Job $job
