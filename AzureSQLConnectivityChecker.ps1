@@ -442,6 +442,11 @@ function RunConnectivityPolicyTests($port) {
         Write-Host ' User, Password and Database parameters must be specified in order to run advanced connectivity policy tests!' -ForegroundColor Red
         return
     }
+    
+    $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+    if (!$currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+        Write-Host ' Powershell must be run as an administrator in order to run advanced connectivity policy tests!' -ForegroundColor Yellow
+    }
 
     try {
         if (-Not (Test-Path "$env:TEMP\AzureSQLConnectivityChecker\")) {
