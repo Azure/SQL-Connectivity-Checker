@@ -82,7 +82,7 @@ try {
     Invoke-WebRequest -Uri 'https://github.com/Azure/SQL-Connectivity-Checker/raw/pr/2/TDSClient.dll' -OutFile "$env:TEMP\AzureSQLConnectivityChecker\TDSClient.dll"
 
     $assembly = [System.IO.File]::ReadAllBytes("$env:TEMP\AzureSQLConnectivityChecker\TDSClient.dll")
-    [System.Reflection.Assembly]::Load($assembly)
+    [System.Reflection.Assembly]::Load($assembly) | Out-Null
 
     $log = [System.IO.File]::CreateText($env:TEMP + '\AzureSQLConnectivityChecker\ConnectivityPolicyLog.txt')
     [TDSClient.TDS.Utilities.LoggingUtilities]::SetVerboseLog($log)
