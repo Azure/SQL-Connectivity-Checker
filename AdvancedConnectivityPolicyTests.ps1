@@ -80,9 +80,10 @@ $Database = $parameters['Database']
 try {
     #ToDo change branch to master once this is merged into master
     Invoke-WebRequest -Uri 'https://github.com/Azure/SQL-Connectivity-Checker/raw/pr/2/TDSClient.dll' -OutFile "$env:TEMP\AzureSQLConnectivityChecker\TDSClient.dll"
-    
-    Import-Module "$env:TEMP\AzureSQLConnectivityChecker\TDSClient.dll"
-    
+
+    $assembly = [System.IO.File]::ReadAllBytes("$env:TEMP\AzureSQLConnectivityChecker\TDSClient.dll")
+    [System.Reflection.Assembly]::Load($assembly)
+
     $log = [System.IO.File]::CreateText($env:TEMP + '\AzureSQLConnectivityChecker\ConnectivityPolicyLog.txt')
     [TDSClient.TDS.Utilities.LoggingUtilities]::SetVerboseLog($log)
     try {
@@ -95,15 +96,20 @@ try {
         $log.Close()
         [TDSClient.TDS.Utilities.LoggingUtilities]::ClearVerboseLog()
     }
+
     $result = $([System.IO.File]::ReadAllText($env:TEMP + '\AzureSQLConnectivityChecker\ConnectivityPolicyLog.txt'))
+
     Write-Host $result
+
     $match = [Regex]::Match($result, "Routing to: (.*)\.")
     if ($match.Success) {
         $array = $match.Groups[1].Value -split ':'
         $server = $array[0]
         $port = $array[1]
+
         Write-Host 'Redirect connectivity policy has been detected, running additional tests:' -ForegroundColor Green
         ValidateDNS $server
+
         try {
             $dnsResult = [System.Net.DNS]::GetHostEntry($Server)
         }
@@ -111,7 +117,9 @@ try {
             Write-Host ' ERROR: Name resolution of' $Server 'failed' -ForegroundColor Red
             throw
         }
+
         $resolvedAddress = $dnsResult.AddressList[0].IPAddressToString
+
         Write-Host
         PrintAverageConnectionTime $resolvedAddress $port
     } else {

@@ -456,10 +456,12 @@ function RunConnectivityPolicyTests($port) {
         User = $User
         Password = $Password
     }
-    
-    if (-Not (Test-Path "$env:TEMP\AzureSQLConnectivityChecker\")) {
-        New-Item "$env:TEMP\AzureSQLConnectivityChecker\" -ItemType directory | Out-Null
+
+    if(Test-Path "$env:TEMP\AzureSQLConnectivityChecker\") {
+        Remove-Item $env:TEMP\AzureSQLConnectivityChecker -Recurse -Force
     }
+    
+    New-Item "$env:TEMP\AzureSQLConnectivityChecker\" -ItemType directory | Out-Null
 
     Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/Azure/SQL-Connectivity-Checker/pr/2/AdvancedConnectivityPolicyTests.ps1' -OutFile "$env:TEMP\AzureSQLConnectivityChecker\AdvancedConnectivityPolicyTests.ps1"
     
@@ -468,7 +470,7 @@ function RunConnectivityPolicyTests($port) {
     Wait-Job $job | Out-Null
     Receive-Job -Job $job
 
-    Remove-Item $env:TEMP\AzureSQLConnectivityChecker -Recurse
+    Remove-Item $env:TEMP\AzureSQLConnectivityChecker -Recurse -Force
 }
 
 function SendAnonymousUsageData {
