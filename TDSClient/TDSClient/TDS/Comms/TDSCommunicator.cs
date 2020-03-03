@@ -9,6 +9,8 @@ using TDSClient.TDS.Tokens;
 using TDSClient.TDS.Interfaces;
 using TDSClient.TDS.Utilities;
 using System.Security.Authentication;
+using System.Runtime.CompilerServices;
+using System.Security.Cryptography.X509Certificates;
 
 namespace TDSClient.TDS.Comms
 {
@@ -26,10 +28,16 @@ namespace TDSClient.TDS.Comms
             InnerStream = InnerTdsStream;
         }
 
+        public static bool ValidateServerCertificate(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
+        {
+            // Always trusting remote certificates
+            return true;
+        }
+
         public void EnableEncryption(string Server)
         {
             var tempStream0 = new TDSTemporaryStream(InnerTdsStream);
-            var tempStream1 = new SslStream(tempStream0, true);
+            var tempStream1 = new SslStream(tempStream0, true, ValidateServerCertificate);
 
             tempStream1.AuthenticateAsClient(Server);
 
