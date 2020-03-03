@@ -39,7 +39,7 @@ namespace TDSClient.TDS.Comms
             var tempStream0 = new TDSTemporaryStream(InnerTdsStream);
             var tempStream1 = new SslStream(tempStream0, true, ValidateServerCertificate);
 
-            tempStream1.AuthenticateAsClient(Server);
+            tempStream1.AuthenticateAsClient(Server, new X509CertificateCollection(), SslProtocols.None, true);
 
             tempStream0.InnerStream = InnerTdsStream.InnerStream;
             InnerTdsStream.InnerStream = tempStream1;
