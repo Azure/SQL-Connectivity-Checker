@@ -6,6 +6,7 @@ using TDSClient.TDS.Comms;
 using TDSClient.TDS.Login7;
 using TDSClient.TDS.Tokens;
 using TDSClient.TDS.Utilities;
+using System.Security.Authentication;
 
 namespace TDSClient.TDS.Client
 {
@@ -22,9 +23,11 @@ namespace TDSClient.TDS.Client
         public TcpClient Client { get; private set; }
         public TDSClientVersion Version { get; private set; }
 
+        public SslProtocols EncryptionProtocol { get; private set; }
+
         private bool Reconnect;
 
-        public TDSSQLTestClient(string server, int port, string userID, string password, string database)
+        public TDSSQLTestClient(string server, int port, string userID, string password, string database, SslProtocols encryptionProtocol = SslProtocols.Tls12)
         {
             if (string.IsNullOrEmpty(server) || string.IsNullOrEmpty(userID) || string.IsNullOrEmpty(password) || string.IsNullOrEmpty(database))
             {
@@ -39,6 +42,7 @@ namespace TDSClient.TDS.Client
             UserID = userID;
             Password = password;
             Database = database;
+            EncryptionProtocol = encryptionProtocol;
 
             LoggingUtilities.WriteLog($" Instantiating TDSSQLTestClient with the following parameters:");
 
@@ -155,7 +159,7 @@ namespace TDSClient.TDS.Client
                 if (response.Options.Exists(opt => opt.Type == TDSPreLoginOptionTokenType.Encryption) && response.Encryption == TDSEncryptionOption.EncryptReq)
                 {
                     LoggingUtilities.WriteLog($" Server requires encryption, enabling encryption.");
-                    TdsCommunicator.EnableEncryption(Server);
+                    TdsCommunicator.EnableEncryption(Server, EncryptionProtocol);
                     LoggingUtilities.WriteLog($" Encryption enabled.");
                 }
                 if (response.Options.Exists(opt => opt.Type == TDSPreLoginOptionTokenType.FedAuthRequired) && response.FedAuthRequired == true)

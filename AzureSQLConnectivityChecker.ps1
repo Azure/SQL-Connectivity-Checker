@@ -38,6 +38,7 @@ if ($null -ne $parameters) {
     if ($null -ne $parameters['RunAdvancedConnectivityPolicyTests']) {
         $RunAdvancedConnectivityPolicyTests = $parameters['RunAdvancedConnectivityPolicyTests']
     }
+    $EncryptionProtocol = $parameters['EncryptionProtocol']
 }
 
 $Server = $Server.Trim()
@@ -455,6 +456,7 @@ function RunConnectivityPolicyTests($port) {
         Port = $port
         User = $User
         Password = $Password
+        EncryptionProtocol = $EncryptionProtocol
     }
 
     if(Test-Path "$env:TEMP\AzureSQLConnectivityChecker\") {

@@ -38,12 +38,12 @@ namespace TDSClient.TDS.Comms
             return false;
         }
 
-        public void EnableEncryption(string Server)
+        public void EnableEncryption(string Server, SslProtocols encryptionProtocol)
         {
             var tempStream0 = new TDSTemporaryStream(InnerTdsStream);
             var tempStream1 = new SslStream(tempStream0, true, ValidateServerCertificate);
 
-            tempStream1.AuthenticateAsClient(Server, new X509CertificateCollection(), SslProtocols.Tls12 | SslProtocols.Tls11 | SslProtocols.Tls, true);
+            tempStream1.AuthenticateAsClient(Server, new X509CertificateCollection(), encryptionProtocol, true);
 
             tempStream0.InnerStream = InnerTdsStream.InnerStream;
             InnerTdsStream.InnerStream = tempStream1;

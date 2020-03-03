@@ -12,10 +12,11 @@ This PowerShell script will run some connectivity checks from this machine to th
 ```powershell
 $parameters = @{
     Server = '.database.windows.net'
-    #Subnet = '' #Managed Instance subnet CIDR range
+    #Subnet = '' #Managed Instance subnet CIDR range, optional parameter
     #User = ''
     #Password = ''
     #Database = ''
+    #EncryptionProtocol = '' #Supported values: 'Tls 1.0', 'Tls 1.1', 'Tls 1.2', 'Tls 1.3' Defaults to: 'Tls 1.2'
 
     ## Optional parameters (default values will be used if ommited)
     SendAnonymousUsageData = $true  #Set as $true (default) or $false

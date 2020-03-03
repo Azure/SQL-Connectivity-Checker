@@ -76,6 +76,7 @@ $Port = $parameters['Port']
 $User = $parameters['User']
 $Password = $parameters['Password']
 $Database = $parameters['Database']
+$EncryptionProtocol = $parameters['EncryptionProtocol']
 
 try {
     #ToDo change branch to master once this is merged into master
@@ -87,7 +88,28 @@ try {
     $log = [System.IO.File]::CreateText($env:TEMP + '\AzureSQLConnectivityChecker\ConnectivityPolicyLog.txt')
     [TDSClient.TDS.Utilities.LoggingUtilities]::SetVerboseLog($log)
     try {
-        $tdsClient = [TDSClient.TDS.Client.TDSSQLTestClient]::new($Server, $Port, $User, $Password, $Database)
+        switch($EncryptionProtocol) {
+            'Tls 1.0' {
+                $encryption = [System.Security.Authentication.SslProtocols]::Tls
+                break
+            }
+            'Tls 1.1' {
+                $encryption = [System.Security.Authentication.SslProtocols]::Tls11
+                break
+            }
+            'Tls 1.2' {
+                $encryption = [System.Security.Authentication.SslProtocols]::Tls12
+                break
+            }
+            'Tls 1.3' {
+                $encryption = [System.Security.Authentication.SslProtocols]::Tls13
+                break
+            }
+            default {
+                $encryption = [System.Security.Authentication.SslProtocols]::Tls12
+            }
+        }
+        $tdsClient = [TDSClient.TDS.Client.TDSSQLTestClient]::new($Server, $Port, $User, $Password, $Database, $encryption)
         $tdsClient.Connect()
         $tdsClient.Disconnect()
     } catch {
