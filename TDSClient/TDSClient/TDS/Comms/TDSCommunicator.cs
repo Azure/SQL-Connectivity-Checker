@@ -7,6 +7,8 @@ using TDSClient.TDS.PreLogin;
 using TDSClient.TDS.Login7;
 using TDSClient.TDS.Tokens;
 using TDSClient.TDS.Interfaces;
+using TDSClient.TDS.Utilities;
+using System.Security.Authentication;
 
 namespace TDSClient.TDS.Comms
 {
@@ -33,6 +35,15 @@ namespace TDSClient.TDS.Comms
 
             tempStream0.InnerStream = InnerTdsStream.InnerStream;
             InnerTdsStream.InnerStream = tempStream1;
+
+            LoggingUtilities.WriteLog($" Certificate Revocation List Checked: {tempStream1.CheckCertRevocationStatus}");
+            LoggingUtilities.WriteLog($" Cipher Algorithm: {tempStream1.CipherAlgorithm}");
+            LoggingUtilities.WriteLog($" Cipher Strength: {tempStream1.CipherStrength}");
+            LoggingUtilities.WriteLog($" Hash Algorithm: {tempStream1.HashAlgorithm}");
+            LoggingUtilities.WriteLog($" Hash Strength: {tempStream1.HashStrength}");
+            LoggingUtilities.WriteLog($" Key Exchange Algorithm: {tempStream1.KeyExchangeAlgorithm}");
+            LoggingUtilities.WriteLog($" Key Exchange Strength: {tempStream1.KeyExchangeStrength}");
+            LoggingUtilities.WriteLog($" Ssl Protocol: {tempStream1.SslProtocol}");
         }
 
         public ITDSPacketData ReceiveTDSMessage()
