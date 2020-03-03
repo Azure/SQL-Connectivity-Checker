@@ -30,8 +30,12 @@ namespace TDSClient.TDS.Comms
 
         public static bool ValidateServerCertificate(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
-            // Always trusting remote certificates
-            return true;
+            if (sslPolicyErrors == SslPolicyErrors.None)
+                return true;
+
+            LoggingUtilities.WriteLog($"Certificate error: {sslPolicyErrors}");
+
+            return false;
         }
 
         public void EnableEncryption(string Server)
@@ -39,7 +43,7 @@ namespace TDSClient.TDS.Comms
             var tempStream0 = new TDSTemporaryStream(InnerTdsStream);
             var tempStream1 = new SslStream(tempStream0, true, ValidateServerCertificate);
 
-            tempStream1.AuthenticateAsClient(Server);
+            tempStream1.AuthenticateAsClient(Server, new X509CertificateCollection(), SslProtocols.Tls12 | SslProtocols.Tls11 | SslProtocols.Tls, true);
 
             tempStream0.InnerStream = InnerTdsStream.InnerStream;
             InnerTdsStream.InnerStream = tempStream1;
@@ -62,7 +66,6 @@ namespace TDSClient.TDS.Comms
             {
                 LoggingUtilities.WriteLog("  Local certificate is null.");
             }
-            // Display the properties of the client's certificate.
             X509Certificate remoteCertificate = tempStream1.RemoteCertificate;
             if (tempStream1.RemoteCertificate != null)
             {
