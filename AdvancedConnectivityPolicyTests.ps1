@@ -101,10 +101,11 @@ try {
                 $encryption = [System.Security.Authentication.SslProtocols]::Tls12
                 break
             }
-            'Tls 1.3' {
-                $encryption = [System.Security.Authentication.SslProtocols]::Tls13
-                break
-            }
+            # Not supported
+            #'Tls 1.3' {
+            #    $encryption = [System.Security.Authentication.SslProtocols]::Tls13
+            #    break
+            #}
             default {
                 $encryption = [System.Security.Authentication.SslProtocols]::Tls12
             }

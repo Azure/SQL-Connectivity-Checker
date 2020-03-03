@@ -16,7 +16,7 @@ $parameters = @{
     #User = ''
     #Password = ''
     #Database = ''
-    #EncryptionProtocol = '' #Supported values: 'Tls 1.0', 'Tls 1.1', 'Tls 1.2', 'Tls 1.3' Defaults to: 'Tls 1.2'
+    #EncryptionProtocol = '' #Supported values: 'Tls 1.0', 'Tls 1.1', 'Tls 1.2' Defaults to: 'Tls 1.2'
 
     ## Optional parameters (default values will be used if ommited)
     SendAnonymousUsageData = $true  #Set as $true (default) or $false
