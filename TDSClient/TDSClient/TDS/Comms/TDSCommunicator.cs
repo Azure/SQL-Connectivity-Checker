@@ -39,19 +39,39 @@ namespace TDSClient.TDS.Comms
             var tempStream0 = new TDSTemporaryStream(InnerTdsStream);
             var tempStream1 = new SslStream(tempStream0, true, ValidateServerCertificate);
 
-            tempStream1.AuthenticateAsClient(Server, new X509CertificateCollection(), SslProtocols.None, true);
+            tempStream1.AuthenticateAsClient(Server);
 
             tempStream0.InnerStream = InnerTdsStream.InnerStream;
             InnerTdsStream.InnerStream = tempStream1;
 
-            LoggingUtilities.WriteLog($" Certificate Revocation List Checked: {tempStream1.CheckCertRevocationStatus}");
-            LoggingUtilities.WriteLog($" Cipher Algorithm: {tempStream1.CipherAlgorithm}");
-            LoggingUtilities.WriteLog($" Cipher Strength: {tempStream1.CipherStrength}");
-            LoggingUtilities.WriteLog($" Hash Algorithm: {tempStream1.HashAlgorithm}");
-            LoggingUtilities.WriteLog($" Hash Strength: {tempStream1.HashStrength}");
-            LoggingUtilities.WriteLog($" Key Exchange Algorithm: {tempStream1.KeyExchangeAlgorithm}");
-            LoggingUtilities.WriteLog($" Key Exchange Strength: {tempStream1.KeyExchangeStrength}");
-            LoggingUtilities.WriteLog($" Ssl Protocol: {tempStream1.SslProtocol}");
+            LoggingUtilities.WriteLog($"  Cipher: {tempStream1.CipherAlgorithm} strength {tempStream1.CipherStrength}");
+            LoggingUtilities.WriteLog($"  Hash: {tempStream1.HashAlgorithm} strength {tempStream1.HashStrength}");
+            LoggingUtilities.WriteLog($"  Key exchange: {tempStream1.KeyExchangeAlgorithm} strength {tempStream1.KeyExchangeStrength}");
+            LoggingUtilities.WriteLog($"  Protocol: {tempStream1.SslProtocol}");
+
+            LoggingUtilities.WriteLog($"  Is authenticated: {tempStream1.IsAuthenticated}");
+            LoggingUtilities.WriteLog($"  IsSigned: {tempStream1.IsSigned}");
+            LoggingUtilities.WriteLog($"  Is Encrypted: {tempStream1.IsEncrypted}");
+
+            X509Certificate localCertificate = tempStream1.LocalCertificate;
+            if (tempStream1.LocalCertificate != null)
+            {
+                LoggingUtilities.WriteLog($"  Local cert was issued to {localCertificate.Subject} and is valid from {localCertificate.GetEffectiveDateString()} until {localCertificate.GetExpirationDateString()}.");
+            }
+            else
+            {
+                LoggingUtilities.WriteLog("  Local certificate is null.");
+            }
+            // Display the properties of the client's certificate.
+            X509Certificate remoteCertificate = tempStream1.RemoteCertificate;
+            if (tempStream1.RemoteCertificate != null)
+            {
+                LoggingUtilities.WriteLog($"  Remote cert was issued to {remoteCertificate.Subject} and is valid from {remoteCertificate.GetEffectiveDateString()} until {remoteCertificate.GetExpirationDateString()}.");
+            }
+            else
+            {
+                LoggingUtilities.WriteLog("  Remote certificate is null.");
+            }
         }
 
         public ITDSPacketData ReceiveTDSMessage()
