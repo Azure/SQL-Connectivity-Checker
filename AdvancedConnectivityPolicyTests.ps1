@@ -115,7 +115,7 @@ try {
         $tdsClient.Connect()
         $tdsClient.Disconnect()
     } catch {
-        [TDSClient.TDS.Utilities.LoggingUtilities]::WriteLog('Failure: ' + $_.Exception.InnerException)
+        [TDSClient.TDS.Utilities.LoggingUtilities]::WriteLog('Failure: ' + $_.Exception.InnerException.Message)
     } finally {
         $log.Close()
         [TDSClient.TDS.Utilities.LoggingUtilities]::ClearVerboseLog()
@@ -151,5 +151,5 @@ try {
     }
 } catch {
     Write-Host 'Running advanced connectivity policy tests failed!' -ForegroundColor Red
-    Write-Host $_.Exception.InnerException
+    Write-Host $_.Exception
 }
