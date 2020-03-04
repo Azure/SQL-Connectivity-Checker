@@ -107,14 +107,15 @@ try {
             #    break
             #}
             default {
-                $encryption = [System.Security.Authentication.SslProtocols]::Tls12
+                # Allow the operating system to choose the best protocol to use 
+                $encryption = [System.Security.Authentication.SslProtocols]::None
             }
         }
         $tdsClient = [TDSClient.TDS.Client.TDSSQLTestClient]::new($Server, $Port, $User, $Password, $Database, $encryption)
         $tdsClient.Connect()
         $tdsClient.Disconnect()
     } catch {
-        [TDSClient.TDS.Utilities.LoggingUtilities]::WriteLog('Failure: ' + $_.Exception.Message)
+        [TDSClient.TDS.Utilities.LoggingUtilities]::WriteLog('Failure: ' + $_.Exception.InnerException)
     } finally {
         $log.Close()
         [TDSClient.TDS.Utilities.LoggingUtilities]::ClearVerboseLog()
@@ -150,5 +151,5 @@ try {
     }
 } catch {
     Write-Host 'Running advanced connectivity policy tests failed!' -ForegroundColor Red
-    Write-Host $_.Exception.Message
+    Write-Host $_.Exception.InnerException
 }
