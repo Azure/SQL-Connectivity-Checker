@@ -108,7 +108,7 @@ try {
             #}
             default {
                 # Allow the operating system to choose the best protocol to use 
-                $encryption = [System.Security.Authentication.SslProtocols]::None
+                $encryption = [System.Security.Authentication.SslProtocols]::Tls12 -bor [System.Security.Authentication.SslProtocols]::Tls11 -bor [System.Security.Authentication.SslProtocols]::Default
             }
         }
         $tdsClient = [TDSClient.TDS.Client.TDSSQLTestClient]::new($Server, $Port, $User, $Password, $Database, $encryption)
