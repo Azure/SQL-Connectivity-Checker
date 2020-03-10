@@ -51,16 +51,16 @@ function PrintDNSResults($dnsResult, [string] $dnsSource) {
 function ValidateDNS([String] $Server) {
     Try {
         Write-Host 'Validating DNS record for' $Server -ForegroundColor Green
-    
+
         $DNSfromHosts = Resolve-DnsName -Name $Server -CacheOnly -ErrorAction SilentlyContinue
         PrintDNSResults $DNSfromHosts 'hosts file'
-    
+
         $DNSfromCache = Resolve-DnsName -Name $Server -NoHostsFile -CacheOnly -ErrorAction SilentlyContinue
         PrintDNSResults $DNSfromCache 'cache'
-    
+
         $DNSfromCustomerServer = Resolve-DnsName -Name $Server -DnsOnly -ErrorAction SilentlyContinue
         PrintDNSResults $DNSfromCustomerServer 'DNS server'
-    
+
         $DNSfromAzureDNS = Resolve-DnsName -Name $Server -DnsOnly -Server 208.67.222.222 -ErrorAction SilentlyContinue
         PrintDNSResults $DNSfromAzureDNS 'Open DNS'
     }
@@ -79,6 +79,7 @@ $Database = $parameters['Database']
 $EncryptionProtocol = $parameters['EncryptionProtocol']
 
 try {
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls11 -bor [Net.SecurityProtocolType]::Tls
     #ToDo change branch to master once this is merged into master
     Invoke-WebRequest -Uri 'https://github.com/Azure/SQL-Connectivity-Checker/raw/pr/2/TDSClient.dll' -OutFile "$env:TEMP\AzureSQLConnectivityChecker\TDSClient.dll"
 
@@ -88,7 +89,7 @@ try {
     $log = [System.IO.File]::CreateText($env:TEMP + '\AzureSQLConnectivityChecker\ConnectivityPolicyLog.txt')
     [TDSClient.TDS.Utilities.LoggingUtilities]::SetVerboseLog($log)
     try {
-        switch($EncryptionProtocol) {
+        switch ($EncryptionProtocol) {
             'Tls 1.0' {
                 $encryption = [System.Security.Authentication.SslProtocols]::Tls
                 break
@@ -107,16 +108,18 @@ try {
             #    break
             #}
             default {
-                # Allow the operating system to choose the best protocol to use 
+                # Allow the operating system to choose the best protocol to use
                 $encryption = [System.Security.Authentication.SslProtocols]::Tls12 -bor [System.Security.Authentication.SslProtocols]::Tls11 -bor [System.Security.Authentication.SslProtocols]::Default
             }
         }
         $tdsClient = [TDSClient.TDS.Client.TDSSQLTestClient]::new($Server, $Port, $User, $Password, $Database, $encryption)
         $tdsClient.Connect()
         $tdsClient.Disconnect()
-    } catch {
+    }
+    catch {
         [TDSClient.TDS.Utilities.LoggingUtilities]::WriteLog('Failure: ' + $_.Exception.InnerException.Message)
-    } finally {
+    }
+    finally {
         $log.Close()
         [TDSClient.TDS.Utilities.LoggingUtilities]::ClearVerboseLog()
     }
@@ -146,10 +149,12 @@ try {
 
         Write-Host
         PrintAverageConnectionTime $resolvedAddress $port
-    } else {
+    }
+    else {
         Write-Host ' Proxy connection policy detected!' -ForegroundColor Green
     }
-} catch {
+}
+catch {
     Write-Host 'Running advanced connectivity policy tests failed!' -ForegroundColor Red
     Write-Host $_.Exception
 }
