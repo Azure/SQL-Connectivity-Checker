@@ -4,25 +4,25 @@ This PowerShell script will run some connectivity checks from this machine to th
 
 **In order to run it you need to:**
 1. Open Windows PowerShell ISE
- 
+
 2. Open a New Script window
- 
+
 3. Paste the following in the script window:
 
 ```powershell
 $parameters = @{
     Server = '.database.windows.net'
-    #Subnet = '' #Managed Instance subnet CIDR range, optional parameter
-    #User = ''
-    #Password = ''
-    #Database = ''
-    #EncryptionProtocol = '' #Supported values: 'Tls 1.0', 'Tls 1.1', 'Tls 1.2'; Without this parameter operating system will choose the best protocol to use
+    Database = ''  # Set the name of the database you wish to test, 'master' will be used by default if nothing is set
+    User = ''  # Set the login username you wish to use, 'AzSQLConnCheckerUser' will be used by default if nothing is set
+    Password = ''  # Set the login password you wish to use, 'AzSQLConnCheckerPassword' will be used by default if nothing is set
 
     ## Optional parameters (default values will be used if ommited)
-    SendAnonymousUsageData = $true  #Set as $true (default) or $false
-    RunAdvancedConnectivityPolicyTests = $true #Set as $true (default) or $false, this will download library needed for running advanced connectivity policy tests
+    SendAnonymousUsageData = $true  # Set as $true (default) or $false
+    RunAdvancedConnectivityPolicyTests = $true  # Set as $true (default) or $false, this will download library needed for running advanced connectivity tests
+    CollectNetworkTrace = $true  # Set as $true (default) or $false
+    #EncryptionProtocol = '' # Supported values: 'Tls 1.0', 'Tls 1.1', 'Tls 1.2'; Without this parameter operating system will choose the best protocol to use
 }
- 
+
 $ProgressPreference = "SilentlyContinue";
 $scriptUrlBase = 'raw.githubusercontent.com/Azure/SQL-Connectivity-Checker/pr/2'
 Invoke-Command -ScriptBlock ([Scriptblock]::Create((iwr ($scriptUrlBase+'/AzureSQLConnectivityChecker.ps1')).Content)) -ArgumentList $parameters
@@ -32,7 +32,7 @@ Invoke-Command -ScriptBlock ([Scriptblock]::Create((iwr ($scriptUrlBase+'/AzureS
 
 5. Run it.
 
-6. The results can be seen in the output window. 
+6. The results can be seen in the output window.
 If the user has the permissions to create folders, a folder with the resulting log file will be created.
 When running on Windows, the folder will be opened automatically after the script completes.
 
