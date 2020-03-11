@@ -469,11 +469,16 @@ try {
     Clear-Host
     $canWriteFiles = $true
     try {
+        $logsFolderName = 'AzureSQLConnectivityCheckerResults'
         Set-Location -Path $env:TEMP
-        If (!(Test-Path DataSyncHealthChecker)) {
-            New-Item AzureSQLConnectivityCheckerResults -ItemType directory | Out-Null
+        If (!(Test-Path $logsFolderName)) {
+            New-Item $logsFolderName -ItemType directory | Out-Null
+            Write-Host 'The folder' $logsFolderName 'was created'
         }
-        Set-Location AzureSQLConnectivityCheckerResults
+        else {
+            Write-Host 'The folder' $logsFolderName 'already exists'
+        }
+        Set-Location $logsFolderName
         $outFolderName = [System.DateTime]::Now.ToString('yyyyMMddTHHmmss')
         New-Item $outFolderName -ItemType directory | Out-Null
         Set-Location $outFolderName
