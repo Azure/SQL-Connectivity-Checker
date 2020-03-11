@@ -417,6 +417,12 @@ function RunConnectivityPolicyTests($port) {
         return
     }
 
+    if ($(Get-ExecutionPolicy) -eq 'Restricted') {
+        Write-Host ' Advanced connectivity policy tests cannot be run because of current execution policy(Restricted)!' -ForegroundColor Yellow
+        Write-Host ' Please use Set-ExecutionPolicy to allow scripts to run on this system!' -ForegroundColor Yellow
+        return
+    }
+
     $jobParameters = @{
         Server             = $Server
         Database           = $Database

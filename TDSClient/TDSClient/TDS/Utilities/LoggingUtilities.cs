@@ -43,12 +43,12 @@ namespace TDSClient.TDS.Utilities
         {
             if (Log.TryGetTarget(out TextWriter temp) && temp != null)
             {
-                temp.WriteLine($"[{DateTime.Now.ToString("s", DateTimeFormatInfo.InvariantInfo)}] {message}");
+                temp.WriteLine($"[{DateTime.UtcNow.ToString("s", DateTimeFormatInfo.InvariantInfo)}] {message}");
             }
 
             if (VerboseLog.TryGetTarget(out temp) && temp != null)
             {
-                temp.WriteLine($"[{DateTime.Now.ToString("s", DateTimeFormatInfo.InvariantInfo)}] {message}");
+                temp.WriteLine($"[{DateTime.UtcNow.ToString("s", DateTimeFormatInfo.InvariantInfo)}] {message}");
             }
         }
 
@@ -56,7 +56,7 @@ namespace TDSClient.TDS.Utilities
         {
             if (VerboseLog.TryGetTarget(out TextWriter temp) && temp != null)
             {
-                temp.WriteLine($"[{DateTime.Now.ToString("s", DateTimeFormatInfo.InvariantInfo)}] {message}");
+                temp.WriteLine($"[{DateTime.UtcNow.ToString("s", DateTimeFormatInfo.InvariantInfo)}] {message}");
             }
         }
 
