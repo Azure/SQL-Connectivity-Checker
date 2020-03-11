@@ -1,8 +1,14 @@
-﻿using System.IO;
-using TDSClient.TDS.Interfaces;
+﻿//  ---------------------------------------------------------------------------
+//  <copyright file="TDSLogin7TypeFlags.cs" company="Microsoft">
+//     Copyright (c) Microsoft Corporation.  All rights reserved.
+//  </copyright>
+//  ---------------------------------------------------------------------------
 
 namespace TDSClient.TDS.Login7
 {
+    using System.IO;
+    using TDSClient.TDS.Interfaces;
+
     public enum TDSLogin7TypeFlagsSQLType
     {
         DFLT,

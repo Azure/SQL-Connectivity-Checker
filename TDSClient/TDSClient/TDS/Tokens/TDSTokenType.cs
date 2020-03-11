@@ -1,9 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿//  ---------------------------------------------------------------------------
+//  <copyright file="TDSTokenType.cs" company="Microsoft">
+//     Copyright (c) Microsoft Corporation.  All rights reserved.
+//  </copyright>
+//  ---------------------------------------------------------------------------
 
 namespace TDSClient.TDS.Tokens
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Text;
+
     public enum TDSTokenType : byte
     {
         AltMetadata = 0x88,

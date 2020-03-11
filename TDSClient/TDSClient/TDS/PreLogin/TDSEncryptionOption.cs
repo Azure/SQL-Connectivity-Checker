@@ -1,4 +1,10 @@
-﻿// Depending upon whether the server has encryption available and enabled, the server responds with an ENCRYPTION value in the response according to the following table
+﻿//  ---------------------------------------------------------------------------
+//  <copyright file="TDSEncryptionOption.cs" company="Microsoft">
+//     Copyright (c) Microsoft Corporation.  All rights reserved.
+//  </copyright>
+//  ---------------------------------------------------------------------------
+
+// Depending upon whether the server has encryption available and enabled, the server responds with an ENCRYPTION value in the response according to the following table
 
 // +=============================+============================================================+===========================================================+================================================================+
 // |    Value sent by client     | Value returned by server when server is set to ENCRYPT_OFF | Value returned by server when server is set to ENCRYPT_ON | Value returned by server when server is set to ENCRYPT_NOT_SUP |

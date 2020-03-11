@@ -1,9 +1,15 @@
-﻿using System;
-using System.IO;
-using TDSClient.TDS.Utilities;
+﻿//  ---------------------------------------------------------------------------
+//  <copyright file="TDSTokenFactory.cs" company="Microsoft">
+//     Copyright (c) Microsoft Corporation.  All rights reserved.
+//  </copyright>
+//  ---------------------------------------------------------------------------
 
 namespace TDSClient.TDS.Tokens
 {
+    using System;
+    using System.IO;
+    using TDSClient.TDS.Utilities;
+
     public static class TDSTokenFactory
     {
         public static TDSToken ReadTokenFromStream(MemoryStream stream)
@@ -31,7 +37,6 @@ namespace TDSClient.TDS.Tokens
                         return null;
                     }
             }
-          
         }
 
         private static void IgnoreToken(TDSTokenType tokenType, MemoryStream stream)
@@ -40,7 +45,7 @@ namespace TDSClient.TDS.Tokens
             {
                 // Variable count token
                 case 0:
-                    { 
+                    {
                         throw new NotSupportedException();
                     }
                 // Zero length token
@@ -72,7 +77,7 @@ namespace TDSClient.TDS.Tokens
                         }
                         for (int i = 0; i < bytesToRead; i++)
                         {
-                          stream.ReadByte();
+                            stream.ReadByte();
                         }
                         return;
                     }

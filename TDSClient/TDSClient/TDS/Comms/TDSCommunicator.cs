@@ -1,24 +1,30 @@
-﻿using System;
-using System.IO;
-using System.Net.Security;
-using System.Net.Sockets;
-using TDSClient.TDS.Header;
-using TDSClient.TDS.PreLogin;
-using TDSClient.TDS.Login7;
-using TDSClient.TDS.Tokens;
-using TDSClient.TDS.Interfaces;
-using TDSClient.TDS.Utilities;
-using System.Security.Authentication;
-using System.Runtime.CompilerServices;
-using System.Security.Cryptography.X509Certificates;
+﻿//  ---------------------------------------------------------------------------
+//  <copyright file="TDSCommunicator.cs" company="Microsoft">
+//     Copyright (c) Microsoft Corporation.  All rights reserved.
+//  </copyright>
+//  ---------------------------------------------------------------------------
 
 namespace TDSClient.TDS.Comms
 {
+    using System;
+    using System.IO;
+    using System.Net.Security;
+    using System.Net.Sockets;
+    using System.Security.Authentication;
+    using System.Security.Cryptography.X509Certificates;
+    using TDSClient.TDS.Header;
+    using TDSClient.TDS.Interfaces;
+    using TDSClient.TDS.Login7;
+    using TDSClient.TDS.PreLogin;
+    using TDSClient.TDS.Tokens;
+    using TDSClient.TDS.Utilities;
+
     public class TDSCommunicator
     {
         private readonly TDSStream InnerTdsStream;
         private readonly Stream InnerStream;
         private readonly ushort PacketSize;
+
         public TDSCommunicatorState CommunicatorState { get; private set; }
 
         public TDSCommunicator(NetworkStream stream, ushort packetSize)
@@ -31,7 +37,9 @@ namespace TDSClient.TDS.Comms
         public static bool ValidateServerCertificate(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
             if (sslPolicyErrors == SslPolicyErrors.None)
+            {
                 return true;
+            }
 
             LoggingUtilities.WriteLog($"Certificate error: {sslPolicyErrors}");
 
@@ -66,6 +74,7 @@ namespace TDSClient.TDS.Comms
             {
                 LoggingUtilities.WriteLog("  Local certificate is null.");
             }
+
             X509Certificate remoteCertificate = tempStream1.RemoteCertificate;
             if (tempStream1.RemoteCertificate != null)
             {
@@ -86,7 +95,8 @@ namespace TDSClient.TDS.Comms
             {
                 Array.Resize(ref resultBuffer, curOffset + PacketSize);
                 curOffset += InnerStream.Read(resultBuffer, curOffset, PacketSize);
-            } while (!InnerTdsStream.InboundMessageTerminated);
+            }
+            while (!InnerTdsStream.InboundMessageTerminated);
 
             Array.Resize(ref resultBuffer, curOffset);
 
@@ -99,12 +109,14 @@ namespace TDSClient.TDS.Comms
                         result.Unpack(new MemoryStream(resultBuffer));
                         break;
                     }
+
                 case TDSCommunicatorState.SentLogin7RecordWithCompleteAuthToken:
                     {
                         result = new TDSTokenStreamPacketData();
                         result.Unpack(new MemoryStream(resultBuffer));
                         break;
                     }
+
                 default:
                     {
                         throw new InvalidOperationException();
@@ -124,22 +136,27 @@ namespace TDSClient.TDS.Comms
                         {
                             throw new InvalidDataException();
                         }
+
                         InnerTdsStream.CurrentOutboundMessageType = TDSMessageType.PreLogin;
                         break;
                     }
+
                 case TDSCommunicatorState.SentInitialPreLogin:
                     {
                         if (!(data is TDSLogin7PacketData))
                         {
                             throw new InvalidDataException();
                         }
+
                         InnerTdsStream.CurrentOutboundMessageType = TDSMessageType.TDS7Login;
                         break;
                     }
+
                 case TDSCommunicatorState.LoggedIn:
                     {
                         throw new NotSupportedException();
                     }
+
                 default:
                     {
                         throw new InvalidOperationException();
@@ -158,6 +175,7 @@ namespace TDSClient.TDS.Comms
                         CommunicatorState = TDSCommunicatorState.SentInitialPreLogin;
                         break;
                     }
+
                 case TDSCommunicatorState.SentInitialPreLogin:
                     {
                         CommunicatorState = TDSCommunicatorState.SentLogin7RecordWithCompleteAuthToken;

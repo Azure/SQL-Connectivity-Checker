@@ -1,25 +1,36 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using TDSClient.TDS.Client;
-using TDSClient.TDS.Header;
-using TDSClient.TDS.Interfaces;
-using TDSClient.TDS.Utilities;
-
+﻿//  ---------------------------------------------------------------------------
+//  <copyright file="TDSPreLoginPacketData.cs" company="Microsoft">
+//     Copyright (c) Microsoft Corporation.  All rights reserved.
+//  </copyright>
+//  ---------------------------------------------------------------------------
 
 namespace TDSClient.TDS.PreLogin
 {
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Linq;
+    using TDSClient.TDS.Client;
+    using TDSClient.TDS.Header;
+    using TDSClient.TDS.Interfaces;
+    using TDSClient.TDS.Utilities;
+
     public class TDSPreLoginPacketData : ITDSPacketData
     {
         public List<TDSPreLoginOptionToken> Options { get; private set; }
 
         public TDSClientVersion ClientVersion { get; private set; }
+
         public TDSEncryptionOption Encryption { get; private set; }
+
         public ulong ThreadID { get; private set; }
+
         public bool MARS { get; private set; }
+
         public TDSClientTraceID TraceID { get; private set; }
+
         public bool FedAuthRequired { get; private set; }
+
         public byte[] Nonce { get; private set; }
 
         public bool Terminated { get; private set; }
@@ -42,7 +53,7 @@ namespace TDSClient.TDS.PreLogin
 
         public void AddOption(TDSPreLoginOptionTokenType type, Object data)
         {
-            if(Terminated)
+            if (Terminated)
             {
                 throw new InvalidOperationException();
             }
@@ -166,7 +177,7 @@ namespace TDSClient.TDS.PreLogin
 
             var offset = (ushort)((Options.Count - 1) * (2 * sizeof(ushort) + sizeof(byte)) + sizeof(byte));
 
-            foreach(var option in Options)
+            foreach (var option in Options)
             {
                 // ToDo
                 option.Offset = offset;
@@ -243,7 +254,8 @@ namespace TDSClient.TDS.PreLogin
                     option = new TDSPreLoginOptionToken();
                     option.Unpack(stream);
                     Options.Add(option);
-                } while (option.Type != TDSPreLoginOptionTokenType.Terminator);
+                } 
+                while (option.Type != TDSPreLoginOptionTokenType.Terminator);
             }
             foreach (var option in Options)
             {
@@ -291,8 +303,8 @@ namespace TDSClient.TDS.PreLogin
                             break;
                         }
                     case TDSPreLoginOptionTokenType.Terminator:
-                        { 
-                            break; 
+                        {
+                            break;
                         }
                 }
             }

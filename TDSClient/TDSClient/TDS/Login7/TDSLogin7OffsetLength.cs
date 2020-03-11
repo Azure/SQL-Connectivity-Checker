@@ -1,10 +1,16 @@
-﻿using System;
-using System.IO;
-using TDSClient.TDS.Interfaces;
-using TDSClient.TDS.Utilities;
+﻿//  ---------------------------------------------------------------------------
+//  <copyright file="TDSLogin7OffsetLength.cs" company="Microsoft">
+//     Copyright (c) Microsoft Corporation.  All rights reserved.
+//  </copyright>
+//  ---------------------------------------------------------------------------
 
 namespace TDSClient.TDS.Login7
 {
+    using System;
+    using System.IO;
+    using TDSClient.TDS.Interfaces;
+    using TDSClient.TDS.Utilities;
+
     public class TDSLogin7OffsetLength : IPackageable
     {
         /// <summary>
@@ -58,14 +64,12 @@ namespace TDSClient.TDS.Login7
         public ushort ServerNameLength { get; set; }
 
         /// <summary>
-        ///  This points to an extension block. Introduced in TDS 7.4 when
-        // fExtension is 1 (position). (Unsupported)
+        ///  This points to an extension block. Introduced in TDS 7.4 when fExtension is 1 (position). (Unsupported)
         /// </summary>
         public ushort ExtensionPosition { get; set; }
 
         /// <summary>
-        ///  This points to an extension block. Introduced in TDS 7.4 when
-        // fExtension is 1 (length). (Unsupported)
+        ///  This points to an extension block. Introduced in TDS 7.4 when fExtension is 1 (length). (Unsupported)
         /// </summary>
         public ushort ExtensionLength { get; set; }
 
@@ -165,7 +169,8 @@ namespace TDSClient.TDS.Login7
 
         public void AddOptionPositionInfo(string optionName, ushort length)
         {
-            switch (optionName) {
+            switch (optionName)
+            {
                 case "HostName":
                     {
                         HostNamePosition = LastPos;
@@ -173,6 +178,7 @@ namespace TDSClient.TDS.Login7
                         LastPos += (ushort)(length * 2);
                         break;
                     }
+
                 case "UserName":
                     {
                         UserNamePosition = LastPos;
@@ -180,6 +186,7 @@ namespace TDSClient.TDS.Login7
                         LastPos += (ushort)(length * 2);
                         break;
                     }
+
                 case "Password":
                     {
                         PasswordPosition = LastPos;
@@ -187,6 +194,7 @@ namespace TDSClient.TDS.Login7
                         LastPos += (ushort)(length * 2);
                         break;
                     }
+
                 case "AppName":
                     {
                         AppNamePosition = LastPos;
@@ -194,6 +202,7 @@ namespace TDSClient.TDS.Login7
                         LastPos += (ushort)(length * 2);
                         break;
                     }
+
                 case "ServerName":
                     {
                         ServerNamePosition = LastPos;
@@ -201,10 +210,12 @@ namespace TDSClient.TDS.Login7
                         LastPos += (ushort)(length * 2);
                         break;
                     }
+
                 case "Extension":
                     {
                         throw new NotSupportedException();
                     }
+
                 case "IntName":
                     {
                         CltIntNamePosition = LastPos;
@@ -212,6 +223,7 @@ namespace TDSClient.TDS.Login7
                         LastPos += (ushort)(length * 2);
                         break;
                     }
+
                 case "Language":
                     {
                         LanguagePosition = LastPos;
@@ -219,6 +231,7 @@ namespace TDSClient.TDS.Login7
                         LastPos += (ushort)(length * 2);
                         break;
                     }
+
                 case "Database":
                     {
                         DatabasePosition = LastPos;
@@ -226,18 +239,22 @@ namespace TDSClient.TDS.Login7
                         LastPos += (ushort)(length * 2);
                         break;
                     }
+
                 case "SSPI":
                     {
                         throw new NotSupportedException();
                     }
+
                 case "AtchDBFile":
                     {
                         throw new NotSupportedException();
                     }
+
                 case "ChangePassword":
                     {
                         throw new NotSupportedException();
                     }
+
                 default:
                     {
                         throw new InvalidOperationException();

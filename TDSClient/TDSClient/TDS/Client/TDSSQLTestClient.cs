@@ -1,22 +1,33 @@
-﻿using System;
-using System.Net.Sockets;
-using TDSClient.TDS.Header;
-using TDSClient.TDS.PreLogin;
-using TDSClient.TDS.Comms;
-using TDSClient.TDS.Login7;
-using TDSClient.TDS.Tokens;
-using TDSClient.TDS.Utilities;
-using System.Security.Authentication;
+﻿//  ---------------------------------------------------------------------------
+//  <copyright file="TDSSQLTestClient.cs" company="Microsoft">
+//     Copyright (c) Microsoft Corporation.  All rights reserved.
+//  </copyright>
+//  ---------------------------------------------------------------------------
 
 namespace TDSClient.TDS.Client
 {
+    using System;
+    using System.Net.Sockets;
+    using System.Security.Authentication;
+    using TDSClient.TDS.Comms;
+    using TDSClient.TDS.Header;
+    using TDSClient.TDS.Login7;
+    using TDSClient.TDS.PreLogin;
+    using TDSClient.TDS.Tokens;
+    using TDSClient.TDS.Utilities;
+
     public class TDSSQLTestClient
     {
         public string Server { get; private set; }
+
         public string ServerName { get; private set; }
+
         public int Port { get; private set; }
+
         public string UserID { get; private set; }
+
         public string Password { get; private set; }
+
         public string Database { get; private set; }
 
         public TDSCommunicator TdsCommunicator { get; private set; }
@@ -56,7 +67,7 @@ namespace TDSClient.TDS.Client
         {
             LoggingUtilities.WriteLog($" SendPreLogin initiated.");
             var tdsMessageBody = new TDSPreLoginPacketData(Version);
-            
+
             tdsMessageBody.AddOption(TDSPreLoginOptionTokenType.Encryption, TDSEncryptionOption.EncryptOff);
             tdsMessageBody.Terminate();
 
@@ -122,7 +133,8 @@ namespace TDSClient.TDS.Client
                             Port = int.Parse(envChangeToken.Values["ProtocolProperty"]);
                             Reconnect = true;
                         }
-                    } else if (token is TDSErrorToken)
+                    }
+                    else if (token is TDSErrorToken)
                     {
                         var errorToken = token as TDSErrorToken;
                         LoggingUtilities.WriteLog($" Client recieved Error token:");
@@ -162,6 +174,7 @@ namespace TDSClient.TDS.Client
                     TdsCommunicator.EnableEncryption(Server, EncryptionProtocol);
                     LoggingUtilities.WriteLog($" Encryption enabled.");
                 }
+
                 if (response.Options.Exists(opt => opt.Type == TDSPreLoginOptionTokenType.FedAuthRequired) && response.FedAuthRequired == true)
                 {
                     throw new NotSupportedException("FedAuth is being requested but the client doesn't support FedAuth.");
@@ -187,13 +200,14 @@ namespace TDSClient.TDS.Client
                 ReceivePreLoginResponse();
                 SendLogin7();
                 ReceiveLogin7Response();
-                
+
                 if (Reconnect)
                 {
                     Disconnect();
                     LoggingUtilities.WriteLog($" Routing to: {Server}:{Port}.");
                 }
-            } while (Reconnect);
+            } 
+            while (Reconnect);
 
             LoggingUtilities.WriteLog($" Connect done.");
         }
@@ -205,6 +219,5 @@ namespace TDSClient.TDS.Client
             Client = null;
             LoggingUtilities.WriteLog($" Disconnect done.");
         }
-
     }
 }

@@ -1,4 +1,10 @@
-﻿namespace TDSClient.TDS.Tokens.EnvChange
+﻿//  ---------------------------------------------------------------------------
+//  <copyright file="TDSEnvChangeType.cs" company="Microsoft">
+//     Copyright (c) Microsoft Corporation.  All rights reserved.
+//  </copyright>
+//  ---------------------------------------------------------------------------
+
+namespace TDSClient.TDS.Tokens.EnvChange
 {
     public enum TDSEnvChangeType : byte
     {

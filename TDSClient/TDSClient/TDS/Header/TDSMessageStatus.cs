@@ -1,4 +1,10 @@
-﻿namespace TDSClient.TDS.Header
+﻿//  ---------------------------------------------------------------------------
+//  <copyright file="TDSMessageStatus.cs" company="Microsoft">
+//     Copyright (c) Microsoft Corporation.  All rights reserved.
+//  </copyright>
+//  ---------------------------------------------------------------------------
+
+namespace TDSClient.TDS.Header
 {
     public enum TDSMessageStatus : byte
     {

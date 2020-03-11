@@ -1,11 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Net.Sockets;
-using System.Text;
+﻿//  ---------------------------------------------------------------------------
+//  <copyright file="LittleEndianUtilities.cs" company="Microsoft">
+//     Copyright (c) Microsoft Corporation.  All rights reserved.
+//  </copyright>
+//  ---------------------------------------------------------------------------
 
 namespace TDSClient.TDS.Utilities
 {
+    using System.IO;
+
     static public class LittleEndianUtilities
     {
         public static void WriteUShort(MemoryStream stream, ushort value)
@@ -63,6 +65,5 @@ namespace TDSClient.TDS.Utilities
             }
             return result;
         }
-
     }
 }

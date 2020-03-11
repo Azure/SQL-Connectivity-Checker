@@ -1,18 +1,30 @@
-﻿using System;
-using System.Diagnostics;
-using System.IO;
-using System.Text;
-using TDSClient.TDS.Interfaces;
-using TDSClient.TDS.Utilities;
+﻿//  ---------------------------------------------------------------------------
+//  <copyright file="TDSLogin7PacketData.cs" company="Microsoft">
+//     Copyright (c) Microsoft Corporation.  All rights reserved.
+//  </copyright>
+//  ---------------------------------------------------------------------------
 
 namespace TDSClient.TDS.Login7
 {
-    class TDSLogin7PacketData : ITDSPacketData
+    using System;
+    using System.Diagnostics;
+    using System.IO;
+    using System.Text;
+    using TDSClient.TDS.Interfaces;
+    using TDSClient.TDS.Utilities;
+
+    public class TDSLogin7PacketData : ITDSPacketData
     {
         /// <summary>
         /// The total length of the LOGIN7 structure.
         /// </summary>
-        public uint Length { get { return Convert.ToUInt32(7 * sizeof(uint) + sizeof(int) + 4 * sizeof(byte) + Data.Length + 24 * sizeof(ushort) + sizeof(uint) + 6 * sizeof(byte)); } }
+        public uint Length
+        {
+            get
+            {
+                return Convert.ToUInt32(7 * sizeof(uint) + sizeof(int) + 4 * sizeof(byte) + Data.Length + 24 * sizeof(ushort) + sizeof(uint) + 6 * sizeof(byte));
+            }
+        }
 
         /// <summary>
         /// The highest TDS version being used by the client.
@@ -40,10 +52,12 @@ namespace TDSClient.TDS.Login7
         /// </summary>
         public uint ConnectionID { get; private set; }
 
-
         public TDSLogin7OptionFlags1 OptionFlags1 { get; private set; }
+
         public TDSLogin7OptionFlags2 OptionFlags2 { get; private set; }
+
         public TDSLogin7TypeFlags TypeFlags { get; private set; }
+
         public TDSLogin7OptionFlags3 OptionFlags3 { get; private set; }
 
         /// <summary>
@@ -79,10 +93,9 @@ namespace TDSClient.TDS.Login7
         }
 
         // FeatureExt - unsupported
-
         public void AddOption(string optionName, ushort length, object data)
         {
-            if(optionName == null || data == null)
+            if (optionName == null || data == null)
             {
                 throw new ArgumentNullException();
             }
@@ -103,26 +116,28 @@ namespace TDSClient.TDS.Login7
                 if (optionName != "Password")
                 {
                     LoggingUtilities.WriteLogVerboseOnly($" Adding Login7 option {optionName} [{(string)data}].");
-                } else
+                }
+                else
                 {
                     LoggingUtilities.WriteLogVerboseOnly($" Adding Login7 option {optionName}.");
                 }
-            } else
+            }
+            else
             {
-                if(!(data is byte[]))
+                if (!(data is byte[]))
                 {
                     throw new ArgumentException();
                 }
-                
+
                 optionData = (byte[])data;
                 LoggingUtilities.WriteLogVerboseOnly($" Adding Login7 option {optionName}.");
             }
-            
+
             Array.Resize(ref Data, prevLength + optionData.Length);
-            
+
             if (optionName == "Password")
             {
-                for (int i=0; i<optionData.Length; i++)
+                for (int i = 0; i < optionData.Length; i++)
                 {
                     var piece0 = (byte)(optionData[i] >> 4);
                     var piece1 = (byte)(optionData[i] & 0x0f);
@@ -174,7 +189,7 @@ namespace TDSClient.TDS.Login7
 
         ushort ITDSPacketData.Length()
         {
-            return Convert.ToUInt16(Length);   
+            return Convert.ToUInt16(Length);
         }
     }
 }

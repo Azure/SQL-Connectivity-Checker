@@ -1,17 +1,28 @@
-﻿using System;
-using System.IO;
-using TDSClient.TDS.Interfaces;
-using TDSClient.TDS.Utilities;
+﻿//  ---------------------------------------------------------------------------
+//  <copyright file="TDSPacketHeader.cs" company="Microsoft">
+//     Copyright (c) Microsoft Corporation.  All rights reserved.
+//  </copyright>
+//  ---------------------------------------------------------------------------
 
 namespace TDSClient.TDS.Header
 {
+    using System;
+    using System.IO;
+    using TDSClient.TDS.Interfaces;
+    using TDSClient.TDS.Utilities;
+
     public class TDSPacketHeader : IPackageable
     {
         public TDSMessageType Type { get; set; }
+
         public TDSMessageStatus Status { get; set; }
+
         public ushort Length { get; set; }
+
         public ushort SPID { get; set; }
+
         public byte Packet { get; set; }
+
         public byte Window { get; set; }
 
         public int ConvertedPacketLength
@@ -34,7 +45,6 @@ namespace TDSClient.TDS.Header
             Packet = packet;
             Window = window;
         }
-
 
         public void Pack(MemoryStream stream)
         {

@@ -1,8 +1,14 @@
-﻿using System.IO;
+﻿//  ---------------------------------------------------------------------------
+//  <copyright file="TDSTemporaryStream.cs" company="Microsoft">
+//     Copyright (c) Microsoft Corporation.  All rights reserved.
+//  </copyright>
+//  ---------------------------------------------------------------------------
 
 namespace TDSClient.TDS.Comms
 {
-    class TDSTemporaryStream : Stream
+    using System.IO;
+
+    public class TDSTemporaryStream : Stream
     {
         public Stream InnerStream { get; set; }
 

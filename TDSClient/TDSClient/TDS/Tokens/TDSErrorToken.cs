@@ -1,18 +1,30 @@
-﻿using System;
-using System.IO;
-using System.Text;
-using TDSClient.TDS.Utilities;
+﻿//  ---------------------------------------------------------------------------
+//  <copyright file="TDSErrorToken.cs" company="Microsoft">
+//     Copyright (c) Microsoft Corporation.  All rights reserved.
+//  </copyright>
+//  ---------------------------------------------------------------------------
 
 namespace TDSClient.TDS.Tokens
 {
+    using System;
+    using System.IO;
+    using System.Text;
+    using TDSClient.TDS.Utilities;
+
     public class TDSErrorToken : TDSToken
     {
         public int Number { get; private set; }
+
         public byte State { get; private set; }
+
         public byte Class { get; private set; }
+
         public string MsgText { get; private set; }
+
         public string ServerName { get; private set; }
+
         public string ProcName { get; private set; }
+
         public uint LineNumber { get; private set; }
 
         public override ushort Length()

@@ -1,11 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Net.Sockets;
-using System.Text;
+﻿//  ---------------------------------------------------------------------------
+//  <copyright file="BigEndianUtilities.cs" company="Microsoft">
+//     Copyright (c) Microsoft Corporation.  All rights reserved.
+//  </copyright>
+//  ---------------------------------------------------------------------------
 
 namespace TDSClient.TDS.Utilities
 {
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Net.Sockets;
+    using System.Text;
+
     static public class BigEndianUtilities
     {
         public static void WriteUShort(MemoryStream stream, ushort value)
@@ -36,7 +42,7 @@ namespace TDSClient.TDS.Utilities
 
         public static void WriteByteArray(MemoryStream stream, byte[] array)
         {
-            for(int i= array.Length - 1; i >= 0; i--)
+            for (int i = array.Length - 1; i >= 0; i--)
             {
                 stream.WriteByte(array[i]);
             }
@@ -67,7 +73,7 @@ namespace TDSClient.TDS.Utilities
         public static ulong ReadULong(MemoryStream stream)
         {
             ulong result = 0;
-            for(int i=0; i<8; i++)
+            for (int i = 0; i < 8; i++)
             {
                 result <<= 8;
                 result |= (byte)stream.ReadByte();
@@ -78,12 +84,11 @@ namespace TDSClient.TDS.Utilities
         public static byte[] ReadByteArray(MemoryStream stream, uint length)
         {
             byte[] result = new byte[length];
-            for(int i=0; i<length; i++)
+            for (int i = 0; i < length; i++)
             {
                 result[length - i] = (byte)stream.ReadByte();
             }
             return result;
         }
-
     }
 }

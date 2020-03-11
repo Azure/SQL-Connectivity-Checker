@@ -1,10 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using TDSClient.TDS.Interfaces;
+﻿//  ---------------------------------------------------------------------------
+//  <copyright file="TDSTokenStreamPacketData.cs" company="Microsoft">
+//     Copyright (c) Microsoft Corporation.  All rights reserved.
+//  </copyright>
+//  ---------------------------------------------------------------------------
 
 namespace TDSClient.TDS.Tokens
 {
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+    using TDSClient.TDS.Interfaces;
+
     public class TDSTokenStreamPacketData : ITDSPacketData
     {
         public LinkedList<TDSToken> Tokens { get; private set; }
@@ -21,7 +27,6 @@ namespace TDSClient.TDS.Tokens
 
         public void Pack(MemoryStream stream)
         {
-            
             throw new NotImplementedException();
         }
 

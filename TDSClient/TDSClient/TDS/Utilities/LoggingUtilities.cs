@@ -1,9 +1,15 @@
-﻿using System;
-using System.Globalization;
-using System.IO;
+﻿//  ---------------------------------------------------------------------------
+//  <copyright file="LoggingUtilities.cs" company="Microsoft">
+//     Copyright (c) Microsoft Corporation.  All rights reserved.
+//  </copyright>
+//  ---------------------------------------------------------------------------
 
 namespace TDSClient.TDS.Utilities
 {
+    using System;
+    using System.Globalization;
+    using System.IO;
+
     public static class LoggingUtilities
     {
         private static readonly WeakReference<TextWriter> Log = new WeakReference<TextWriter>(null);
@@ -44,7 +50,6 @@ namespace TDSClient.TDS.Utilities
             {
                 temp.WriteLine($"[{DateTime.Now.ToString("s", DateTimeFormatInfo.InvariantInfo)}] {message}");
             }
-
         }
 
         public static void WriteLogVerboseOnly(string message)
@@ -54,7 +59,6 @@ namespace TDSClient.TDS.Utilities
                 temp.WriteLine($"[{DateTime.Now.ToString("s", DateTimeFormatInfo.InvariantInfo)}] {message}");
             }
         }
-
 
         public static void ClearLog()
         {

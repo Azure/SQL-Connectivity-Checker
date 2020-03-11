@@ -1,17 +1,27 @@
-﻿using System;
-using System.IO;
-using TDSClient.TDS.Interfaces;
-using TDSClient.TDS.Utilities;
+﻿//  ---------------------------------------------------------------------------
+//  <copyright file="TDSPreLoginOptionToken.cs" company="Microsoft">
+//     Copyright (c) Microsoft Corporation.  All rights reserved.
+//  </copyright>
+//  ---------------------------------------------------------------------------
 
 namespace TDSClient.TDS.PreLogin
 {
+    using System;
+    using System.IO;
+    using TDSClient.TDS.Interfaces;
+    using TDSClient.TDS.Utilities;
+
     public class TDSPreLoginOptionToken : IPackageable
     {
         public TDSPreLoginOptionTokenType Type { get; private set; }
+
         public ushort Offset { get; set; }
+
         public ushort Length { get; private set; }
 
-        public TDSPreLoginOptionToken() {}
+        public TDSPreLoginOptionToken()
+        {
+        }
 
         public TDSPreLoginOptionToken(TDSPreLoginOptionTokenType type)
         {
@@ -23,42 +33,50 @@ namespace TDSClient.TDS.PreLogin
                         Length = 1;
                         break;
                     }
+
                 case TDSPreLoginOptionTokenType.FedAuthRequired:
                     {
                         Length = 1;
                         break;
                     }
+
                 case TDSPreLoginOptionTokenType.InstOpt:
                     {
                         throw new NotSupportedException();
                     }
+
                 case TDSPreLoginOptionTokenType.MARS:
                     {
                         Length = 1;
                         break;
                     }
+
                 case TDSPreLoginOptionTokenType.NonceOpt:
                     {
                         Length = 32;
                         break;
                     }
+
                 case TDSPreLoginOptionTokenType.Terminator:
-                    { 
+                    {
                         Length = 0;
                         break;
                     }
+
                 case TDSPreLoginOptionTokenType.ThreadID:
-                    { 
+                    {
                         Length = 4;
                         break;
                     }
+
                 case TDSPreLoginOptionTokenType.TraceID:
                     {
                         Length = 36;
                         break;
                     }
+
                 case TDSPreLoginOptionTokenType.Version:
-                    {  
+                    {
                         Length = 6;
                         break;
                     }

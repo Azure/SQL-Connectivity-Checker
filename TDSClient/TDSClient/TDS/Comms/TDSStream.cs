@@ -1,9 +1,15 @@
-﻿using System;
-using System.IO;
-using TDSClient.TDS.Header;
+﻿//  ---------------------------------------------------------------------------
+//  <copyright file="TDSStream.cs" company="Microsoft">
+//     Copyright (c) Microsoft Corporation.  All rights reserved.
+//  </copyright>
+//  ---------------------------------------------------------------------------
 
 namespace TDSClient.TDS.Comms
 {
+    using System;
+    using System.IO;
+    using TDSClient.TDS.Header;
+
     public class TDSStream : Stream
     {
         public Stream InnerStream { get; set; }
@@ -12,13 +18,14 @@ namespace TDSClient.TDS.Comms
 
         public TDSMessageType LastInboundTDSMessageType { get; private set; }
 
-        public bool InboundMessageTerminated { 
-           get
+        public bool InboundMessageTerminated
+        {
+            get
             {
                 return CurrentInboundTDSHeader == null;
             }
         }
-        
+
         public TDSPacketHeader CurrentOutboundTDSHeader { get; private set; }
 
         public TDSMessageType CurrentOutboundMessageType { get; set; }
@@ -69,12 +76,13 @@ namespace TDSClient.TDS.Comms
                     do
                     {
                         curPos += InnerStream.Read(headerBuffer, curPos, 8 - curPos);
-                        
+
                         if (curPos == 0)
                         {
                             throw new Exception("Failure to read from network stream.");
                         }
-                    } while (curPos < 8 && DateTime.Now - Timeout < startTime);
+                    } 
+                    while (curPos < 8 && DateTime.Now - Timeout < startTime);
 
                     if (DateTime.Now - Timeout >= startTime)
                     {
@@ -101,7 +109,8 @@ namespace TDSClient.TDS.Comms
                     bytesToReadFromCurrentPacket -= bytesRead;
                     CurrentInboundPacketPosition += bytesRead;
                     bytesReadTotal += bytesRead;
-                } while (bytesToReadFromCurrentPacket > 0 && DateTime.Now - Timeout < startTime);
+                } 
+                while (bytesToReadFromCurrentPacket > 0 && DateTime.Now - Timeout < startTime);
 
                 if (CurrentInboundTDSHeader != null && CurrentInboundPacketPosition >= CurrentInboundTDSHeader.ConvertedPacketLength && (CurrentInboundTDSHeader.Status & TDSMessageStatus.EndOfMessage) == TDSMessageStatus.EndOfMessage)
                 {
@@ -110,7 +119,7 @@ namespace TDSClient.TDS.Comms
                 }
             }
 
-            if(DateTime.Now - Timeout >= startTime)
+            if (DateTime.Now - Timeout >= startTime)
             {
                 throw new TimeoutException("Reading from network stream timed out.");
             }
@@ -124,7 +133,7 @@ namespace TDSClient.TDS.Comms
 
             var bytesSent = 0;
 
-            while(bytesSent < count)
+            while (bytesSent < count)
             {
                 if (count - bytesSent - 8 < NegotiatedPacketSize)
                 {
@@ -158,7 +167,7 @@ namespace TDSClient.TDS.Comms
         public override void Close()
         {
             InnerStream.Close();
-            base.Close(); 
+            base.Close();
         }
     }
 }

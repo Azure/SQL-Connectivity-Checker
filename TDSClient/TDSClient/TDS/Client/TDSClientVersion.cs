@@ -1,9 +1,15 @@
-﻿using System.IO;
-using TDSClient.TDS.Interfaces;
-using TDSClient.TDS.Utilities;
+﻿//  ---------------------------------------------------------------------------
+//  <copyright file="TDSClientVersion.cs" company="Microsoft">
+//     Copyright (c) Microsoft Corporation.  All rights reserved.
+//  </copyright>
+//  ---------------------------------------------------------------------------
 
 namespace TDSClient.TDS.Client
 {
+    using System.IO;
+    using TDSClient.TDS.Interfaces;
+    using TDSClient.TDS.Utilities;
+
     public class TDSClientVersion : IPackageable
     {
         private byte Major;
@@ -11,7 +17,9 @@ namespace TDSClient.TDS.Client
         private ushort BuildNumber;
         private ushort SubBuildNumber;
 
-        public TDSClientVersion() {}
+        public TDSClientVersion() 
+        {
+        }
 
         public TDSClientVersion(byte major, byte minor, ushort buildNumber, ushort subBuildNumber)
         {
