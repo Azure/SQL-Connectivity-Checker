@@ -24,7 +24,7 @@ $parameters = @{
 }
 
 $ProgressPreference = "SilentlyContinue";
-$scriptUrlBase = 'raw.githubusercontent.com/Azure/SQL-Connectivity-Checker/pr/2'
+$scriptUrlBase = 'raw.githubusercontent.com/Azure/SQL-Connectivity-Checker/master'
 Invoke-Command -ScriptBlock ([Scriptblock]::Create((iwr ($scriptUrlBase+'/AzureSQLConnectivityChecker.ps1')).Content)) -ArgumentList $parameters
 #end
 ```

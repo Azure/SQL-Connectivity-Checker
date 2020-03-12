@@ -6,6 +6,7 @@
 
 namespace TDSClient.TDS.Login7
 {
+    using System;
     using System.IO;
     using TDSClient.TDS.Interfaces;
 
@@ -70,7 +71,7 @@ namespace TDSClient.TDS.Login7
 
         public bool Unpack(MemoryStream stream)
         {
-            byte flagByte = (byte)stream.ReadByte();
+            byte flagByte = Convert.ToByte(stream.ReadByte());
             Language = (TDSLogin7OptionFlags2Language)(flagByte & 0x01);
             ODBC = (TDSLogin7OptionFlags2ODBC)((flagByte >> 1) & 0x01);
             UserType = (TDSLogin7OptionFlags2UserType)((flagByte >> 4) & 0x07);

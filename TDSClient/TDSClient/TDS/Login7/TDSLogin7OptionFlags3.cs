@@ -6,6 +6,7 @@
 
 namespace TDSClient.TDS.Login7
 {
+    using System;
     using System.IO;
     using TDSClient.TDS.Interfaces;
 
@@ -80,7 +81,7 @@ namespace TDSClient.TDS.Login7
 
         public bool Unpack(MemoryStream stream)
         {
-            byte flagByte = (byte)stream.ReadByte();
+            byte flagByte = Convert.ToByte(stream.ReadByte());
 
             ChangePassword = (TDSLogin7OptionFlags3ChangePassword)(flagByte & 0x01);
             UserInstanceProcess = (TDSLogin7OptionFlags3UserInstanceProcess)((flagByte >> 1) & 0x01);

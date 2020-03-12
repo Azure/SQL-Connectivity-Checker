@@ -6,6 +6,7 @@
 
 namespace TDSClient.TDS.Client
 {
+    using System;
     using System.IO;
     using TDSClient.TDS.Interfaces;
     using TDSClient.TDS.Utilities;
@@ -40,8 +41,8 @@ namespace TDSClient.TDS.Client
         public bool Unpack(MemoryStream stream)
         {
             BuildNumber = BigEndianUtilities.ReadUShort(stream);
-            Minor = (byte)stream.ReadByte();
-            Major = (byte)stream.ReadByte();
+            Minor = Convert.ToByte(stream.ReadByte());
+            Major = Convert.ToByte(stream.ReadByte());
             SubBuildNumber = BigEndianUtilities.ReadUShort(stream);
             return true;
         }

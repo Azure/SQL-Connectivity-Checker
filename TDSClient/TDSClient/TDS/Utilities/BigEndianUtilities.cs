@@ -54,7 +54,7 @@ namespace TDSClient.TDS.Utilities
             for (int i = 0; i < 2; i++)
             {
                 result <<= 8;
-                result |= (byte)stream.ReadByte();
+                result |= Convert.ToByte(stream.ReadByte());
             }
             return result;
         }
@@ -65,7 +65,7 @@ namespace TDSClient.TDS.Utilities
             for (int i = 0; i < 4; i++)
             {
                 result <<= 8;
-                result |= (byte)stream.ReadByte();
+                result |= Convert.ToByte(stream.ReadByte());
             }
             return result;
         }
@@ -76,7 +76,7 @@ namespace TDSClient.TDS.Utilities
             for (int i = 0; i < 8; i++)
             {
                 result <<= 8;
-                result |= (byte)stream.ReadByte();
+                result |= Convert.ToByte(stream.ReadByte());
             }
             return result;
         }
@@ -86,7 +86,7 @@ namespace TDSClient.TDS.Utilities
             byte[] result = new byte[length];
             for (int i = 0; i < length; i++)
             {
-                result[length - i] = (byte)stream.ReadByte();
+                result[length - i] = Convert.ToByte(stream.ReadByte());
             }
             return result;
         }

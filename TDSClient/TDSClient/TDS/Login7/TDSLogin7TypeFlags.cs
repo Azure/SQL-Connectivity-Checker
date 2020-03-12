@@ -6,6 +6,7 @@
 
 namespace TDSClient.TDS.Login7
 {
+    using System;
     using System.IO;
     using TDSClient.TDS.Interfaces;
 
@@ -55,7 +56,7 @@ namespace TDSClient.TDS.Login7
 
         public bool Unpack(MemoryStream stream)
         {
-            byte flagByte = (byte)stream.ReadByte();
+            byte flagByte = Convert.ToByte(stream.ReadByte());
             SQLType = (TDSLogin7TypeFlagsSQLType)(flagByte & 0x0F);
             OLEDB = (TDSLogin7TypeFlagsOLEDB)((flagByte >> 4) & 0x01);
             ReadOnlyIntent = (TDSLogin7TypeFlagsReadOnlyIntent)((flagByte >> 5) & 0x01);

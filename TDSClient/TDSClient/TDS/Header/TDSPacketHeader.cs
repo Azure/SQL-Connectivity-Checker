@@ -62,8 +62,8 @@ namespace TDSClient.TDS.Header
             Status = (TDSMessageStatus)stream.ReadByte();
             Length = BigEndianUtilities.ReadUShort(stream);
             SPID = BigEndianUtilities.ReadUShort(stream);
-            Packet = (byte)stream.ReadByte();
-            Window = (byte)stream.ReadByte();
+            Packet = Convert.ToByte(stream.ReadByte());
+            Window = Convert.ToByte(stream.ReadByte());
             return true;
         }
     }

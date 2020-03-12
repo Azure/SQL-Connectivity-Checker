@@ -6,6 +6,7 @@
 
 namespace TDSClient.TDS.Login7
 {
+    using System;
     using System.IO;
     using TDSClient.TDS.Interfaces;
 
@@ -107,7 +108,7 @@ namespace TDSClient.TDS.Login7
 
         public bool Unpack(MemoryStream stream)
         {
-            byte flagByte = (byte)stream.ReadByte();
+            byte flagByte = Convert.ToByte(stream.ReadByte());
             ByteOrder = (TDSLogin7OptionFlags1ByteOrder)(flagByte & 0x01);
             Char = (TDSLogin7OptionFlags1Char)((flagByte >> 1) & 0x01);
             Float = (TDSLogin7OptionFlags1Float)((flagByte >> 2) & 0x03);
