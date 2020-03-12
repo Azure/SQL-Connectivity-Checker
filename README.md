@@ -3,7 +3,9 @@
 This PowerShell script will run some connectivity checks from this machine to the server and database.
 
 **In order to run it you need to:**
-1. Open Windows PowerShell ISE
+1. Open Windows PowerShell ISE in Administrator mode
+Administrator privileges are required to 'RunAdvancedConnectivityPolicyTests' and 'CollectNetworkTrace'.
+In case you cannot run in administrator mode please continue, the tool will still run relevant tests.
 
 2. Open a New Script window
 
@@ -18,7 +20,7 @@ $parameters = @{
 
     ## Optional parameters (default values will be used if ommited)
     SendAnonymousUsageData = $true  # Set as $true (default) or $false
-    RunAdvancedConnectivityPolicyTests = $true  # Set as $true (default) or $false, this will download library needed for running advanced connectivity tests
+    RunAdvancedConnectivityPolicyTests = $true  # Set as $true (default) or $false, this will download the library needed for running advanced connectivity tests
     CollectNetworkTrace = $true  # Set as $true (default) or $false
     #EncryptionProtocol = '' # Supported values: 'Tls 1.0', 'Tls 1.1', 'Tls 1.2'; Without this parameter operating system will choose the best protocol to use
 }
@@ -28,13 +30,14 @@ $scriptUrlBase = 'raw.githubusercontent.com/Azure/SQL-Connectivity-Checker/maste
 Invoke-Command -ScriptBlock ([Scriptblock]::Create((iwr ($scriptUrlBase+'/AzureSQLConnectivityChecker.ps1')).Content)) -ArgumentList $parameters
 #end
 ```
-4. Set the parameters on the script, you need to set server name and database name.
+4. Set the parameters on the script, you need to set server name. Database name, user and password are optional but desirable.
 
 5. Run it.
 
 6. The results can be seen in the output window.
 If the user has the permissions to create folders, a folder with the resulting log file will be created.
 When running on Windows, the folder will be opened automatically after the script completes.
+A zip file with all the log files (AllFiles.zip) will be created.
 
 # Contributing
 
