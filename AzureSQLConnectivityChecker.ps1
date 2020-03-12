@@ -113,6 +113,8 @@ $SQLDBGateways = @(
 
 $TRPorts = @('11000', '11001', '11003', '11005', '11006')
 
+$networkingIssueMessage = ' This issue indicates a problem with the networking configuration. If this is related with on-premises resources, the networking team from customer side should be engaged. If this is between Azure resources, Azure Networking team should be engaged.'
+
 function PrintDNSResults($dnsResult, [string] $dnsSource) {
     if ($dnsResult) {
         Write-Host ' Found DNS record in' $dnsSource '(IP Address:'$dnsResult.IPAddress')'
@@ -172,17 +174,18 @@ function FilterTranscript() {
 
 function TestConnectionToDatabase($Server, $gatewayPort, $Database, $User, $Password) {
     Write-Host
-    Write-Host ([string]::Format("Testing dummy connecting to {0} database:", $Database)) -ForegroundColor Green
+    Write-Host ([string]::Format("Testing connecting to {0} database:", $Database)) -ForegroundColor Green
     Try {
         $masterDbConnection = [System.Data.SqlClient.SQLConnection]::new()
         $masterDbConnection.ConnectionString = [string]::Format("Server=tcp:{0},{1};Initial Catalog={2};Persist Security Info=False;User ID={3};Password={4};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;",
             $Server, $gatewayPort, $Database, $User, $Password)
         $masterDbConnection.Open()
+        Write-Host ([string]::Format(" The connection attempt succeeded", $Database))
     }
     catch [System.Data.SqlClient.SqlException] {
         if ($_.Exception.Number -eq 18456) {
             if ($User -eq 'AzSQLConnCheckerUser') {
-                Write-Host ([string]::Format(" Dummy login attempt reached '{0}' database, login failed as expected", $Database)) -ForegroundColor Green
+                Write-Host ([string]::Format(" Dummy login attempt reached '{0}' database, login failed as expected", $Database))
             }
             else {
                 Write-Host ([string]::Format(" Login attempt reached '{0}' database but login failed for user '{1}'", $Database, $User)) -ForegroundColor Yellow
@@ -267,6 +270,7 @@ function RunSqlMIPublicEndpointConnectivityTests($resolvedAddress) {
         else {
             Write-Host ' -> TCP test FAILED' -ForegroundColor Red
             Write-Host ' Please make sure you fix the connectivity from this machine to' $resolvedAddress':3342' -ForegroundColor Red
+            Write-Host $networkingIssueMessage -ForegroundColor Yellow
         }
     }
     Catch {
@@ -290,6 +294,7 @@ function RunSqlMIVNetConnectivityTests($resolvedAddress) {
             Write-Host ' -> TCP test FAILED' -ForegroundColor Red
             Write-Host ' Please make sure you fix the connectivity from this machine to' $resolvedAddress':1433' -ForegroundColor Red
             Write-Host ' See more about connectivity architecture at https://docs.microsoft.com/en-us/azure/sql-database/sql-database-managed-instance-connectivity-architecture' -ForegroundColor Red
+            Write-Host $networkingIssueMessage -ForegroundColor Yellow
             Write-Host
             Write-Host ' IP routes for interface:' $testResult.InterfaceAlias
             Get-NetAdapter $testResult.InterfaceAlias | Get-NetRoute
@@ -345,8 +350,10 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
     Write-Host 'Detected as SQL DB Server' -ForegroundColor Yellow
     $gateway = $SQLDBGateways | Where-Object { $_.Gateways -eq $resolvedAddress }
     if (!$gateway) {
-        Write-Host ' ERROR:' $resolvedAddress 'is not a valid gateway address, please check the DNS resolution' -ForegroundColor Red
-        throw
+        Write-Host ' ERROR:' $resolvedAddress 'is not a valid gateway address' -ForegroundColor Red
+        Write-Host ' Please review your DNS configuration, it should resolve to a valid gateway address' -ForegroundColor Red
+        Write-Host ' See the valid gateway addresses at https://docs.microsoft.com/en-us/azure/sql-database/sql-database-connectivity-architecture#azure-sql-database-gateway-ip-addresses' -ForegroundColor Red
+        Write-Error '' -ErrorAction Stop
     }
     Write-Host ' The server' $Server 'is running on ' -ForegroundColor White -NoNewline
     Write-Host $gateway.Region -ForegroundColor Yellow
@@ -365,6 +372,7 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
         else {
             Write-Host ' -> TCP test FAILED' -ForegroundColor Red
             Write-Host ' Please make sure you fix the connectivity from this machine to' $gatewayAddress':1433 to avoid issues!' -ForegroundColor Red
+            Write-Host $networkingIssueMessage -ForegroundColor Yellow
             Write-Host
             Write-Host ' IP routes for interface:' $testResult.InterfaceAlias
             Get-NetAdapter $testResult.InterfaceAlias | Get-NetRoute
@@ -553,7 +561,8 @@ try {
         }
         catch {
             Write-Host ' ERROR: Name resolution of' $Server 'failed' -ForegroundColor Red
-            throw
+            Write-Host ' Please make sure the server name FQDN is correct and that your machine can resolve it' -ForegroundColor Red
+            Write-Error '' -ErrorAction Stop
         }
         $resolvedAddress = $dnsResult.AddressList[0].IPAddressToString
         $dbPort = 1433
