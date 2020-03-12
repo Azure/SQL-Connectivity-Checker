@@ -3,7 +3,7 @@
 This PowerShell script will run some connectivity checks from this machine to the server and database.
 
 **In order to run it you need to:**
-1. Open Windows PowerShell ISE in Administrator mode
+1. Open Windows PowerShell ISE in Administrator mode  
 Administrator privileges are required to 'RunAdvancedConnectivityPolicyTests' and 'CollectNetworkTrace'.
 In case you cannot run in administrator mode please continue, the tool will still run relevant tests.
 
