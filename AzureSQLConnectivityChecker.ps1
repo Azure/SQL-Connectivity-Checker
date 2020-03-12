@@ -464,9 +464,12 @@ function SendAnonymousUsageData {
                 | Add-Member -PassThru NoteProperty name '1.0'));
 
         $body = $body | ConvertTo-JSON -depth 5;
-        Invoke-WebInvoke-WebRequest -Uri 'https://dc.services.visualstudio.com/v2/track' -Method 'POST' -UseBasicParsing -body $body > $null
+        Invoke-WebRequest -Uri 'https://dc.services.visualstudio.com/v2/track' -Method 'POST' -UseBasicParsing -body $body > $null
     }
-    catch { }
+    catch {
+        Write-Host 'Error sending anonymous usage data:'
+        Write-Host $_.Exception.Message
+    }
 }
 
 $ProgressPreference = "SilentlyContinue";
