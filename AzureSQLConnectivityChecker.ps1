@@ -15,23 +15,34 @@ using namespace System.Diagnostics
 
 # Parameter region for when script is run direcly
 # Supports Single, Elastic Pools and Managed Instance (please provide FQDN, MI public endpoint is supported)
-$Server = ''
-$Database = ''
-#Subnet = '' #Managed Instance subnet CIDR range, in case of managed instance this parameter is mandatory
+$Server = '.database.windows.net'
+$Database = ''  # Set the name of the database you wish to test, 'master' will be used by default if nothing is set
+$User = ''  # Set the login username yo wish to use, 'AzSQLConnCheckerUser' will be used by default if nothing is set
+$Password = ''  # Set the login password you wish to use, 'AzSQLConnCheckerPassword' will be used by default if nothing is set
 
-## Optional parameters (default values will be used if ommited)
-$SendAnonymousUsageData = $true  #Set as $true (default) or $false
-
+# Optional parameters (default values will be used if ommited)
+$SendAnonymousUsageData = $true  # Set as $true (default) or $false
+$RunAdvancedConnectivityPolicyTests = $true  # Set as $true (default) or $false#Set as $true (default) or $false, this will download library needed for running advanced connectivity policy tests
+$CollectNetworkTrace = $true  # Set as $true (default) or $false
+#EncryptionProtocol = ''  # Supported values: 'Tls 1.0', 'Tls 1.1', 'Tls 1.2'; Without this parameter operating system will choose the best protocol to use
 
 # Parameter region when Invoke-Command -ScriptBlock is used
 $parameters = $args[0]
 if ($null -ne $parameters) {
     $Server = $parameters['Server']
     $Database = $parameters['Database']
-    $SubnetCIDR = $parameters['Subnet']
+    $User = $parameters['User']
+    $Password = $parameters['Password']
     if ($null -ne $parameters['SendAnonymousUsageData']) {
         $SendAnonymousUsageData = $parameters['SendAnonymousUsageData']
     }
+    if ($null -ne $parameters['RunAdvancedConnectivityPolicyTests']) {
+        $RunAdvancedConnectivityPolicyTests = $parameters['RunAdvancedConnectivityPolicyTests']
+    }
+    if ($null -ne $parameters['CollectNetworkTrace']) {
+        $CollectNetworkTrace = $parameters['CollectNetworkTrace']
+    }
+    $EncryptionProtocol = $parameters['EncryptionProtocol']
 }
 
 $Server = $Server.Trim()
@@ -39,6 +50,24 @@ $Server = $Server.Replace('tcp:', '')
 $Server = $Server.Replace(',1433', '')
 $Server = $Server.Replace(',3342', '')
 $Server = $Server.Replace(';', '')
+
+if ($null -eq $User -or '' -eq $User) {
+    $User = 'AzSQLConnCheckerUser'
+}
+
+if ($null -eq $Password -or '' -eq $Password) {
+    $Password = 'AzSQLConnCheckerPassword'
+}
+
+if ($null -eq $Database -or '' -eq $Database) {
+    $Database = 'master'
+}
+
+$CustomerRunningInElevatedMode = $false
+$currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+if ($currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    $CustomerRunningInElevatedMode = $true
+}
 
 $SQLDBGateways = @(
     New-Object PSObject -Property @{Region = "Australia Central"; Gateways = ("20.36.105.0"); Affected20191014 = $false; TRs = ('tr1', 'tr2', 'tr3'); Cluster = 'australiacentral1-a'; }
@@ -141,19 +170,23 @@ function FilterTranscript() {
     }
 }
 
-function TestConnectionToDatabase($Server, $gatewayPort, $Database) {
+function TestConnectionToDatabase($Server, $gatewayPort, $Database, $User, $Password) {
     Write-Host
     Write-Host ([string]::Format("Testing dummy connecting to {0} database:", $Database)) -ForegroundColor Green
     Try {
         $masterDbConnection = [System.Data.SqlClient.SQLConnection]::new()
-        $masterDbConnection.ConnectionString = [string]::Format("Server=tcp:{0},{1};Initial Catalog={2};Persist Security Info=False;User ID=AzureSQLConnectivityChecker;Password=ThisIsJustATest;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;",
-            $Server, $gatewayPort, $Database)
+        $masterDbConnection.ConnectionString = [string]::Format("Server=tcp:{0},{1};Initial Catalog={2};Persist Security Info=False;User ID={3};Password={4};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;",
+            $Server, $gatewayPort, $Database, $User, $Password)
         $masterDbConnection.Open()
     }
     catch [System.Data.SqlClient.SqlException] {
         if ($_.Exception.Number -eq 18456) {
-            #Write-Host ' Error: '$_.Exception.Number 'State:'$_.Exception.State ':' $_.Exception.Message -ForegroundColor White
-            Write-Host ([string]::Format(" Dummy login attempt reached {0} database, login failed as expected", $Database)) -ForegroundColor Green
+            if ($User -eq 'AzSQLConnCheckerUser') {
+                Write-Host ([string]::Format(" Dummy login attempt reached '{0}' database, login failed as expected", $Database)) -ForegroundColor Green
+            }
+            else {
+                Write-Host ([string]::Format(" Login attempt reached '{0}' database but login failed for user '{1}'", $Database, $User)) -ForegroundColor Yellow
+            }
         }
         else {
             Write-Host ' Error: '$_.Exception.Number 'State:'$_.Exception.State ':' $_.Exception.Message -ForegroundColor Yellow
@@ -220,34 +253,37 @@ function CheckAffected20191014($gateway) {
 }
 
 function RunSqlMIPublicEndpointConnectivityTests($resolvedAddress) {
-    Write-Host 'Detected as Managed Instance using Public Endpoint' -ForegroundColor Yellow
+    Try {
+        Write-Host 'Detected as Managed Instance using Public Endpoint' -ForegroundColor Yellow
 
-    Write-Host 'Public Endpoint connectivity test:' -ForegroundColor Green
-    $testResult = Test-NetConnection $resolvedAddress -Port 3342 -WarningAction SilentlyContinue
+        Write-Host 'Public Endpoint connectivity test:' -ForegroundColor Green
+        $testResult = Test-NetConnection $resolvedAddress -Port 3342 -WarningAction SilentlyContinue
 
-    if ($testResult.TcpTestSucceeded) {
-        Write-Host ' -> TCP test succeed' -ForegroundColor Green
+        if ($testResult.TcpTestSucceeded) {
+            Write-Host ' -> TCP test succeed' -ForegroundColor Green
 
-        PrintAverageConnectionTime $resolvedAddress 3342
+            PrintAverageConnectionTime $resolvedAddress 3342
+        }
+        else {
+            Write-Host ' -> TCP test FAILED' -ForegroundColor Red
+            Write-Host ' Please make sure you fix the connectivity from this machine to' $resolvedAddress':3342' -ForegroundColor Red
+        }
     }
-    else {
-        Write-Host ' -> TCP test FAILED' -ForegroundColor Red
-        Write-Host ' Please make sure you fix the connectivity from this machine to' $resolvedAddress':3342' -ForegroundColor Red
+    Catch {
+        Write-Host "Error at RunSqlMIPublicEndpointConnectivityTests" -Foreground Red
+        Write-Host $_.Exception.Message -ForegroundColor Red
     }
 }
 
 function RunSqlMIVNetConnectivityTests($resolvedAddress) {
-    Write-Host 'Detected as Managed Instance' -ForegroundColor Yellow
-    if (($null -eq $SubnetCIDR) -or !($SubnetCIDR -match '\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/\d{1,2}\b')) {
-
-        Write-Host ' Subnet range is not specified or has incorrect format, this will limit the tests, please provide a proper subnet range' -ForegroundColor Red
+    Try {
+        Write-Host 'Detected as Managed Instance' -ForegroundColor Yellow
         Write-Host
         Write-Host 'Gateway connectivity tests:' -ForegroundColor Green
         $testResult = Test-NetConnection $resolvedAddress -Port 1433 -WarningAction SilentlyContinue
 
         if ($testResult.TcpTestSucceeded) {
             Write-Host ' -> TCP test succeed' -ForegroundColor Green
-
             PrintAverageConnectionTime $resolvedAddress 1433
         }
         else {
@@ -259,69 +295,14 @@ function RunSqlMIVNetConnectivityTests($resolvedAddress) {
             Get-NetAdapter $testResult.InterfaceAlias | Get-NetRoute
         }
     }
-    else {
-        Write-Host 'Gateway connectivity tests:' -ForegroundColor Green
-        $currentIP = [byte[]]$SubnetCIDR.ToString().Split('/')[0].Split('.')
-        $mask = [int]$SubnetCIDR.ToString().Split('/')[1]
-
-        $clients = [List[Tuple[TcpClient, IAsyncResult]]]::new()
-        $successfulConnections = [List[IPAddress]]::new()
-
-        $totalAddresses = [int][Math]::Pow(2, 32 - $mask)
-
-        for ($batch = 0; $batch -lt $totalAddresses; $batch += 256) {
-            if (($totalAddresses - $batch) / 256 -eq 0) {
-                $curBatchSize = $totalAddresses - $batch
-            }
-            else {
-                $curBatchSize = 256
-            }
-
-            for ($i = 0; $i -lt $curBatchSize; $i++) {
-                $client = [TcpClient]::new()
-                $ipAddress = [IPAddress]::new($currentIP)
-
-                $asyncHandle = $client.BeginConnect($ipAddress, 1433, $null, $null)
-
-                $clients.Add([Tuple[TcpClient, IAsyncResult]]::new($client, $asyncHandle))
-
-                if (($i + 1) % 16777216 -eq 0) {
-                    $currentIP[0]++;
-                    $currentIP[1] = $currentIP[2] = $currentIP[3] = 0;
-                }
-                elseif (($i + 1) % 65536 -eq 0) {
-                    $currentIP[1]++;
-                    $currentIP[2] = $currentIP[3] = 0;
-                }
-                elseif (($i + 1) % 256 -eq 0) {
-                    $currentIP[2]++;
-                    $currentIP[3] = 0;
-                }
-                else {
-                    $currentIP[3]++;
-                }
-            }
-        }
-
-        Start-Sleep 10
-
-        foreach ($client in $clients) {
-            if ($client.Item1.Connected) {
-                $successfulConnections.Add(([IPEndPoint]$client.Item1.Client.RemoteEndPoint).Address)
-            }
-
-            try {
-                $client.Item1.Close()
-                $client.Item1.EndConnect($client.Item2)
-            }
-            catch { }
-        }
-
-        PrintAverageConnectionTime $successfulConnections 1433
+    Catch {
+        Write-Host "Error at RunSqlMIVNetConnectivityTests" -Foreground Red
+        Write-Host $_.Exception.Message -ForegroundColor Red
     }
 }
 
 function PrintAverageConnectionTime($addressList, $port) {
+    Write-Host 'Printing average connection times for 5 connection attempts:' -ForegroundColor Green
     $stopwatch = [StopWatch]::new()
 
     foreach ($ipAddress in $addressList) {
@@ -427,6 +408,42 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
     }
 }
 
+function RunConnectivityPolicyTests($port) {
+    Write-Host
+    Write-Host 'Advanced connectivity policy tests:' -ForegroundColor Green
+
+    if (!$CustomerRunningInElevatedMode) {
+        Write-Host ' Powershell must be run as an administrator in order to run advanced connectivity policy tests!' -ForegroundColor Yellow
+        return
+    }
+
+    if ($(Get-ExecutionPolicy) -eq 'Restricted') {
+        Write-Host ' Advanced connectivity policy tests cannot be run because of current execution policy(Restricted)!' -ForegroundColor Yellow
+        Write-Host ' Please use Set-ExecutionPolicy to allow scripts to run on this system!' -ForegroundColor Yellow
+        return
+    }
+
+    $jobParameters = @{
+        Server             = $Server
+        Database           = $Database
+        Port               = $port
+        User               = $User
+        Password           = $Password
+        EncryptionProtocol = $EncryptionProtocol
+    }
+
+    if (Test-Path "$env:TEMP\AzureSQLConnectivityChecker\") {
+        Remove-Item $env:TEMP\AzureSQLConnectivityChecker -Recurse -Force
+    }
+
+    New-Item "$env:TEMP\AzureSQLConnectivityChecker\" -ItemType directory | Out-Null
+    Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/Azure/SQL-Connectivity-Checker/master/AdvancedConnectivityPolicyTests.ps1' -OutFile "$env:TEMP\AzureSQLConnectivityChecker\AdvancedConnectivityPolicyTests.ps1"
+    $job = Start-Job -ArgumentList $jobParameters -FilePath "$env:TEMP\AzureSQLConnectivityChecker\AdvancedConnectivityPolicyTests.ps1"
+    Wait-Job $job | Out-Null
+    Receive-Job -Job $job
+    Remove-Item $env:TEMP\AzureSQLConnectivityChecker -Recurse -Force
+}
+
 function SendAnonymousUsageData {
     try {
         #Despite computername and username will be used to calculate a hash string, this will keep you anonymous but allow us to identify multiple runs from the same user
@@ -444,7 +461,7 @@ function SendAnonymousUsageData {
             | Add-Member -PassThru NoteProperty baseType 'EventData' `
             | Add-Member -PassThru NoteProperty baseData (New-Object PSObject `
                 | Add-Member -PassThru NoteProperty ver 2 `
-                | Add-Member -PassThru NoteProperty name '0.9.2'));
+                | Add-Member -PassThru NoteProperty name '1.0'));
 
         $body = $body | ConvertTo-JSON -depth 5;
         Invoke-WebInvoke-WebRequest -Uri 'https://dc.services.visualstudio.com/v2/track' -Method 'POST' -UseBasicParsing -body $body > $null
@@ -458,13 +475,20 @@ try {
     Clear-Host
     $canWriteFiles = $true
     try {
-        $currentPath = (Resolve-Path .\).Path
-        if (!($currentPath.EndsWith('AzureSQLConnectivityCheckerResults'))) {
-            if (-Not (Test-Path AzureSQLConnectivityCheckerResults)) {
-                New-Item AzureSQLConnectivityCheckerResults -ItemType directory | Out-Null
-            }
-            Set-Location AzureSQLConnectivityCheckerResults
+        $logsFolderName = 'AzureSQLConnectivityCheckerResults'
+        Set-Location -Path $env:TEMP
+        If (!(Test-Path $logsFolderName)) {
+            New-Item $logsFolderName -ItemType directory | Out-Null
+            Write-Host 'The folder' $logsFolderName 'was created'
         }
+        else {
+            Write-Host 'The folder' $logsFolderName 'already exists'
+        }
+        Set-Location $logsFolderName
+        $outFolderName = [System.DateTime]::Now.ToString('yyyyMMddTHHmmss')
+        New-Item $outFolderName -ItemType directory | Out-Null
+        Set-Location $outFolderName
+
         $file = '.\Log_' + (SanitizeString ($Server.Replace('.database.windows.net', ''))) + '_' + (SanitizeString $Database) + '_' + [System.DateTime]::Now.ToString('yyyyMMddTHHmmss') + '.txt'
         Start-Transcript -Path $file
         Write-Host '..TranscriptStart..'
@@ -480,7 +504,7 @@ try {
 
     try {
         Write-Host '******************************************' -ForegroundColor Green
-        Write-Host '  Azure SQL Connectivity Checker v0.9.2  ' -ForegroundColor Green
+        Write-Host '  Azure SQL Connectivity Checker v1.0  ' -ForegroundColor Green
         Write-Host '******************************************' -ForegroundColor Green
         Write-Host
 
@@ -505,6 +529,19 @@ try {
 
         #Print local network configuration
         PrintLocalNetworkConfiguration
+
+        if ($canWriteFiles -and $CollectNetworkTrace) {
+            if (!$CustomerRunningInElevatedMode) {
+                Write-Host ' Powershell must be run as an administrator in order to collect network trace!' -ForegroundColor Yellow
+                $netWorkTraceStarted = $false
+            }
+            else {
+                $traceFileName = (Get-Location).Path + '\NetworkTrace_' + [System.DateTime]::Now.ToString('yyyyMMddTHHmmss') + '.etl'
+                $startNetworkTrace = "netsh trace start persistent=yes capture=yes tracefile=$traceFileName"
+                Invoke-Expression $startNetworkTrace
+                $netWorkTraceStarted = $true
+            }
+        }
 
         ValidateDNS $Server
 
@@ -533,12 +570,17 @@ try {
             RunSqlDBConnectivityTests $resolvedAddress
         }
 
+        #Test connection policy
+        if ($RunAdvancedConnectivityPolicyTests) {
+            RunConnectivityPolicyTests $dbPort
+        }
+
         #Test master database
-        TestConnectionToDatabase $Server $dbPort 'master'
+        TestConnectionToDatabase $Server $dbPort 'master' $User $Password
 
         #Test database from parameter
-        if ($Database -and $Database.Length -gt 0) {
-            TestConnectionToDatabase $Server $dbPort $Database
+        if ($Database -and $Database.Length -gt 0 -and $Database -ne 'master' ) {
+            TestConnectionToDatabase $Server $dbPort $Database $User $Password
         }
 
         Write-Host
@@ -576,9 +618,16 @@ try {
         Write-Host 'All tests are now done!' -ForegroundColor Green
     }
     catch {
-        Write-Host 'Exception thrown while testing, stopping execution...'
+        Write-Host $_.Exception.Message -ForegroundColor Red
+        Write-Host 'Exception thrown while testing, stopping execution...' -ForegroundColor Yellow
     }
     finally {
+        if ($netWorkTraceStarted) {
+            Write-Host 'Stopping network trace.... please wait, this may take a few minutes' -ForegroundColor Yellow
+            $stopNetworkTrace = "netsh trace stop"
+            Invoke-Expression $stopNetworkTrace
+            $netWorkTraceStarted = $false
+        }
         if ($canWriteFiles) {
             try {
                 Stop-Transcript | Out-Null
@@ -592,8 +641,11 @@ try {
 finally {
     if ($canWriteFiles) {
         Write-Host Log file can be found at (Get-Location).Path
-        Write-Host
+        if ($PSVersionTable.PSVersion.Major -ge 5) {
+            $destAllFiles = (Get-Location).Path + '/AllFiles.zip'
+            Compress-Archive -Path (Get-Location).Path -DestinationPath $destAllFiles -Force
+            Write-Host 'A zip file with all the files can be found at' $destAllFiles -ForegroundColor Green
+        }
         Invoke-Item (Get-Location).Path
-        Set-Location ..
     }
 }
