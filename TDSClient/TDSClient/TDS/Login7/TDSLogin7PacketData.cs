@@ -13,6 +13,9 @@ namespace TDSClient.TDS.Login7
     using TDSClient.TDS.Interfaces;
     using TDSClient.TDS.Utilities;
 
+    /// <summary>
+    /// Data portion of the TDS Login7 packet
+    /// </summary>
     public class TDSLogin7PacketData : ITDSPacketData
     {
         /// <summary>
@@ -20,6 +23,9 @@ namespace TDSClient.TDS.Login7
         /// </summary>
         private byte[] data;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TDSLogin7PacketData" /> class.
+        /// </summary>
         public TDSLogin7PacketData()
         {
             this.OptionFlags1 = new TDSLogin7OptionFlags1();
@@ -106,7 +112,12 @@ namespace TDSClient.TDS.Login7
         /// </summary>
         public TDSLogin7OffsetLength OffsetLength { get; private set; }
 
-        // FeatureExt - unsupported
+        /// <summary>
+        /// Add TDS Login7 Option.
+        /// </summary>
+        /// <param name="optionName">Option Name</param>
+        /// <param name="length">Option Length</param>
+        /// <param name="data">Option Data</param>
         public void AddOption(string optionName, ushort length, object data)
         {
             if (optionName == null || data == null)
@@ -162,6 +173,10 @@ namespace TDSClient.TDS.Login7
             Array.Copy(optionData, 0, this.data, prevLength, optionData.Length);
         }
 
+        /// <summary>
+        /// Used to pack IPackageable to a stream.
+        /// </summary>
+        /// <param name="stream">MemoryStream in which IPackageable is packet into.</param>
         public void Pack(MemoryStream stream)
         {
             LittleEndianUtilities.WriteUInt(stream, this.Length);
@@ -182,6 +197,11 @@ namespace TDSClient.TDS.Login7
             // ToDo: Extensions not supported
         }
 
+        /// <summary>
+        /// Used to unpack IPackageable from a stream.
+        /// </summary>
+        /// <param name="stream">MemoryStream from which to unpack IPackageable.</param>
+        /// <returns>Returns true if successful.</returns>
         public bool Unpack(MemoryStream stream)
         {
             LittleEndianUtilities.ReadUInt(stream);
@@ -203,6 +223,10 @@ namespace TDSClient.TDS.Login7
             return true;
         }
 
+        /// <summary>
+        /// TDS Login7 Data portion length.
+        /// </summary>
+        /// <returns>Returns TDS Login7 Data portion length.</returns>
         ushort ITDSPacketData.Length()
         {
             return Convert.ToUInt16(this.Length);

@@ -6,6 +6,9 @@
 
 namespace TDSClient.TDS.Header
 {
+    /// <summary>
+    /// Enum describing TDS Message Status
+    /// </summary>
     public enum TDSMessageStatus : byte
     {
         /// <summary>

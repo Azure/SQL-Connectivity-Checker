@@ -6,6 +6,9 @@
 
 namespace TDSClient.TDS.Tokens.EnvChange
 {
+    /// <summary>
+    /// Enum describing ENcChange Token Type
+    /// </summary>
     public enum TDSEnvChangeType : byte
     {
         /// <summary>

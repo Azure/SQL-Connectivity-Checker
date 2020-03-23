@@ -6,6 +6,9 @@
 
 namespace TDSClient.TDS.Comms
 {
+    /// <summary>
+    /// Enum describing TDS Communicator State
+    /// </summary>
     public enum TDSCommunicatorState
     {
         /// <summary>

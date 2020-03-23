@@ -10,6 +10,9 @@ namespace TDSClient.TDS.Login7
     using System.IO;
     using TDSClient.TDS.Interfaces;
 
+    /// <summary>
+    /// Specifies whether the login request SHOULD change password.
+    /// </summary>
     public enum TDSLogin7OptionFlags3ChangePassword : byte
     {
         /// <summary>
@@ -23,6 +26,10 @@ namespace TDSClient.TDS.Login7
         RequestChange
     }
 
+    /// <summary>
+    /// Enum describing SendYukonBinaryXML flag
+    /// 1 if XML data type instances are returned as binary XML
+    /// </summary>
     public enum TDSLogin7OptionFlags3SendYukonBinaryXML : byte
     {
         /// <summary>
@@ -36,6 +43,10 @@ namespace TDSClient.TDS.Login7
         On
     }
 
+    /// <summary>
+    /// Enum describing UserInstanceProcess flag
+    /// 1 if client is requesting separate process to be spawned as user instance
+    /// </summary>
     public enum TDSLogin7OptionFlags3UserInstanceProcess : byte
     {
         /// <summary>
@@ -49,6 +60,17 @@ namespace TDSClient.TDS.Login7
         RequestSeparateProcess
     }
 
+    /// <summary>
+    /// This bit is used by the server to determine if a client is able to
+    /// properly handle collations introduced after TDS 7.2. TDS 7.2 and earlier clients are
+    /// encouraged to use this login packet bit.
+    /// 0 = The server MUST restrict the collations sent to a specific set of collations.It MAY
+    /// disconnect or send an error if some other value is outside the specific collation set.
+    /// The client MUST properly support all collations within the collation set.
+    /// 1 = The server MAY send any collation that fits in the storage space.The client MUST
+    /// be able to both properly support collations and gracefully fail for those it does not
+    /// support.
+    /// </summary>
     public enum TDSLogin7OptionFlags3UnknownCollationHandling : byte
     {
         /// <summary>
@@ -62,6 +84,9 @@ namespace TDSClient.TDS.Login7
         On
     }
 
+    /// <summary>
+    ///  Specifies whether Extension fields are used.
+    /// </summary>
     public enum TDSLogin7OptionFlags3Extension : byte
     {
         /// <summary>
@@ -75,6 +100,9 @@ namespace TDSClient.TDS.Login7
         Exists
     }
 
+    /// <summary>
+    /// TDS Login7 Message Option Flags 3
+    /// </summary>
     public class TDSLogin7OptionFlags3 : IPackageable
     {
         /// <summary>
@@ -107,7 +135,11 @@ namespace TDSClient.TDS.Login7
         /// Specifies whether IBExtension or CBExtension fields are used.
         /// </summary>
         public TDSLogin7OptionFlags3Extension Extension { get; set; }
-
+        
+        /// <summary>
+        /// Used to pack IPackageable to a stream.
+        /// </summary>
+        /// <param name="stream">MemoryStream in which IPackageable is packet into.</param>
         public void Pack(MemoryStream stream)
         {
             byte packedByte = (byte)((byte)this.ChangePassword
@@ -119,6 +151,11 @@ namespace TDSClient.TDS.Login7
             stream.WriteByte(packedByte);
         }
 
+        /// <summary>
+        /// Used to unpack IPackageable from a stream.
+        /// </summary>
+        /// <param name="stream">MemoryStream from which to unpack IPackageable.</param>
+        /// <returns>Returns true if successful.</returns>
         public bool Unpack(MemoryStream stream)
         {
             byte flagByte = Convert.ToByte(stream.ReadByte());

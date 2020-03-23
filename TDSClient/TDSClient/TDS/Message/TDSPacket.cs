@@ -12,29 +12,55 @@ namespace TDSClient.TDS.Message
     using TDSClient.TDS.Interfaces;
     using TDSClient.TDS.PreLogin;
 
+    /// <summary>
+    /// Class describing a TDS packet
+    /// </summary>
     public class TDSPacket : IPackageable
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TDSPacket" /> class.
+        /// </summary>
         public TDSPacket()
         {
             this.Header = new TDSPacketHeader();
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TDSPacket" /> class.
+        /// </summary>
+        /// <param name="header">TDS Packet Header</param>
+        /// <param name="data">TDS Packet Data</param>
         public TDSPacket(TDSPacketHeader header, ITDSPacketData data)
         {
             this.Header = header;
             this.Data = data;
         }
 
+        /// <summary>
+        /// Gets TDS Packet Header.
+        /// </summary>
         public TDSPacketHeader Header { get; private set; }
 
+        /// <summary>
+        /// Gets TDS Packet Data.
+        /// </summary>
         public ITDSPacketData Data { get; private set; }
 
+        /// <summary>
+        /// Used to pack IPackageable to a stream.
+        /// </summary>
+        /// <param name="stream">MemoryStream in which IPackageable is packet into.</param>
         public void Pack(MemoryStream stream)
         {
             this.Header.Pack(stream);
             this.Data.Pack(stream);
         }
 
+        /// <summary>
+        /// Used to unpack IPackageable from a stream.
+        /// </summary>
+        /// <param name="stream">MemoryStream from which to unpack IPackageable.</param>
+        /// <returns>Returns true if successful.</returns>
         public bool Unpack(MemoryStream stream)
         {
             this.Header = new TDSPacketHeader();

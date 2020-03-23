@@ -10,9 +10,19 @@ namespace TDSClient.TDS.Utilities
     using System.Globalization;
     using System.IO;
 
+    /// <summary>
+    /// Utility class used for logging relevant information
+    /// </summary>
     public static class LoggingUtilities
     {
+        /// <summary>
+        /// Log output.
+        /// </summary>
         private static readonly WeakReference<TextWriter> Log = new WeakReference<TextWriter>(null);
+
+        /// <summary>
+        /// Verbose log output.
+        /// </summary>
         private static readonly WeakReference<TextWriter> VerboseLog = new WeakReference<TextWriter>(null);
 
         /// <summary>

@@ -7,11 +7,11 @@
 namespace TDSClient.TDS.Utilities
 {
     using System;
-    using System.Collections.Generic;
     using System.IO;
-    using System.Net.Sockets;
-    using System.Text;
 
+    /// <summary>
+    /// Utility class used for read and write operations on a stream containing data in big-endian byte order
+    /// </summary>
     public static class BigEndianUtilities
     {
         /// <summary>

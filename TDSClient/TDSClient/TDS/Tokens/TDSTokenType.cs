@@ -6,10 +6,9 @@
 
 namespace TDSClient.TDS.Tokens
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Text;
-
+    /// <summary>
+    /// Enum describing TDS Token Type
+    /// </summary>
     public enum TDSTokenType : byte
     {
         /// <summary>

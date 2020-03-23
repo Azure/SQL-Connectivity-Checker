@@ -30,6 +30,10 @@ namespace TDSClient.TDS.Client
         /// </summary>
         private ulong activitySequence;
 
+        /// <summary>
+        /// Used to pack IPackageable to a stream.
+        /// </summary>
+        /// <param name="stream">MemoryStream in which IPackageable is packet into.</param>
         public void Pack(MemoryStream stream)
         {
             BigEndianUtilities.WriteByteArray(stream, this.traceID);
@@ -37,6 +41,11 @@ namespace TDSClient.TDS.Client
             BigEndianUtilities.WriteULong(stream, this.activitySequence);
         }
 
+        /// <summary>
+        /// Used to unpack IPackageable from a stream.
+        /// </summary>
+        /// <param name="stream">MemoryStream from which to unpack IPackageable.</param>
+        /// <returns>Returns true if successful.</returns>
         public bool Unpack(MemoryStream stream)
         {
             this.traceID = BigEndianUtilities.ReadByteArray(stream, 16);

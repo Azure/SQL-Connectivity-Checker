@@ -10,6 +10,9 @@ namespace TDSClient.TDS.Login7
     using System.IO;
     using TDSClient.TDS.Interfaces;
 
+    /// <summary>
+    /// The type of SQL the client sends to the server.
+    /// </summary>
     public enum TDSLogin7TypeFlagsSQLType
     {
         /// <summary>
@@ -23,6 +26,13 @@ namespace TDSClient.TDS.Login7
         TSQL
     }
 
+    /// <summary>
+    /// Enum describing OLEDB flag
+    /// Set if the client is the OLEDB driver. This causes the server to set
+    /// ANSI_DEFAULTS to ON, CURSOR_CLOSE_ON_COMMIT and IMPLICIT_TRANSACTIONS to
+    /// OFF, TEXTSIZE to 0x7FFFFFFF (2GB) (TDS 7.2 and earlier), TEXTSIZE to infinite
+    /// (introduced in TDS 7.3), and ROWCOUNT to infinite.
+    /// </summary>
     public enum TDSLogin7TypeFlagsOLEDB
     {
         /// <summary>
@@ -36,6 +46,12 @@ namespace TDSClient.TDS.Login7
         On
     }
 
+    /// <summary>
+    /// Enum describing ReadOnlyIntent flag
+    /// This bit was introduced in TDS 7.4; however, TDS 7.1, 7.2, and 7.3
+    /// clients can also use this bit in LOGIN7 to specify that the application intent of the
+    /// connection is read-only.
+    /// </summary>
     public enum TDSLogin7TypeFlagsReadOnlyIntent
     {
         /// <summary>
@@ -49,6 +65,9 @@ namespace TDSClient.TDS.Login7
         On
     }
 
+    /// <summary>
+    /// TDS Login7 Type Flags
+    /// </summary>
     public class TDSLogin7TypeFlags : IPackageable
     {
         /// <summary>
@@ -68,7 +87,11 @@ namespace TDSClient.TDS.Login7
         /// connection is read-only.
         /// </summary>
         public TDSLogin7TypeFlagsReadOnlyIntent ReadOnlyIntent { get; set; }
-
+        
+        /// <summary>
+        /// Used to pack IPackageable to a stream.
+        /// </summary>
+        /// <param name="stream">MemoryStream in which IPackageable is packet into.</param>
         public void Pack(MemoryStream stream)
         {
             byte packedByte = (byte)((byte)this.SQLType
@@ -77,6 +100,11 @@ namespace TDSClient.TDS.Login7
             stream.WriteByte(packedByte);
         }
 
+        /// <summary>
+        /// Used to unpack IPackageable from a stream.
+        /// </summary>
+        /// <param name="stream">MemoryStream from which to unpack IPackageable.</param>
+        /// <returns>Returns true if successful.</returns>
         public bool Unpack(MemoryStream stream)
         {
             byte flagByte = Convert.ToByte(stream.ReadByte());

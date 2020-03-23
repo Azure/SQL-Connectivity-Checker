@@ -10,6 +10,9 @@ namespace TDSClient.TDS.Login7
     using System.IO;
     using TDSClient.TDS.Interfaces;
 
+    /// <summary>
+    /// The byte order used by client for numeric and datetime data types.
+    /// </summary>
     public enum TDSLogin7OptionFlags1ByteOrder : byte
     {
         /// <summary>
@@ -23,6 +26,9 @@ namespace TDSClient.TDS.Login7
         Order68000
     }
 
+    /// <summary>
+    /// The character set used on the client.
+    /// </summary>
     public enum TDSLogin7OptionFlags1Char : byte
     {
         /// <summary>
@@ -36,6 +42,10 @@ namespace TDSClient.TDS.Login7
         CharsetEBCDIC
     }
 
+    /// <summary>
+    /// Enum describing Float flag
+    /// The type of floating point representation used by the client.
+    /// </summary>
     public enum TDSLogin7OptionFlags1Float : byte
     {
         /// <summary>
@@ -54,6 +64,9 @@ namespace TDSClient.TDS.Login7
         ND5000
     }
 
+    /// <summary>
+    /// Set is dump/load or BCP capabilities are needed by the client.
+    /// </summary>
     public enum TDSLogin7OptionFlags1DumpLoad : byte
     {
         /// <summary>
@@ -67,6 +80,12 @@ namespace TDSClient.TDS.Login7
         DumploadOff
     }
 
+    /// <summary>
+    /// Enum describing UseDB flag
+    /// Set if the client requires warning messages on execution of the USE SQL
+    /// statement.If this flag is not set, the server MUST NOT inform the client when the database
+    /// changes, and therefore the client will be unaware of any accompanying collation changes.
+    /// </summary>
     public enum TDSLogin7OptionFlags1UseDB : byte
     {
         /// <summary>
@@ -80,6 +99,11 @@ namespace TDSClient.TDS.Login7
         UseDBOn
     }
 
+    /// <summary>
+    /// Enum describing Database flag
+    /// Set if the change to initial database needs to succeed if the connection is to
+    /// succeed.
+    /// </summary>
     public enum TDSLogin7OptionFlags1Database : byte
     {
         /// <summary>
@@ -93,6 +117,11 @@ namespace TDSClient.TDS.Login7
         InitDBFatal
     }
 
+    /// <summary>
+    /// Enum describing SetLang flag
+    /// Set if the client requires warning messages on execution of a language change
+    /// statement.
+    /// </summary>
     public enum TDSLogin7OptionFlags1SetLang : byte
     {
         /// <summary>
@@ -106,6 +135,9 @@ namespace TDSClient.TDS.Login7
         SetLangOn
     }
 
+    /// <summary>
+    /// TDS Login7 Message Option Flags 1
+    /// </summary>
     public class TDSLogin7OptionFlags1 : IPackageable
     {
         /// <summary>
@@ -149,7 +181,11 @@ namespace TDSClient.TDS.Login7
         /// statement.
         /// </summary>
         public TDSLogin7OptionFlags1SetLang SetLang { get; set; }
-
+        
+        /// <summary>
+        /// Used to pack IPackageable to a stream.
+        /// </summary>
+        /// <param name="stream">MemoryStream in which IPackageable is packet into.</param>
         public void Pack(MemoryStream stream)
         {
             byte packedByte = (byte)((byte)this.ByteOrder
@@ -162,6 +198,11 @@ namespace TDSClient.TDS.Login7
             stream.WriteByte(packedByte);
         }
 
+        /// <summary>
+        /// Used to unpack IPackageable from a stream.
+        /// </summary>
+        /// <param name="stream">MemoryStream from which to unpack IPackageable.</param>
+        /// <returns>Returns true if successful.</returns>
         public bool Unpack(MemoryStream stream)
         {
             byte flagByte = Convert.ToByte(stream.ReadByte());

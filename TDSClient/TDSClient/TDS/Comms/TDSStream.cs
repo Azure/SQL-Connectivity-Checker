@@ -10,17 +10,42 @@ namespace TDSClient.TDS.Comms
     using System.IO;
     using TDSClient.TDS.Header;
 
+    /// <summary>
+    /// Stream used to pass TDS messages.
+    /// </summary>
     public class TDSStream : Stream
     {
+        /// <summary>
+        /// TDS Packet Size used for communication
+        /// </summary>
         private readonly int negotiatedPacketSize;
 
+        /// <summary>
+        /// Current Inbound TDS Packet Header
+        /// </summary>
         private TDSPacketHeader currentInboundTDSHeader;
+
+        /// <summary>
+        /// Current position within the Inbound TDS Packet
+        /// </summary>
         private int currentInboundPacketPosition;
 
+        /// <summary>
+        /// Current Outbound TDS Packet Header
+        /// </summary>
         private TDSPacketHeader currentOutboundTDSHeader;
 
+        /// <summary>
+        /// TDS Connection Timeout
+        /// </summary>
         private TimeSpan timeout;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TDSStream"/> class.
+        /// </summary>
+        /// <param name="innerStream">Inner stream used for communication</param>
+        /// <param name="timeout">Communication failure timeout</param>
+        /// <param name="negotiatedPacketSize">Packet size</param>
         public TDSStream(Stream innerStream, TimeSpan timeout, int negotiatedPacketSize)
         {
             this.InnerStream = innerStream;
@@ -79,11 +104,21 @@ namespace TDSClient.TDS.Comms
         /// </summary>
         public override long Position { get => this.InnerStream.Position; set => this.InnerStream.Position = value; }
 
+        /// <summary>
+        /// Flushes stream output.
+        /// </summary>
         public override void Flush()
         {
             this.InnerStream.Flush();
         }
 
+        /// <summary>
+        /// Reads from stream.
+        /// </summary>
+        /// <param name="buffer">Buffer used to store read data.</param>
+        /// <param name="offset">Offset within buffer.</param>
+        /// <param name="count">Number of bytes to read.</param>
+        /// <returns>Returns number of successfully read bytes.</returns>
         public override int Read(byte[] buffer, int offset, int count)
         {
             var startTime = DateTime.Now;
@@ -148,6 +183,12 @@ namespace TDSClient.TDS.Comms
             return bytesReadTotal;
         }
 
+        /// <summary>
+        /// Write to stream.
+        /// </summary>
+        /// <param name="buffer">Buffer containing data that's being written.</param>
+        /// <param name="offset">Offset within buffer.</param>
+        /// <param name="count">Number of bytes to write.</param>
         public override void Write(byte[] buffer, int offset, int count)
         {
             this.currentOutboundTDSHeader = new TDSPacketHeader(this.CurrentOutboundMessageType, TDSMessageStatus.Normal, 0, 1);
@@ -175,16 +216,29 @@ namespace TDSClient.TDS.Comms
             }
         }
 
+        /// <summary>
+        /// Seek within stream.
+        /// </summary>
+        /// <param name="offset">Offset from origin.</param>
+        /// <param name="origin">Origin to seek from.</param>
+        /// <returns>The new position within current stream.</returns>
         public override long Seek(long offset, SeekOrigin origin)
         {
             return this.InnerStream.Seek(offset, origin);
         }
 
+        /// <summary>
+        /// Set stream length.
+        /// </summary>
+        /// <param name="value">New length.</param>
         public override void SetLength(long value)
         {
             this.InnerStream.SetLength(value);
         }
 
+        /// <summary>
+        /// Close this stream.
+        /// </summary>
         public override void Close()
         {
             this.InnerStream.Close();

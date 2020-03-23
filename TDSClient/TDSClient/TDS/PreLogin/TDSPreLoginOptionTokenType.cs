@@ -47,6 +47,10 @@ namespace TDSClient.TDS.PreLogin
     // +-----------------+----------------------------------------------------------------------------------+
     // | TERMINATOR      | Termination token.                                                               |
     // +-----------------+----------------------------------------------------------------------------------+
+   
+    /// <summary>
+    /// Enum describing TDS PreLogin Option Token type
+    /// </summary>
     public enum TDSPreLoginOptionTokenType : byte
     {
         /// <summary>

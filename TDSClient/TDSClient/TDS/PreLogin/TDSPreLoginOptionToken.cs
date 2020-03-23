@@ -11,12 +11,22 @@ namespace TDSClient.TDS.PreLogin
     using TDSClient.TDS.Interfaces;
     using TDSClient.TDS.Utilities;
 
+    /// <summary>
+    /// Class describing TDS PreLogin Option Token
+    /// </summary>
     public class TDSPreLoginOptionToken : IPackageable
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TDSPreLoginOptionToken"/> class.
+        /// </summary>
         public TDSPreLoginOptionToken()
         {
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TDSPreLoginOptionToken"/> class.
+        /// </summary>
+        /// <param name="type">PreLogin Option Token Type</param>
         public TDSPreLoginOptionToken(TDSPreLoginOptionTokenType type)
         {
             this.Type = type;
@@ -77,12 +87,25 @@ namespace TDSClient.TDS.PreLogin
             }
         }
 
+        /// <summary>
+        /// Gets TDS PreLogin Option Token Type.
+        /// </summary>
         public TDSPreLoginOptionTokenType Type { get; private set; }
 
+        /// <summary>
+        /// Gets or sets Offset.
+        /// </summary>
         public ushort Offset { get; set; }
 
+        /// <summary>
+        /// Gets Length.
+        /// </summary>
         public ushort Length { get; private set; }
 
+        /// <summary>
+        /// Used to pack IPackageable to a stream.
+        /// </summary>
+        /// <param name="stream">MemoryStream in which IPackageable is packet into.</param>
         public void Pack(MemoryStream stream)
         {
             stream.WriteByte((byte)this.Type);
@@ -93,6 +116,11 @@ namespace TDSClient.TDS.PreLogin
             }
         }
 
+        /// <summary>
+        /// Used to unpack IPackageable from a stream.
+        /// </summary>
+        /// <param name="stream">MemoryStream from which to unpack IPackageable.</param>
+        /// <returns>Returns true if successful.</returns>
         public bool Unpack(MemoryStream stream)
         {
             this.Type = (TDSPreLoginOptionTokenType)stream.ReadByte();

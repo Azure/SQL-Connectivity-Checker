@@ -10,8 +10,16 @@ namespace TDSClient.TDS.Tokens
     using System.IO;
     using TDSClient.TDS.Utilities;
 
+    /// <summary>
+    /// Factory used to read different tokens from a stream
+    /// </summary>
     public static class TDSTokenFactory
     {
+        /// <summary>
+        /// Reads a TDS Token from a given MemoryStream
+        /// </summary>
+        /// <param name="stream">Stream that contains the token</param>
+        /// <returns>Returns read TDS Token</returns>
         public static TDSToken ReadTokenFromStream(MemoryStream stream)
         {
             var tokenType = (TDSTokenType)stream.ReadByte();
@@ -44,6 +52,11 @@ namespace TDSClient.TDS.Tokens
             }
         }
 
+        /// <summary>
+        /// Skips a token within a stream based on token type
+        /// </summary>
+        /// <param name="tokenType">Type of the token to ignore</param>
+        /// <param name="stream">Stream that contains the token</param>
         private static void IgnoreToken(TDSTokenType tokenType, MemoryStream stream)
         {
             switch (((byte)tokenType >> 4) & 0x3)

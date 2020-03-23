@@ -15,13 +15,23 @@ namespace TDSClient.TDS.PreLogin
     using TDSClient.TDS.Interfaces;
     using TDSClient.TDS.Utilities;
 
+    /// <summary>
+    /// Class describing data portion of the PreLogin packet
+    /// </summary>
     public class TDSPreLoginPacketData : ITDSPacketData
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TDSPreLoginPacketData"/> class.
+        /// </summary>
         public TDSPreLoginPacketData()
         {
             this.Options = new List<TDSPreLoginOptionToken>();
         }
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TDSPreLoginPacketData"/> class.
+        /// </summary>
+        /// <param name="clientVersion">TDS Client version</param>
         public TDSPreLoginPacketData(TDSClientVersion clientVersion)
         {
             if (clientVersion == null)
@@ -33,24 +43,56 @@ namespace TDSClient.TDS.PreLogin
             this.AddOption(TDSPreLoginOptionTokenType.Version, clientVersion);
         }
 
+        /// <summary>
+        /// Gets TDS PreLogin Options
+        /// </summary>
         public List<TDSPreLoginOptionToken> Options { get; private set; }
 
+        /// <summary>
+        /// Gets TDS Client Version
+        /// </summary>
         public TDSClientVersion ClientVersion { get; private set; }
 
+        /// <summary>
+        /// Gets TDS Encryption Option
+        /// </summary>
         public TDSEncryptionOption Encryption { get; private set; }
 
+        /// <summary>
+        /// Gets Client Thread ID
+        /// </summary>
         public ulong ThreadID { get; private set; }
 
+        /// <summary>
+        /// Gets a value indicating whether MARS Option is enabled
+        /// </summary>
         public bool MARS { get; private set; }
 
+        /// <summary>
+        /// Gets Client Trace ID
+        /// </summary>
         public TDSClientTraceID TraceID { get; private set; }
 
+        /// <summary>
+        /// Gets a value indicating whether Federated Authentication is required
+        /// </summary>
         public bool FedAuthRequired { get; private set; }
 
+        /// <summary>
+        /// Gets Nonce
+        /// </summary>
         public byte[] Nonce { get; private set; }
 
+        /// <summary>
+        /// Gets a value indicating whether TDS PreLogin Packet is terminated or not
+        /// </summary>
         public bool Terminated { get; private set; }
 
+        /// <summary>
+        /// Adds PreLogin option to the PreLogin packet
+        /// </summary>
+        /// <param name="type">Option type</param>
+        /// <param name="data">Option data</param>
         public void AddOption(TDSPreLoginOptionTokenType type, object data)
         {
             if (this.Terminated)
@@ -172,6 +214,9 @@ namespace TDSClient.TDS.PreLogin
             this.Options.Add(new TDSPreLoginOptionToken(type));
         }
 
+        /// <summary>
+        /// Terminate TDS PreLogin Packet.
+        /// </summary>
         public void Terminate()
         {
             this.Terminated = true;
@@ -180,6 +225,10 @@ namespace TDSClient.TDS.PreLogin
             LoggingUtilities.WriteLogVerboseOnly($" Terminating PreLogin message.");
         }
 
+        /// <summary>
+        /// Used to pack IPackageable to a stream.
+        /// </summary>
+        /// <param name="stream">MemoryStream in which IPackageable is packet into.</param>
         public void Pack(MemoryStream stream)
         {
             if (this.Options.Count == 0 || this.Options[0].Type != TDSPreLoginOptionTokenType.Version || this.Options[this.Options.Count - 1].Type != TDSPreLoginOptionTokenType.Terminator || !this.Terminated)
@@ -266,6 +315,11 @@ namespace TDSClient.TDS.PreLogin
             }
         }
 
+        /// <summary>
+        /// Used to unpack IPackageable from a stream.
+        /// </summary>
+        /// <param name="stream">MemoryStream from which to unpack IPackageable.</param>
+        /// <returns>Returns true if successful.</returns>
         public bool Unpack(MemoryStream stream)
         {
             {
@@ -343,6 +397,10 @@ namespace TDSClient.TDS.PreLogin
             return true;
         }
 
+        /// <summary>
+        /// TDS PreLogin Packet data portion length.
+        /// </summary>
+        /// <returns>Returns TDS PreLogin Packet data portion length.</returns>
         public ushort Length()
         {
             return (ushort)(((this.Options.Count - 1) * ((2 * sizeof(ushort)) + sizeof(byte))) + sizeof(byte) + this.Options.Sum(opt => opt.Length));

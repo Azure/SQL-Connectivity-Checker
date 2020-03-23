@@ -8,6 +8,9 @@ namespace TDSClient.TDS.Interfaces
 {
     using System.IO;
 
+    /// <summary>
+    /// Interface used to describe all stream-packageable classes.
+    /// </summary>
     public interface IPackageable
     {
         /// <summary>

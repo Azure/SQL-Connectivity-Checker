@@ -10,6 +10,11 @@ namespace TDSClient.TDS.Login7
     using System.IO;
     using TDSClient.TDS.Interfaces;
 
+    /// <summary>
+    /// Enum describing Language flag
+    /// Set if the change to initial language needs to succeed if the connect is to
+    /// succeed.
+    /// </summary>
     public enum TDSLogin7OptionFlags2Language : byte
     {
         /// <summary>
@@ -23,6 +28,13 @@ namespace TDSClient.TDS.Login7
         InitLangFatal
     }
 
+    /// <summary>
+    /// Enum describing ODBC flag
+    /// Set if the client is the ODBC driver. This causes the server to set ANSI_DEFAULTS
+    /// to ON, CURSOR_CLOSE_ON_COMMIT and IMPLICIT_TRANSACTIONS to OFF, TEXTSIZE to
+    /// 0x7FFFFFFF (2GB) (TDS 7.2 and earlier), TEXTSIZE to infinite(introduced in TDS 7.3), and
+    /// ROWCOUNT to infinite.
+    /// </summary>
     public enum TDSLogin7OptionFlags2ODBC : byte
     {
         /// <summary>
@@ -36,6 +48,9 @@ namespace TDSClient.TDS.Login7
         OdbcOn
     }
 
+    /// <summary>
+    /// The type of user connecting to the server.
+    /// </summary>
     public enum TDSLogin7OptionFlags2UserType : byte
     {
         /// <summary>
@@ -59,6 +74,9 @@ namespace TDSClient.TDS.Login7
         UserSQLRepl
     }
 
+    /// <summary>
+    /// The type of security required by the client.
+    /// </summary>
     public enum TDSLogin7OptionFlags2IntSecurity : byte
     {
         /// <summary>
@@ -72,6 +90,9 @@ namespace TDSClient.TDS.Login7
         IntegratedSecurityOn
     }
 
+    /// <summary>
+    /// TDS Login7 Message Option Flags 2
+    /// </summary>
     public class TDSLogin7OptionFlags2 : IPackageable
     {
         /// <summary>
@@ -98,7 +119,11 @@ namespace TDSClient.TDS.Login7
         /// The type of security required by the client.
         /// </summary>
         public TDSLogin7OptionFlags2IntSecurity IntSecurity { get; set; }
-
+        
+        /// <summary>
+        /// Used to pack IPackageable to a stream.
+        /// </summary>
+        /// <param name="stream">MemoryStream in which IPackageable is packet into.</param>
         public void Pack(MemoryStream stream)
         {
             byte packedByte = (byte)((byte)this.Language
@@ -109,6 +134,11 @@ namespace TDSClient.TDS.Login7
             stream.WriteByte(packedByte);
         }
 
+        /// <summary>
+        /// Used to unpack IPackageable from a stream.
+        /// </summary>
+        /// <param name="stream">MemoryStream from which to unpack IPackageable.</param>
+        /// <returns>Returns true if successful.</returns>
         public bool Unpack(MemoryStream stream)
         {
             byte flagByte = Convert.ToByte(stream.ReadByte());

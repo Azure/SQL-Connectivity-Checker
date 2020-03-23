@@ -16,10 +16,25 @@ namespace TDSClient.TDS.Client
     using TDSClient.TDS.Tokens;
     using TDSClient.TDS.Utilities;
 
+    /// <summary>
+    /// SQL Test Client used to run diagnostics on SQL Server using TDS protocol.
+    /// </summary>
     public class TDSSQLTestClient
     {
+        /// <summary>
+        /// Field describing whether reconnection is required
+        /// </summary>
         private bool reconnect;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TDSSQLTestClient"/> class.
+        /// </summary>
+        /// <param name="server">Server to connect to</param>
+        /// <param name="port">Port to connect to</param>
+        /// <param name="userID">Used ID</param>
+        /// <param name="password">User password</param>
+        /// <param name="database">Database to connect to</param>
+        /// <param name="encryptionProtocol">Encryption Protocol</param>
         public TDSSQLTestClient(string server, int port, string userID, string password, string database, SslProtocols encryptionProtocol = SslProtocols.Tls12)
         {
             if (string.IsNullOrEmpty(server) || string.IsNullOrEmpty(userID) || string.IsNullOrEmpty(password) || string.IsNullOrEmpty(database))
@@ -95,6 +110,9 @@ namespace TDSClient.TDS.Client
         /// </summary>
         public SslProtocols EncryptionProtocol { get; private set; }
 
+        /// <summary>
+        /// Sends PreLogin message to the server.
+        /// </summary>
         public void SendPreLogin()
         {
             LoggingUtilities.WriteLog($" SendPreLogin initiated.");
@@ -107,6 +125,9 @@ namespace TDSClient.TDS.Client
             LoggingUtilities.WriteLog($" SendPreLogin done.");
         }
 
+        /// <summary>
+        /// Sends Login7 message to the server
+        /// </summary>
         public void SendLogin7()
         {
             LoggingUtilities.WriteLog($" SendLogin7 initiated.");
@@ -146,6 +167,38 @@ namespace TDSClient.TDS.Client
             LoggingUtilities.WriteLog($" SendLogin7 done.");
         }
 
+        /// <summary>
+        /// Receive PreLogin response from the server.
+        /// </summary>
+        public void ReceivePreLoginResponse()
+        {
+            LoggingUtilities.WriteLog($" ReceivePreLoginResponse initiated.");
+
+            if (this.TdsCommunicator.ReceiveTDSMessage() is TDSPreLoginPacketData response)
+            {
+                if (response.Options.Exists(opt => opt.Type == TDSPreLoginOptionTokenType.Encryption) && response.Encryption == TDSEncryptionOption.EncryptReq)
+                {
+                    LoggingUtilities.WriteLog($" Server requires encryption, enabling encryption.");
+                    this.TdsCommunicator.EnableEncryption(this.Server, this.EncryptionProtocol);
+                    LoggingUtilities.WriteLog($" Encryption enabled.");
+                }
+
+                if (response.Options.Exists(opt => opt.Type == TDSPreLoginOptionTokenType.FedAuthRequired) && response.FedAuthRequired == true)
+                {
+                    throw new NotSupportedException("FedAuth is being requested but the client doesn't support FedAuth.");
+                }
+            }
+            else
+            {
+                throw new InvalidOperationException();
+            }
+
+            LoggingUtilities.WriteLog($" ReceivePreLoginResponse done.");
+        }
+
+        /// <summary>
+        /// Receive Login7 response from the server.
+        /// </summary>
         public void ReceiveLogin7Response()
         {
             LoggingUtilities.WriteLog($" ReceiveLogin7Response initiated.");
@@ -194,32 +247,9 @@ namespace TDSClient.TDS.Client
             LoggingUtilities.WriteLog($" ReceiveLogin7Response done.");
         }
 
-        public void ReceivePreLoginResponse()
-        {
-            LoggingUtilities.WriteLog($" ReceivePreLoginResponse initiated.");
-
-            if (this.TdsCommunicator.ReceiveTDSMessage() is TDSPreLoginPacketData response)
-            {
-                if (response.Options.Exists(opt => opt.Type == TDSPreLoginOptionTokenType.Encryption) && response.Encryption == TDSEncryptionOption.EncryptReq)
-                {
-                    LoggingUtilities.WriteLog($" Server requires encryption, enabling encryption.");
-                    this.TdsCommunicator.EnableEncryption(this.Server, this.EncryptionProtocol);
-                    LoggingUtilities.WriteLog($" Encryption enabled.");
-                }
-
-                if (response.Options.Exists(opt => opt.Type == TDSPreLoginOptionTokenType.FedAuthRequired) && response.FedAuthRequired == true)
-                {
-                    throw new NotSupportedException("FedAuth is being requested but the client doesn't support FedAuth.");
-                }
-            }
-            else
-            {
-                throw new InvalidOperationException();
-            }
-
-            LoggingUtilities.WriteLog($" ReceivePreLoginResponse done.");
-        }
-
+        /// <summary>
+        /// Connect to the server.
+        /// </summary>
         public void Connect()
         {
             LoggingUtilities.WriteLog($" Connect initiated.");
@@ -244,6 +274,9 @@ namespace TDSClient.TDS.Client
             LoggingUtilities.WriteLog($" Connect done.");
         }
 
+        /// <summary>
+        /// Disconnect from the server.
+        /// </summary>
         public void Disconnect()
         {
             LoggingUtilities.WriteLog($" Disconnect initiated.");

@@ -38,6 +38,9 @@
 
 namespace TDSClient.TDS.Header
 {
+    /// <summary>
+    /// Enum describing TDSEncryptionOption
+    /// </summary>
     public enum TDSEncryptionOption : byte
     {
         /// <summary>

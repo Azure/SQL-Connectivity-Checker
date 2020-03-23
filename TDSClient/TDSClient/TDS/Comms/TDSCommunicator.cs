@@ -19,13 +19,36 @@ namespace TDSClient.TDS.Comms
     using TDSClient.TDS.Tokens;
     using TDSClient.TDS.Utilities;
 
+    /// <summary>
+    /// Class that implements TDS communication.
+    /// </summary>
     public class TDSCommunicator
     {
+        /// <summary>
+        /// Inner TDS Stream used for communication
+        /// </summary>
         private readonly TDSStream innerTdsStream;
+
+        /// <summary>
+        /// Inner Stream (TDS/TLS) used for communication
+        /// </summary>
         private readonly Stream innerStream;
+
+        /// <summary>
+        /// TDS packet size
+        /// </summary>
         private readonly ushort packetSize;
+
+        /// <summary>
+        /// Current TDS Communicator State
+        /// </summary>
         private TDSCommunicatorState communicatorState;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TDSCommunicator" /> class.
+        /// </summary>
+        /// <param name="stream">NetworkStream used for communication</param>
+        /// <param name="packetSize">TDS packet size</param>
         public TDSCommunicator(NetworkStream stream, ushort packetSize)
         {
             this.packetSize = packetSize;
@@ -33,6 +56,14 @@ namespace TDSClient.TDS.Comms
             this.innerStream = this.innerTdsStream;
         }
 
+        /// <summary>
+        /// Validate Server Certificate
+        /// </summary>
+        /// <param name="sender">Sender object</param>
+        /// <param name="certificate">X509 Certificate</param>
+        /// <param name="chain">X509 Chain</param>
+        /// <param name="sslPolicyErrors">SSL Policy Errors</param>
+        /// <returns>Returns true if no errors occurred.</returns>
         public static bool ValidateServerCertificate(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
             if (sslPolicyErrors == SslPolicyErrors.None)
@@ -45,6 +76,11 @@ namespace TDSClient.TDS.Comms
             return false;
         }
 
+        /// <summary>
+        /// Enable Transport Layer Security over TDS
+        /// </summary>
+        /// <param name="server">Server FQDN</param>
+        /// <param name="encryptionProtocol">Encryption Protocol</param>
         public void EnableEncryption(string server, SslProtocols encryptionProtocol)
         {
             var tempStream0 = new TDSTemporaryStream(this.innerTdsStream);
@@ -85,6 +121,10 @@ namespace TDSClient.TDS.Comms
             }
         }
 
+        /// <summary>
+        /// Receive TDS Message from the server.
+        /// </summary>
+        /// <returns>Returns received TDS Message.</returns>
         public ITDSPacketData ReceiveTDSMessage()
         {
             byte[] resultBuffer = null;
@@ -125,6 +165,10 @@ namespace TDSClient.TDS.Comms
             return result;
         }
 
+        /// <summary>
+        /// Send TDS Message to the server.
+        /// </summary>
+        /// <param name="data">TDS Message Data</param>
         public void SendTDSMessage(ITDSPacketData data)
         {
             switch (this.communicatorState)

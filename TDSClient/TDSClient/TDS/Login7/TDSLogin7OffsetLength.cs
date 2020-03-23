@@ -11,10 +11,20 @@ namespace TDSClient.TDS.Login7
     using TDSClient.TDS.Interfaces;
     using TDSClient.TDS.Utilities;
 
+    /// <summary>
+    /// Class describing variable length portion of the TDS Login7 packet
+    /// </summary>
     public class TDSLogin7OffsetLength : IPackageable
     {
-        private ushort lastPos = 94; // Initialized to fixed portion length of 94 bytes
+        /// <summary>
+        /// Last Position written to within the data portion of TDS Login7 Packet.
+        /// Initialized to fixed portion length of 94 bytes.
+        /// </summary>
+        private ushort lastPos = 94;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TDSLogin7OffsetLength" /> class.
+        /// </summary>
         public TDSLogin7OffsetLength()
         {
             this.ClientID = new byte[] { 0x1, 0x2, 0x3, 0x4, 0x5, 0x6 };
@@ -169,6 +179,11 @@ namespace TDSClient.TDS.Login7
         /// </summary>
         public uint SSPILengthLong { get; set; }
 
+        /// <summary>
+        /// Adds TDS Login7 Option Info.
+        /// </summary>
+        /// <param name="optionName">Option Name</param>
+        /// <param name="length">Option Length (in bytes)</param>
         public void AddOptionPositionInfo(string optionName, ushort length)
         {
             switch (optionName)
@@ -264,6 +279,10 @@ namespace TDSClient.TDS.Login7
             }
         }
 
+        /// <summary>
+        /// Total data portion length.
+        /// </summary>
+        /// <returns>Returns total length.</returns>
         public uint TotalLength()
         {
             return Convert.ToUInt32(
@@ -282,6 +301,10 @@ namespace TDSClient.TDS.Login7
                 this.SSPILengthLong;
         }
 
+        /// <summary>
+        /// Used to pack IPackageable to a stream.
+        /// </summary>
+        /// <param name="stream">MemoryStream in which IPackageable is packet into.</param>
         public void Pack(MemoryStream stream)
         {
             LittleEndianUtilities.WriteUShort(stream, this.HostNamePosition);
@@ -311,6 +334,11 @@ namespace TDSClient.TDS.Login7
             LittleEndianUtilities.WriteUInt(stream, 0); // Long SSPI not supported
         }
 
+        /// <summary>
+        /// Used to unpack IPackageable from a stream.
+        /// </summary>
+        /// <param name="stream">MemoryStream from which to unpack IPackageable.</param>
+        /// <returns>Returns true if successful.</returns>
         public bool Unpack(MemoryStream stream)
         {
             this.HostNamePosition = LittleEndianUtilities.ReadUShort(stream);
