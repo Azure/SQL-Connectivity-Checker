@@ -14,32 +14,32 @@ namespace TDSClient.TDS.Message
 
     public class TDSPacket : IPackageable
     {
-        public TDSPacketHeader Header { get; private set; }
-
-        public ITDSPacketData Data { get; private set; }
-
         public TDSPacket()
         {
-            Header = new TDSPacketHeader();
+            this.Header = new TDSPacketHeader();
         }
 
         public TDSPacket(TDSPacketHeader header, ITDSPacketData data)
         {
-            Header = header;
-            Data = data;
+            this.Header = header;
+            this.Data = data;
         }
+
+        public TDSPacketHeader Header { get; private set; }
+
+        public ITDSPacketData Data { get; private set; }
 
         public void Pack(MemoryStream stream)
         {
-            Header.Pack(stream);
-            Data.Pack(stream);
+            this.Header.Pack(stream);
+            this.Data.Pack(stream);
         }
 
         public bool Unpack(MemoryStream stream)
         {
-            Header = new TDSPacketHeader();
-            Header.Unpack(stream);
-            switch (Header.Type)
+            this.Header = new TDSPacketHeader();
+            this.Header.Unpack(stream);
+            switch (this.Header.Type)
             {
                 case TDSMessageType.AttentionSignal:
                     {
@@ -58,8 +58,8 @@ namespace TDSClient.TDS.Message
 
                 case TDSMessageType.PreLogin:
                     {
-                        Data = new TDSPreLoginPacketData();
-                        Data.Unpack(stream);
+                        this.Data = new TDSPreLoginPacketData();
+                        this.Data.Unpack(stream);
                         break;
                     }
 
@@ -98,6 +98,7 @@ namespace TDSClient.TDS.Message
                         throw new NotSupportedException();
                     }
             }
+
             return true;
         }
     }

@@ -12,54 +12,76 @@ namespace TDSClient.TDS.Comms
 
     public class TDSStream : Stream
     {
+        private readonly int negotiatedPacketSize;
+
+        private TDSPacketHeader currentInboundTDSHeader;
+        private int currentInboundPacketPosition;
+
+        private TDSPacketHeader currentOutboundTDSHeader;
+
+        private TimeSpan timeout;
+
+        public TDSStream(Stream innerStream, TimeSpan timeout, int negotiatedPacketSize)
+        {
+            this.InnerStream = innerStream;
+            this.timeout = timeout;
+            this.negotiatedPacketSize = negotiatedPacketSize;
+        }
+
+        /// <summary>
+        /// Gets or sets the Inner Stream.
+        /// </summary>
         public Stream InnerStream { get; set; }
 
-        public TDSPacketHeader CurrentInboundTDSHeader { get; private set; }
-
-        public TDSMessageType LastInboundTDSMessageType { get; private set; }
-
+        /// <summary>
+        /// Gets a value indicating whether inbound message is terminated.
+        /// </summary>
         public bool InboundMessageTerminated
         {
             get
             {
-                return CurrentInboundTDSHeader == null;
+                return this.currentInboundTDSHeader == null;
             }
         }
-
-        public TDSPacketHeader CurrentOutboundTDSHeader { get; private set; }
-
+        
+        /// <summary>
+        /// Gets or sets the current outbound message type.
+        /// </summary>
         public TDSMessageType CurrentOutboundMessageType { get; set; }
 
-        public ushort CurrentOutboundMessageSPID { get; set; }
-
-        public TimeSpan Timeout { get; private set; }
-
-        public int NegotiatedPacketSize { get; private set; }
-
-        private int CurrentInboundPacketPosition { get; set; }
-
+        /// <summary>
+        /// Gets CanTimeout Flag.
+        /// </summary>
         public override bool CanTimeout => true;
 
-        public override bool CanRead => InnerStream.CanRead;
+        /// <summary>
+        /// Gets CanRead Flag.
+        /// </summary>
+        public override bool CanRead => this.InnerStream.CanRead;
 
-        public override bool CanSeek => InnerStream.CanSeek;
+        /// <summary>
+        /// Gets CanSeek Flag.
+        /// </summary>
+        public override bool CanSeek => this.InnerStream.CanSeek;
 
-        public override bool CanWrite => InnerStream.CanWrite;
+        /// <summary>
+        /// Gets CanWrite Flag.
+        /// </summary>
+        public override bool CanWrite => this.InnerStream.CanWrite;
 
-        public override long Length => InnerStream.Length;
+        /// <summary>
+        /// Gets Stream Length.
+        /// </summary>
+        public override long Length => this.InnerStream.Length;
 
-        public override long Position { get => InnerStream.Position; set => InnerStream.Position = value; }
-
-        public TDSStream(Stream innerStream, TimeSpan timeout, int negotiatedPacketSize)
-        {
-            InnerStream = innerStream;
-            Timeout = timeout;
-            NegotiatedPacketSize = negotiatedPacketSize;
-        }
+        /// <summary>
+        /// Gets Stream Position.
+        /// </summary>
+        public override long Position { get => this.InnerStream.Position; set => this.InnerStream.Position = value; }
 
         public override void Flush()
         {
-            InnerStream.Flush();
+            this.InnerStream.Flush();
         }
 
         public override int Read(byte[] buffer, int offset, int count)
@@ -67,39 +89,38 @@ namespace TDSClient.TDS.Comms
             var startTime = DateTime.Now;
             var bytesReadTotal = 0;
 
-            while (bytesReadTotal < count && DateTime.Now - Timeout < startTime)
+            while (bytesReadTotal < count && DateTime.Now - this.timeout < startTime)
             {
-                if (CurrentInboundTDSHeader == null || CurrentInboundPacketPosition >= CurrentInboundTDSHeader.ConvertedPacketLength)
+                if (this.currentInboundTDSHeader == null || this.currentInboundPacketPosition >= this.currentInboundTDSHeader.ConvertedPacketLength)
                 {
                     byte[] headerBuffer = new byte[8];
                     int curPos = 0;
                     do
                     {
-                        curPos += InnerStream.Read(headerBuffer, curPos, 8 - curPos);
+                        curPos += this.InnerStream.Read(headerBuffer, curPos, 8 - curPos);
 
                         if (curPos == 0)
                         {
                             throw new Exception("Failure to read from network stream.");
                         }
                     } 
-                    while (curPos < 8 && DateTime.Now - Timeout < startTime);
+                    while (curPos < 8 && DateTime.Now - this.timeout < startTime);
 
-                    if (DateTime.Now - Timeout >= startTime)
+                    if (DateTime.Now - this.timeout >= startTime)
                     {
                         throw new TimeoutException("Reading from network stream timed out.");
                     }
 
-                    CurrentInboundTDSHeader = new TDSPacketHeader();
-                    CurrentInboundTDSHeader.Unpack(new MemoryStream(headerBuffer));
-                    LastInboundTDSMessageType = CurrentInboundTDSHeader.Type;
-                    CurrentInboundPacketPosition = 8;
+                    this.currentInboundTDSHeader = new TDSPacketHeader();
+                    this.currentInboundTDSHeader.Unpack(new MemoryStream(headerBuffer));
+                    this.currentInboundPacketPosition = 8;
                 }
 
-                var bytesToReadFromCurrentPacket = Math.Min(count - bytesReadTotal, CurrentInboundTDSHeader.ConvertedPacketLength - CurrentInboundPacketPosition);
+                var bytesToReadFromCurrentPacket = Math.Min(count - bytesReadTotal, this.currentInboundTDSHeader.ConvertedPacketLength - this.currentInboundPacketPosition);
 
                 do
                 {
-                    var bytesRead = InnerStream.Read(buffer, offset + bytesReadTotal, bytesToReadFromCurrentPacket);
+                    var bytesRead = this.InnerStream.Read(buffer, offset + bytesReadTotal, bytesToReadFromCurrentPacket);
 
                     if (bytesRead == 0)
                     {
@@ -107,19 +128,19 @@ namespace TDSClient.TDS.Comms
                     }
 
                     bytesToReadFromCurrentPacket -= bytesRead;
-                    CurrentInboundPacketPosition += bytesRead;
+                    this.currentInboundPacketPosition += bytesRead;
                     bytesReadTotal += bytesRead;
                 } 
-                while (bytesToReadFromCurrentPacket > 0 && DateTime.Now - Timeout < startTime);
+                while (bytesToReadFromCurrentPacket > 0 && DateTime.Now - this.timeout < startTime);
 
-                if (CurrentInboundTDSHeader != null && CurrentInboundPacketPosition >= CurrentInboundTDSHeader.ConvertedPacketLength && (CurrentInboundTDSHeader.Status & TDSMessageStatus.EndOfMessage) == TDSMessageStatus.EndOfMessage)
+                if (this.currentInboundTDSHeader != null && this.currentInboundPacketPosition >= this.currentInboundTDSHeader.ConvertedPacketLength && (this.currentInboundTDSHeader.Status & TDSMessageStatus.EndOfMessage) == TDSMessageStatus.EndOfMessage)
                 {
-                    CurrentInboundTDSHeader = null;
+                    this.currentInboundTDSHeader = null;
                     return bytesReadTotal;
                 }
             }
 
-            if (DateTime.Now - Timeout >= startTime)
+            if (DateTime.Now - this.timeout >= startTime)
             {
                 throw new TimeoutException("Reading from network stream timed out.");
             }
@@ -129,44 +150,44 @@ namespace TDSClient.TDS.Comms
 
         public override void Write(byte[] buffer, int offset, int count)
         {
-            CurrentOutboundTDSHeader = new TDSPacketHeader(CurrentOutboundMessageType, TDSMessageStatus.Normal, CurrentOutboundMessageSPID, 1);
+            this.currentOutboundTDSHeader = new TDSPacketHeader(this.CurrentOutboundMessageType, TDSMessageStatus.Normal, 0, 1);
 
             var bytesSent = 0;
 
             while (bytesSent < count)
             {
-                if (count - bytesSent - 8 < NegotiatedPacketSize)
+                if (count - bytesSent - 8 < this.negotiatedPacketSize)
                 {
-                    CurrentOutboundTDSHeader.Status = TDSMessageStatus.EndOfMessage;
+                    this.currentOutboundTDSHeader.Status = TDSMessageStatus.EndOfMessage;
                 }
 
-                var bufferSize = Math.Min(count - bytesSent + 8, NegotiatedPacketSize);
+                var bufferSize = Math.Min(count - bytesSent + 8, this.negotiatedPacketSize);
                 byte[] packetBuffer = new byte[bufferSize];
 
-                CurrentOutboundTDSHeader.Length = Convert.ToUInt16(bufferSize);
-                CurrentOutboundTDSHeader.Pack(new MemoryStream(packetBuffer));
+                this.currentOutboundTDSHeader.Length = Convert.ToUInt16(bufferSize);
+                this.currentOutboundTDSHeader.Pack(new MemoryStream(packetBuffer));
                 Array.Copy(buffer, offset + bytesSent, packetBuffer, 8, bufferSize - 8);
 
-                InnerStream.Write(packetBuffer, 0, bufferSize);
+                this.InnerStream.Write(packetBuffer, 0, bufferSize);
                 bytesSent += bufferSize - 8;
 
-                CurrentOutboundTDSHeader.Packet = (byte)((CurrentOutboundTDSHeader.Packet + 1) % 256);
+                this.currentOutboundTDSHeader.Packet = (byte)((this.currentOutboundTDSHeader.Packet + 1) % 256);
             }
         }
 
         public override long Seek(long offset, SeekOrigin origin)
         {
-            return InnerStream.Seek(offset, origin);
+            return this.InnerStream.Seek(offset, origin);
         }
 
         public override void SetLength(long value)
         {
-            InnerStream.SetLength(value);
+            this.InnerStream.SetLength(value);
         }
 
         public override void Close()
         {
-            InnerStream.Close();
+            this.InnerStream.Close();
             base.Close();
         }
     }

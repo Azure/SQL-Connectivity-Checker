@@ -13,12 +13,12 @@ namespace TDSClient.TDS.Tokens
 
     public class TDSTokenStreamPacketData : ITDSPacketData
     {
-        public LinkedList<TDSToken> Tokens { get; private set; }
-
         public TDSTokenStreamPacketData()
         {
-            Tokens = new LinkedList<TDSToken>();
+            this.Tokens = new LinkedList<TDSToken>();
         }
+
+        public LinkedList<TDSToken> Tokens { get; private set; }
 
         public ushort Length()
         {
@@ -37,9 +37,10 @@ namespace TDSClient.TDS.Tokens
                 TDSToken token = TDSTokenFactory.ReadTokenFromStream(stream);
                 if (token != null)
                 {
-                    Tokens.AddLast(token);
+                    this.Tokens.AddLast(token);
                 }
             }
+
             return true;
         }
     }

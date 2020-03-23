@@ -13,6 +13,19 @@ namespace TDSClient.TDS.Header
 
     public class TDSPacketHeader : IPackageable
     {
+        public TDSPacketHeader() 
+        { 
+        }
+
+        public TDSPacketHeader(TDSMessageType type, TDSMessageStatus status, ushort spid = 0x0000, byte packet = 0x00, byte window = 0x00)
+        {
+            this.Type = type;
+            this.Status = status;
+            this.SPID = spid;
+            this.Packet = packet;
+            this.Window = window;
+        }
+
         public TDSMessageType Type { get; set; }
 
         public TDSMessageStatus Status { get; set; }
@@ -29,41 +42,29 @@ namespace TDSClient.TDS.Header
         {
             get
             {
-                return Convert.ToInt32(Length);
+                return Convert.ToInt32(this.Length);
             }
-        }
-
-        public TDSPacketHeader()
-        {
-        }
-
-        public TDSPacketHeader(TDSMessageType type, TDSMessageStatus status, ushort spid = 0x0000, byte packet = 0x00, byte window = 0x00)
-        {
-            Type = type;
-            Status = status;
-            SPID = spid;
-            Packet = packet;
-            Window = window;
         }
 
         public void Pack(MemoryStream stream)
         {
-            stream.WriteByte((byte)Type);
-            stream.WriteByte((byte)Status);
-            BigEndianUtilities.WriteUShort(stream, Length);
-            BigEndianUtilities.WriteUShort(stream, SPID);
-            stream.WriteByte(Packet);
-            stream.WriteByte(Window);
+            stream.WriteByte((byte)this.Type);
+            stream.WriteByte((byte)this.Status);
+            BigEndianUtilities.WriteUShort(stream, this.Length);
+            BigEndianUtilities.WriteUShort(stream, this.SPID);
+            stream.WriteByte(this.Packet);
+            stream.WriteByte(this.Window);
         }
 
         public bool Unpack(MemoryStream stream)
         {
-            Type = (TDSMessageType)stream.ReadByte();
-            Status = (TDSMessageStatus)stream.ReadByte();
-            Length = BigEndianUtilities.ReadUShort(stream);
-            SPID = BigEndianUtilities.ReadUShort(stream);
-            Packet = Convert.ToByte(stream.ReadByte());
-            Window = Convert.ToByte(stream.ReadByte());
+            this.Type = (TDSMessageType)stream.ReadByte();
+            this.Status = (TDSMessageStatus)stream.ReadByte();
+            this.Length = BigEndianUtilities.ReadUShort(stream);
+            this.SPID = BigEndianUtilities.ReadUShort(stream);
+            this.Packet = Convert.ToByte(stream.ReadByte());
+            this.Window = Convert.ToByte(stream.ReadByte());
+            
             return true;
         }
     }

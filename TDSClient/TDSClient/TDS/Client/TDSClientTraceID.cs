@@ -10,35 +10,39 @@ namespace TDSClient.TDS.Client
     using TDSClient.TDS.Interfaces;
     using TDSClient.TDS.Utilities;
 
+    /// <summary>
+    /// Client Trace ID used in TDS PreLogin package.
+    /// </summary>
     public class TDSClientTraceID : IPackageable
     {
-        private byte[] TraceID;
-        private byte[] ActivityID;
-        private ulong ActivitySequence;
+        /// <summary>
+        /// TDS Client Application Trace ID
+        /// </summary>
+        private byte[] traceID;
 
-        public TDSClientTraceID() 
-        {
-        }
+        /// <summary>
+        /// TDS Client Application Activity ID
+        /// </summary>
+        private byte[] activityID;
 
-        public TDSClientTraceID(byte[] traceID, byte[] activityID, ulong activitySequence)
-        {
-            TraceID = traceID;
-            ActivityID = activityID;
-            ActivitySequence = activitySequence;
-        }
+        /// <summary>
+        /// TDS Client Application Activity Sequence
+        /// </summary>
+        private ulong activitySequence;
 
         public void Pack(MemoryStream stream)
         {
-            BigEndianUtilities.WriteByteArray(stream, TraceID);
-            BigEndianUtilities.WriteByteArray(stream, ActivityID);
-            BigEndianUtilities.WriteULong(stream, ActivitySequence);
+            BigEndianUtilities.WriteByteArray(stream, this.traceID);
+            BigEndianUtilities.WriteByteArray(stream, this.activityID);
+            BigEndianUtilities.WriteULong(stream, this.activitySequence);
         }
 
         public bool Unpack(MemoryStream stream)
         {
-            TraceID = BigEndianUtilities.ReadByteArray(stream, 16);
-            ActivityID = BigEndianUtilities.ReadByteArray(stream, 16);
-            ActivitySequence = BigEndianUtilities.ReadULong(stream);
+            this.traceID = BigEndianUtilities.ReadByteArray(stream, 16);
+            this.activityID = BigEndianUtilities.ReadByteArray(stream, 16);
+            this.activitySequence = BigEndianUtilities.ReadULong(stream);
+            
             return true;
         }
     }

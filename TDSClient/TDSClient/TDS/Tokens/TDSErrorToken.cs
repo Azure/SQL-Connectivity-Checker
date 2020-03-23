@@ -40,26 +40,26 @@ namespace TDSClient.TDS.Tokens
         public override bool Unpack(MemoryStream stream)
         {
             LittleEndianUtilities.ReadUShort(stream);
-            Number = (int)LittleEndianUtilities.ReadUInt(stream);
-            State = Convert.ToByte(stream.ReadByte());
-            Class = Convert.ToByte(stream.ReadByte());
+            this.Number = (int)LittleEndianUtilities.ReadUInt(stream);
+            this.State = Convert.ToByte(stream.ReadByte());
+            this.Class = Convert.ToByte(stream.ReadByte());
 
             int length = LittleEndianUtilities.ReadUShort(stream) * 2;
             var buffer = new byte[length];
             stream.Read(buffer, 0, length);
-            MsgText = Encoding.Unicode.GetString(buffer);
+            this.MsgText = Encoding.Unicode.GetString(buffer);
 
             length = stream.ReadByte() * 2;
             buffer = new byte[length];
             stream.Read(buffer, 0, length);
-            ServerName = Encoding.Unicode.GetString(buffer);
+            this.ServerName = Encoding.Unicode.GetString(buffer);
 
             length = stream.ReadByte() * 2;
             buffer = new byte[length];
             stream.Read(buffer, 0, length);
-            ProcName = Encoding.Unicode.GetString(buffer);
+            this.ProcName = Encoding.Unicode.GetString(buffer);
 
-            LineNumber = LittleEndianUtilities.ReadUInt(stream);
+            this.LineNumber = LittleEndianUtilities.ReadUInt(stream);
 
             return true;
         }

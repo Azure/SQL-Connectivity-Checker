@@ -13,30 +13,24 @@ namespace TDSClient.TDS.PreLogin
 
     public class TDSPreLoginOptionToken : IPackageable
     {
-        public TDSPreLoginOptionTokenType Type { get; private set; }
-
-        public ushort Offset { get; set; }
-
-        public ushort Length { get; private set; }
-
         public TDSPreLoginOptionToken()
         {
         }
 
         public TDSPreLoginOptionToken(TDSPreLoginOptionTokenType type)
         {
-            Type = type;
-            switch (Type)
+            this.Type = type;
+            switch (this.Type)
             {
                 case TDSPreLoginOptionTokenType.Encryption:
                     {
-                        Length = 1;
+                        this.Length = 1;
                         break;
                     }
 
                 case TDSPreLoginOptionTokenType.FedAuthRequired:
                     {
-                        Length = 1;
+                        this.Length = 1;
                         break;
                     }
 
@@ -47,61 +41,68 @@ namespace TDSClient.TDS.PreLogin
 
                 case TDSPreLoginOptionTokenType.MARS:
                     {
-                        Length = 1;
+                        this.Length = 1;
                         break;
                     }
 
                 case TDSPreLoginOptionTokenType.NonceOpt:
                     {
-                        Length = 32;
+                        this.Length = 32;
                         break;
                     }
 
                 case TDSPreLoginOptionTokenType.Terminator:
                     {
-                        Length = 0;
+                        this.Length = 0;
                         break;
                     }
 
                 case TDSPreLoginOptionTokenType.ThreadID:
                     {
-                        Length = 4;
+                        this.Length = 4;
                         break;
                     }
 
                 case TDSPreLoginOptionTokenType.TraceID:
                     {
-                        Length = 36;
+                        this.Length = 36;
                         break;
                     }
 
                 case TDSPreLoginOptionTokenType.Version:
                     {
-                        Length = 6;
+                        this.Length = 6;
                         break;
                     }
             }
         }
 
+        public TDSPreLoginOptionTokenType Type { get; private set; }
+
+        public ushort Offset { get; set; }
+
+        public ushort Length { get; private set; }
+
         public void Pack(MemoryStream stream)
         {
-            stream.WriteByte((byte)Type);
-            if (Type != TDSPreLoginOptionTokenType.Terminator)
+            stream.WriteByte((byte)this.Type);
+            if (this.Type != TDSPreLoginOptionTokenType.Terminator)
             {
-                BigEndianUtilities.WriteUShort(stream, Offset);
-                BigEndianUtilities.WriteUShort(stream, Length);
+                BigEndianUtilities.WriteUShort(stream, this.Offset);
+                BigEndianUtilities.WriteUShort(stream, this.Length);
             }
         }
 
         public bool Unpack(MemoryStream stream)
         {
-            Type = (TDSPreLoginOptionTokenType)stream.ReadByte();
+            this.Type = (TDSPreLoginOptionTokenType)stream.ReadByte();
 
-            if (Type != TDSPreLoginOptionTokenType.Terminator)
+            if (this.Type != TDSPreLoginOptionTokenType.Terminator)
             {
-                Offset = BigEndianUtilities.ReadUShort(stream);
-                Length = BigEndianUtilities.ReadUShort(stream);
+                this.Offset = BigEndianUtilities.ReadUShort(stream);
+                this.Length = BigEndianUtilities.ReadUShort(stream);
             }
+
             return true;
         }
     }

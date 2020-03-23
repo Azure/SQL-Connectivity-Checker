@@ -13,100 +13,109 @@ namespace TDSClient.TDS.Login7
 
     public class TDSLogin7OffsetLength : IPackageable
     {
+        private ushort lastPos = 94; // Initialized to fixed portion length of 94 bytes
+
+        public TDSLogin7OffsetLength()
+        {
+            this.ClientID = new byte[] { 0x1, 0x2, 0x3, 0x4, 0x5, 0x6 };
+        }
+
         /// <summary>
-        ///  The client machine name (position).
+        ///  Gets or sets the client machine name (position).
         /// </summary>
         public ushort HostNamePosition { get; set; }
 
         /// <summary>
-        ///  The client machine name (length).
+        ///  Gets or sets the client machine name (length).
         /// </summary>
         public ushort HostNameLength { get; set; }
 
         /// <summary>
-        ///  The client user ID (position).
+        ///  Gets or sets the client user ID (position).
         /// </summary>
         public ushort UserNamePosition { get; set; }
 
         /// <summary>
-        ///  The client user ID (length).
+        ///  Gets or sets the client user ID (length).
         /// </summary>
         public ushort UserNameLength { get; set; }
 
         /// <summary>
-        /// The password supplied by the client (position).
+        /// Gets or sets the password supplied by the client (position).
         /// </summary>
         public ushort PasswordPosition { get; set; }
 
         /// <summary>
-        /// The password supplied by the client (length).
+        /// Gets or sets the password supplied by the client (length).
         /// </summary>
         public ushort PasswordLength { get; set; }
 
         /// <summary>
-        ///  The client application name (position).
+        ///  Gets or sets the client application name (position).
         /// </summary>
         public ushort AppNamePosition { get; set; }
 
         /// <summary>
-        ///  The client application name (length).
+        ///  Gets or sets the client application name (length).
         /// </summary>
         public ushort AppNameLength { get; set; }
 
         /// <summary>
-        ///  The server name (position).
+        ///  Gets or sets the server name (position).
         /// </summary>
         public ushort ServerNamePosition { get; set; }
 
         /// <summary>
-        ///  The server name (length).
+        ///  Gets or sets the server name (length).
         /// </summary>
         public ushort ServerNameLength { get; set; }
 
         /// <summary>
-        ///  This points to an extension block. Introduced in TDS 7.4 when fExtension is 1 (position). (Unsupported)
+        /// Gets or sets ExtensionPosition. 
+        /// This points to an extension block. Introduced in TDS 7.4 when fExtension is 1 (position). (Unsupported)
         /// </summary>
         public ushort ExtensionPosition { get; set; }
 
         /// <summary>
+        /// Gets or sets ExtensionLength.
         ///  This points to an extension block. Introduced in TDS 7.4 when fExtension is 1 (length). (Unsupported)
         /// </summary>
         public ushort ExtensionLength { get; set; }
 
         /// <summary>
-        /// The interface library name (ODBC or OLEDB) (position).
+        /// Gets or sets the interface library name (ODBC or OLEDB) (position).
         /// </summary>
         public ushort CltIntNamePosition { get; set; }
 
         /// <summary>
-        ///  The interface library name (ODBC or OLEDB) (length).
+        ///  Gets or sets the interface library name (ODBC or OLEDB) (length).
         /// </summary>
         public ushort CltIntNameLength { get; set; }
 
         /// <summary>
-        /// The initial language (overrides the user ID's default
+        /// Gets or sets the initial language (overrides the user ID's default
         /// language) (position).
         /// </summary>
         public ushort LanguagePosition { get; set; }
 
         /// <summary>
-        /// The initial language (overrides the user ID's default
+        /// Gets or sets the initial language (overrides the user ID's default
         /// language) (length).
         /// </summary>
         public ushort LanguageLength { get; set; }
 
         /// <summary>
-        /// The initial database (overrides the user ID's default database) (position).
+        /// Gets or sets the initial database (overrides the user ID's default database) (position).
         /// </summary>
         public ushort DatabasePosition { get; set; }
 
         /// <summary>
-        /// The initial database (overrides the user ID's default database) (length).
+        /// Gets or sets the initial database (overrides the user ID's default database) (length).
         /// </summary>
         public ushort DatabaseLength { get; set; }
 
         /// <summary>
-        /// The unique client ID (created by using the NIC address). ClientID is the MAC
+        /// Gets or sets the unique client ID (created by using the NIC address). ClientID is the MAC
         /// address of the physical network layer.It is used to identify the client that is connecting to
         /// the server. This value is mainly informational, and no processing steps on the server side
         /// use it.
@@ -114,58 +123,51 @@ namespace TDSClient.TDS.Login7
         public byte[] ClientID { get; set; } // byte[6]
 
         /// <summary>
-        ///  SSPI data.
-        /// If SSPILength < USHORT_MAX, then this length MUST be used for SSPI and SSPILengthLong
+        /// Gets or sets SSPI data.
+        /// If SSPILength is less than USHORT_MAX, then this length MUST be used for SSPI and SSPILengthLong
         /// MUST be ignored.
         /// If SSPILength == USHORT_MAX, then SSPILengthLong MUST be checked.
-        /// If SSPILengthLong > 0, then that value MUST be used. If SSPILengthLong == 0, then SSPILength
+        /// If SSPILengthLong is greater than 0, then that value MUST be used. If SSPILengthLong == 0, then SSPILength
         /// (USHORT_MAX) MUST be used. (position)
         /// (Unsupported)
         /// </summary>
         public ushort SSPIPosition { get; set; }
 
         /// <summary>
-        ///  SSPI data.
-        /// If SSPILength < USHORT_MAX, then this length MUST be used for SSPI and SSPILengthLong
+        /// Gets or sets SSPI data.
+        /// If SSPILength is less than USHORT_MAX, then this length MUST be used for SSPI and SSPILengthLong
         /// MUST be ignored.
         /// If SSPILength == USHORT_MAX, then SSPILengthLong MUST be checked.
-        /// If SSPILengthLong > 0, then that value MUST be used. If SSPILengthLong == 0, then SSPILength
+        /// If SSPILengthLong is greater than 0, then that value MUST be used. If SSPILengthLong == 0, then SSPILength
         /// (USHORT_MAX) MUST be used. (length) 
         /// (Unsupported)
         /// </summary>
         public ushort SSPILength { get; set; }
 
         /// <summary>
-        /// The file name for a database that is to be attached during the connection process (position).
+        /// Gets or sets the file name for a database that is to be attached during the connection process (position).
         /// </summary>
         public ushort AtchDBFilePosition { get; set; }
 
         /// <summary>
-        /// The file name for a database that is to be attached during the connection process (length).
+        /// Gets or sets the file name for a database that is to be attached during the connection process (length).
         /// </summary>
         public ushort AtchDBFileLength { get; set; }
 
         /// <summary>
-        ///  New password for the specified login (position).
+        /// Gets or sets the new password for the specified login (position).
         /// </summary>
         public ushort ChangePasswordPosition { get; set; }
 
         /// <summary>
-        ///  New password for the specified login (length).
+        ///  Gets or sets the new password for the specified login (length).
         /// </summary>
         public ushort ChangePasswordLength { get; set; }
 
         /// <summary>
-        /// Used for large SSPI data a when SSPILength==USHORT_MAX.
+        /// Gets or sets the field used to specify length for large SSPI data a when SSPILength==USHORT_MAX.
         /// </summary>
         public uint SSPILengthLong { get; set; }
-
-        private ushort LastPos = 94; // Fixed portion length
-
-        public TDSLogin7OffsetLength()
-        {
-            ClientID = new byte[] { 0x1, 0x2, 0x3, 0x4, 0x5, 0x6 };
-        }
 
         public void AddOptionPositionInfo(string optionName, ushort length)
         {
@@ -173,41 +175,41 @@ namespace TDSClient.TDS.Login7
             {
                 case "HostName":
                     {
-                        HostNamePosition = LastPos;
-                        HostNameLength = length;
-                        LastPos += (ushort)(length * 2);
+                        this.HostNamePosition = this.lastPos;
+                        this.HostNameLength = length;
+                        this.lastPos += (ushort)(length * 2);
                         break;
                     }
 
                 case "UserName":
                     {
-                        UserNamePosition = LastPos;
-                        UserNameLength = length;
-                        LastPos += (ushort)(length * 2);
+                        this.UserNamePosition = this.lastPos;
+                        this.UserNameLength = length;
+                        this.lastPos += (ushort)(length * 2);
                         break;
                     }
 
                 case "Password":
                     {
-                        PasswordPosition = LastPos;
-                        PasswordLength = length;
-                        LastPos += (ushort)(length * 2);
+                        this.PasswordPosition = this.lastPos;
+                        this.PasswordLength = length;
+                        this.lastPos += (ushort)(length * 2);
                         break;
                     }
 
                 case "AppName":
                     {
-                        AppNamePosition = LastPos;
-                        AppNameLength = length;
-                        LastPos += (ushort)(length * 2);
+                        this.AppNamePosition = this.lastPos;
+                        this.AppNameLength = length;
+                        this.lastPos += (ushort)(length * 2);
                         break;
                     }
 
                 case "ServerName":
                     {
-                        ServerNamePosition = LastPos;
-                        ServerNameLength = length;
-                        LastPos += (ushort)(length * 2);
+                        this.ServerNamePosition = this.lastPos;
+                        this.ServerNameLength = length;
+                        this.lastPos += (ushort)(length * 2);
                         break;
                     }
 
@@ -218,25 +220,25 @@ namespace TDSClient.TDS.Login7
 
                 case "IntName":
                     {
-                        CltIntNamePosition = LastPos;
-                        CltIntNameLength = length;
-                        LastPos += (ushort)(length * 2);
+                        this.CltIntNamePosition = this.lastPos;
+                        this.CltIntNameLength = length;
+                        this.lastPos += (ushort)(length * 2);
                         break;
                     }
 
                 case "Language":
                     {
-                        LanguagePosition = LastPos;
-                        LanguageLength = length;
-                        LastPos += (ushort)(length * 2);
+                        this.LanguagePosition = this.lastPos;
+                        this.LanguageLength = length;
+                        this.lastPos += (ushort)(length * 2);
                         break;
                     }
 
                 case "Database":
                     {
-                        DatabasePosition = LastPos;
-                        DatabaseLength = length;
-                        LastPos += (ushort)(length * 2);
+                        this.DatabasePosition = this.lastPos;
+                        this.DatabaseLength = length;
+                        this.lastPos += (ushort)(length * 2);
                         break;
                     }
 
@@ -264,68 +266,80 @@ namespace TDSClient.TDS.Login7
 
         public uint TotalLength()
         {
-            return Convert.ToUInt32((ChangePasswordLength + AtchDBFileLength + DatabaseLength + LanguageLength + CltIntNameLength + ServerNameLength + AppNameLength + PasswordLength
-                + UserNameLength + HostNameLength) * 2 + SSPILength) + ExtensionLength + SSPILengthLong;
+            return Convert.ToUInt32(
+                ((this.ChangePasswordLength +
+                this.AtchDBFileLength +
+                this.DatabaseLength +
+                this.LanguageLength +
+                this.CltIntNameLength +
+                this.ServerNameLength +
+                this.AppNameLength +
+                this.PasswordLength +
+                this.UserNameLength +
+                this.HostNameLength) * 2) +
+                this.SSPILength) +
+                this.ExtensionLength +
+                this.SSPILengthLong;
         }
 
         public void Pack(MemoryStream stream)
         {
-            LittleEndianUtilities.WriteUShort(stream, HostNamePosition);
-            LittleEndianUtilities.WriteUShort(stream, HostNameLength);
-            LittleEndianUtilities.WriteUShort(stream, UserNamePosition);
-            LittleEndianUtilities.WriteUShort(stream, UserNameLength);
-            LittleEndianUtilities.WriteUShort(stream, PasswordPosition);
-            LittleEndianUtilities.WriteUShort(stream, PasswordLength);
-            LittleEndianUtilities.WriteUShort(stream, AppNamePosition);
-            LittleEndianUtilities.WriteUShort(stream, AppNameLength);
-            LittleEndianUtilities.WriteUShort(stream, ServerNamePosition);
-            LittleEndianUtilities.WriteUShort(stream, ServerNameLength);
+            LittleEndianUtilities.WriteUShort(stream, this.HostNamePosition);
+            LittleEndianUtilities.WriteUShort(stream, this.HostNameLength);
+            LittleEndianUtilities.WriteUShort(stream, this.UserNameLength);
+            LittleEndianUtilities.WriteUShort(stream, this.PasswordPosition);
+            LittleEndianUtilities.WriteUShort(stream, this.PasswordLength);
+            LittleEndianUtilities.WriteUShort(stream, this.AppNamePosition);
+            LittleEndianUtilities.WriteUShort(stream, this.AppNameLength);
+            LittleEndianUtilities.WriteUShort(stream, this.ServerNamePosition);
+            LittleEndianUtilities.WriteUShort(stream, this.ServerNameLength);
             LittleEndianUtilities.WriteUShort(stream, 0); // Extension unsupported
             LittleEndianUtilities.WriteUShort(stream, 0); // Extension unsupported
-            LittleEndianUtilities.WriteUShort(stream, CltIntNamePosition);
-            LittleEndianUtilities.WriteUShort(stream, CltIntNameLength);
-            LittleEndianUtilities.WriteUShort(stream, LanguagePosition);
-            LittleEndianUtilities.WriteUShort(stream, LanguageLength);
-            LittleEndianUtilities.WriteUShort(stream, DatabasePosition);
-            LittleEndianUtilities.WriteUShort(stream, DatabaseLength);
-            stream.Write(ClientID, 0, 6);
-            LittleEndianUtilities.WriteUShort(stream, SSPIPosition);
-            LittleEndianUtilities.WriteUShort(stream, SSPILength);
-            LittleEndianUtilities.WriteUShort(stream, AtchDBFilePosition);
-            LittleEndianUtilities.WriteUShort(stream, AtchDBFileLength);
-            LittleEndianUtilities.WriteUShort(stream, ChangePasswordPosition);
-            LittleEndianUtilities.WriteUShort(stream, ChangePasswordLength);
+            LittleEndianUtilities.WriteUShort(stream, this.CltIntNamePosition);
+            LittleEndianUtilities.WriteUShort(stream, this.CltIntNameLength);
+            LittleEndianUtilities.WriteUShort(stream, this.LanguagePosition);
+            LittleEndianUtilities.WriteUShort(stream, this.LanguageLength);
+            LittleEndianUtilities.WriteUShort(stream, this.DatabasePosition);
+            LittleEndianUtilities.WriteUShort(stream, this.DatabaseLength);
+            stream.Write(this.ClientID, 0, 6);
+            LittleEndianUtilities.WriteUShort(stream, this.SSPIPosition);
+            LittleEndianUtilities.WriteUShort(stream, this.SSPILength);
+            LittleEndianUtilities.WriteUShort(stream, this.AtchDBFilePosition);
+            LittleEndianUtilities.WriteUShort(stream, this.AtchDBFileLength);
+            LittleEndianUtilities.WriteUShort(stream, this.ChangePasswordPosition);
+            LittleEndianUtilities.WriteUShort(stream, this.ChangePasswordLength);
             LittleEndianUtilities.WriteUInt(stream, 0); // Long SSPI not supported
         }
 
         public bool Unpack(MemoryStream stream)
         {
-            HostNamePosition = LittleEndianUtilities.ReadUShort(stream);
-            HostNameLength = LittleEndianUtilities.ReadUShort(stream);
-            UserNamePosition = LittleEndianUtilities.ReadUShort(stream);
-            UserNameLength = LittleEndianUtilities.ReadUShort(stream);
-            PasswordPosition = LittleEndianUtilities.ReadUShort(stream);
-            PasswordLength = LittleEndianUtilities.ReadUShort(stream);
-            AppNamePosition = LittleEndianUtilities.ReadUShort(stream);
-            AppNameLength = LittleEndianUtilities.ReadUShort(stream);
-            ServerNamePosition = LittleEndianUtilities.ReadUShort(stream);
-            ServerNameLength = LittleEndianUtilities.ReadUShort(stream);
-            ExtensionPosition = LittleEndianUtilities.ReadUShort(stream);
-            ExtensionLength = LittleEndianUtilities.ReadUShort(stream);
-            CltIntNamePosition = LittleEndianUtilities.ReadUShort(stream);
-            CltIntNameLength = LittleEndianUtilities.ReadUShort(stream);
-            LanguagePosition = LittleEndianUtilities.ReadUShort(stream);
-            LanguageLength = LittleEndianUtilities.ReadUShort(stream);
-            DatabasePosition = LittleEndianUtilities.ReadUShort(stream);
-            DatabaseLength = LittleEndianUtilities.ReadUShort(stream);
-            stream.Read(ClientID, 0, 6);
-            SSPIPosition = LittleEndianUtilities.ReadUShort(stream);
-            SSPILength = LittleEndianUtilities.ReadUShort(stream);
-            AtchDBFilePosition = LittleEndianUtilities.ReadUShort(stream);
-            AtchDBFileLength = LittleEndianUtilities.ReadUShort(stream);
-            ChangePasswordPosition = LittleEndianUtilities.ReadUShort(stream);
-            ChangePasswordLength = LittleEndianUtilities.ReadUShort(stream);
-            SSPILengthLong = LittleEndianUtilities.ReadUInt(stream);
+            this.HostNamePosition = LittleEndianUtilities.ReadUShort(stream);
+            this.HostNameLength = LittleEndianUtilities.ReadUShort(stream);
+            this.UserNamePosition = LittleEndianUtilities.ReadUShort(stream);
+            this.UserNameLength = LittleEndianUtilities.ReadUShort(stream);
+            this.PasswordPosition = LittleEndianUtilities.ReadUShort(stream);
+            this.PasswordLength = LittleEndianUtilities.ReadUShort(stream);
+            this.AppNamePosition = LittleEndianUtilities.ReadUShort(stream);
+            this.AppNameLength = LittleEndianUtilities.ReadUShort(stream);
+            this.ServerNamePosition = LittleEndianUtilities.ReadUShort(stream);
+            this.ServerNameLength = LittleEndianUtilities.ReadUShort(stream);
+            this.ExtensionPosition = LittleEndianUtilities.ReadUShort(stream);
+            this.ExtensionLength = LittleEndianUtilities.ReadUShort(stream);
+            this.CltIntNamePosition = LittleEndianUtilities.ReadUShort(stream);
+            this.CltIntNameLength = LittleEndianUtilities.ReadUShort(stream);
+            this.LanguagePosition = LittleEndianUtilities.ReadUShort(stream);
+            this.LanguageLength = LittleEndianUtilities.ReadUShort(stream);
+            this.DatabasePosition = LittleEndianUtilities.ReadUShort(stream);
+            this.DatabaseLength = LittleEndianUtilities.ReadUShort(stream);
+            stream.Read(this.ClientID, 0, 6);
+            this.SSPIPosition = LittleEndianUtilities.ReadUShort(stream);
+            this.SSPILength = LittleEndianUtilities.ReadUShort(stream);
+            this.AtchDBFilePosition = LittleEndianUtilities.ReadUShort(stream);
+            this.AtchDBFileLength = LittleEndianUtilities.ReadUShort(stream);
+            this.ChangePasswordPosition = LittleEndianUtilities.ReadUShort(stream);
+            this.ChangePasswordLength = LittleEndianUtilities.ReadUShort(stream);
+            this.SSPILengthLong = LittleEndianUtilities.ReadUInt(stream);
+            
             return true;
         }
     }

@@ -6,24 +6,23 @@
 
 namespace TDSClient.TDS.Tokens
 {
-    using TDSClient.TDS;
-    using TDSClient.TDS.Tokens.EnvChange;
-    using TDSClient.TDS.Utilities;
     using System;
     using System.Collections.Generic;
     using System.IO;
     using System.Text;
+    using TDSClient.TDS.Tokens.EnvChange;
+    using TDSClient.TDS.Utilities;
 
     public class TDSEnvChangeToken : TDSToken
     {
+        public TDSEnvChangeToken()
+        {
+            this.Values = new Dictionary<string, string>();
+        }
+
         public TDSEnvChangeType Type { get; private set; }
 
         public Dictionary<string, string> Values { get; private set; }
-
-        public TDSEnvChangeToken()
-        {
-            Values = new Dictionary<string, string>();
-        }
 
         public override ushort Length()
         {
@@ -38,8 +37,8 @@ namespace TDSClient.TDS.Tokens
         public override bool Unpack(MemoryStream stream)
         {
             var length = LittleEndianUtilities.ReadUShort(stream);
-            Type = (TDSEnvChangeType)stream.ReadByte();
-            switch (Type)
+            this.Type = (TDSEnvChangeType)stream.ReadByte();
+            switch (this.Type)
             {
                 case TDSEnvChangeType.Routing:
                     var routingDataValueLength = LittleEndianUtilities.ReadUShort(stream);
@@ -47,6 +46,7 @@ namespace TDSClient.TDS.Tokens
                     {
                         throw new InvalidOperationException();
                     }
+
                     var protocolProperty = LittleEndianUtilities.ReadUShort(stream);
                     if (protocolProperty == 0)
                     {
@@ -58,14 +58,15 @@ namespace TDSClient.TDS.Tokens
                     var temp = new byte[strLength];
                     stream.Read(temp, 0, strLength);
 
-                    Values["ProtocolProperty"] = string.Format("{0}", protocolProperty);
-                    Values["AlternateServer"] = Encoding.Unicode.GetString(temp);
+                    this.Values["ProtocolProperty"] = string.Format("{0}", protocolProperty);
+                    this.Values["AlternateServer"] = Encoding.Unicode.GetString(temp);
 
                     for (int i = 0; i < length - routingDataValueLength - sizeof(byte) - sizeof(ushort); i++)
                     {
                         // Ignore oldValue
                         stream.ReadByte();
                     }
+
                     break;
                 default:
                     {
@@ -74,9 +75,11 @@ namespace TDSClient.TDS.Tokens
                             // Ignore unsupported types
                             stream.ReadByte();
                         }
+                    
                         return false;
                     }
             }
+
             return true;
         }
     }

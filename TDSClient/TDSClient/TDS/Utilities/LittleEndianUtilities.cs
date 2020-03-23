@@ -8,7 +8,7 @@ namespace TDSClient.TDS.Utilities
 {
     using System.IO;
 
-    static public class LittleEndianUtilities
+    public static class LittleEndianUtilities
     {
         public static void WriteUShort(MemoryStream stream, ushort value)
         {
@@ -41,8 +41,9 @@ namespace TDSClient.TDS.Utilities
             ushort result = 0;
             for (int i = 0; i < 2; i++)
             {
-                result |= (ushort)(stream.ReadByte() << 8 * i);
+                result |= (ushort)(stream.ReadByte() << (8 * i));
             }
+
             return result;
         }
 
@@ -51,8 +52,9 @@ namespace TDSClient.TDS.Utilities
             uint result = 0;
             for (int i = 0; i < 4; i++)
             {
-                result |= (uint)(stream.ReadByte() << 8 * i);
+                result |= (uint)(stream.ReadByte() << (8 * i));
             }
+            
             return result;
         }
 
@@ -61,8 +63,9 @@ namespace TDSClient.TDS.Utilities
             ulong result = 0;
             for (int i = 0; i < 8; i++)
             {
-                result |= (ulong)stream.ReadByte() << 8 * i;
+                result |= (ulong)stream.ReadByte() << (8 * i);
             }
+            
             return result;
         }
     }

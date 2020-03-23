@@ -13,10 +13,10 @@ namespace TDSClient.TDS.Client
 
     public class TDSClientVersion : IPackageable
     {
-        private byte Major;
-        private byte Minor;
-        private ushort BuildNumber;
-        private ushort SubBuildNumber;
+        private byte major;
+        private byte minor;
+        private ushort buildNumber;
+        private ushort subBuildNumber;
 
         public TDSClientVersion() 
         {
@@ -24,26 +24,27 @@ namespace TDSClient.TDS.Client
 
         public TDSClientVersion(byte major, byte minor, ushort buildNumber, ushort subBuildNumber)
         {
-            Major = major;
-            Minor = minor;
-            BuildNumber = buildNumber;
-            SubBuildNumber = subBuildNumber;
+            this.major = major;
+            this.minor = minor;
+            this.buildNumber = buildNumber;
+            this.subBuildNumber = subBuildNumber;
         }
 
         public void Pack(MemoryStream stream)
         {
-            BigEndianUtilities.WriteUShort(stream, BuildNumber);
-            stream.WriteByte(Minor);
-            stream.WriteByte(Major);
-            BigEndianUtilities.WriteUShort(stream, SubBuildNumber);
+            BigEndianUtilities.WriteUShort(stream, this.buildNumber);
+            stream.WriteByte(this.minor);
+            stream.WriteByte(this.major);
+            BigEndianUtilities.WriteUShort(stream, this.subBuildNumber);
         }
 
         public bool Unpack(MemoryStream stream)
         {
-            BuildNumber = BigEndianUtilities.ReadUShort(stream);
-            Minor = Convert.ToByte(stream.ReadByte());
-            Major = Convert.ToByte(stream.ReadByte());
-            SubBuildNumber = BigEndianUtilities.ReadUShort(stream);
+            this.buildNumber = BigEndianUtilities.ReadUShort(stream);
+            this.minor = Convert.ToByte(stream.ReadByte());
+            this.major = Convert.ToByte(stream.ReadByte());
+            this.subBuildNumber = BigEndianUtilities.ReadUShort(stream);
+           
             return true;
         }
     }
