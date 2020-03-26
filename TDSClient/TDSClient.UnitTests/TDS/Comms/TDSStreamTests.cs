@@ -1,4 +1,10 @@
-﻿namespace TDSClient.UnitTests.TDS.Comms
+﻿//  ---------------------------------------------------------------------------
+//  <copyright file="TDSStreamTests.cs" company="Microsoft">
+//     Copyright (c) Microsoft Corporation.  All rights reserved.
+//  </copyright>
+//  ---------------------------------------------------------------------------
+
+namespace TDSClient.UnitTests.TDS.Comms
 {
     using System;
     using System.IO;

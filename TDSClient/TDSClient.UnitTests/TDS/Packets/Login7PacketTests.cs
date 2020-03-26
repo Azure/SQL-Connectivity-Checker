@@ -1,4 +1,10 @@
-﻿namespace TDSClient.UnitTests.TDS.Packets
+﻿//  ---------------------------------------------------------------------------
+//  <copyright file="Login7PacketTests.cs" company="Microsoft">
+//     Copyright (c) Microsoft Corporation.  All rights reserved.
+//  </copyright>
+//  ---------------------------------------------------------------------------
+
+namespace TDSClient.UnitTests.TDS.Packets
 {
     using System;
     using System.IO;

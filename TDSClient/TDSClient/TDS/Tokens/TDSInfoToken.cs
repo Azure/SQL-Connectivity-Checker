@@ -1,4 +1,10 @@
-﻿namespace TDSClient.TDS.Tokens
+﻿//  ---------------------------------------------------------------------------
+//  <copyright file="TDSInfoToken.cs" company="Microsoft">
+//     Copyright (c) Microsoft Corporation.  All rights reserved.
+//  </copyright>
+//  ---------------------------------------------------------------------------
+
+namespace TDSClient.TDS.Tokens
 {
     using System;
     using System.IO;

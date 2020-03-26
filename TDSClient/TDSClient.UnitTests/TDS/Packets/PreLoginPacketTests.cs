@@ -1,4 +1,10 @@
-﻿namespace TDSClient.UnitTests.TDS.Packets
+﻿//  ---------------------------------------------------------------------------
+//  <copyright file="PreLoginPacketTests.cs" company="Microsoft">
+//     Copyright (c) Microsoft Corporation.  All rights reserved.
+//  </copyright>
+//  ---------------------------------------------------------------------------
+
+namespace TDSClient.UnitTests.TDS.Packets
 {
     using System.IO;
     using System.Xml.Serialization;
