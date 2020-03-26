@@ -26,9 +26,6 @@ $RunAdvancedConnectivityPolicyTests = $true  # Set as $true (default) or $false#
 $CollectNetworkTrace = $true  # Set as $true (default) or $false
 #EncryptionProtocol = ''  # Supported values: 'Tls 1.0', 'Tls 1.1', 'Tls 1.2'; Without this parameter operating system will choose the best protocol to use
 
-# Debug parameters
-$RepositoryBranch = 'pr/vmicurc'
-
 # Parameter region when Invoke-Command -ScriptBlock is used
 $parameters = $args[0]
 if ($null -ne $parameters) {
@@ -46,6 +43,15 @@ if ($null -ne $parameters) {
         $CollectNetworkTrace = $parameters['CollectNetworkTrace']
     }
     $EncryptionProtocol = $parameters['EncryptionProtocol']
+    if ($null -ne $parameters['Local']) {
+        $Local = $parameters['Local']
+    }
+    if ($null -ne $parameters['LocalPath']) {
+        $LocalPath = $parameters['LocalPath']
+    }
+    if ($null -ne $parameters['RepositoryBranch']) {
+        $RepositoryBranch = $parameters['RepositoryBranch']
+    }
 }
 
 $Server = $Server.Trim()
@@ -64,6 +70,14 @@ if ($null -eq $Password -or '' -eq $Password) {
 
 if ($null -eq $Database -or '' -eq $Database) {
     $Database = 'master'
+}
+
+if ($null -eq $Local) {
+    $Local = $false
+}
+
+if ($null -eq $RepositoryBranch) {
+    $RepositoryBranch = 'master'
 }
 
 $CustomerRunningInElevatedMode = $false
@@ -442,6 +456,8 @@ function RunConnectivityPolicyTests($port) {
         Password           = $Password
         EncryptionProtocol = $EncryptionProtocol
         RepositoryBranch = $RepositoryBranch
+        Local = $Local
+        LocalPath = $LocalPath
     }
 
     if (Test-Path "$env:TEMP\AzureSQLConnectivityChecker\") {
@@ -449,7 +465,13 @@ function RunConnectivityPolicyTests($port) {
     }
 
     New-Item "$env:TEMP\AzureSQLConnectivityChecker\" -ItemType directory | Out-Null
-    Invoke-WebRequest -Uri $('https://raw.githubusercontent.com/Azure/SQL-Connectivity-Checker/' + $RepositoryBranch + '/AdvancedConnectivityPolicyTests.ps1') -OutFile "$env:TEMP\AzureSQLConnectivityChecker\AdvancedConnectivityPolicyTests.ps1"
+
+    if($Local) {
+        Copy-Item -Path $($LocalPath + './AdvancedConnectivityPolicyTests.ps1') -Destination "$env:TEMP\AzureSQLConnectivityChecker\AdvancedConnectivityPolicyTests.ps1"
+    } else {
+        Invoke-WebRequest -Uri $('https://raw.githubusercontent.com/Azure/SQL-Connectivity-Checker/' + $RepositoryBranch + '/AdvancedConnectivityPolicyTests.ps1') -OutFile "$env:TEMP\AzureSQLConnectivityChecker\AdvancedConnectivityPolicyTests.ps1"
+    }
+
     $job = Start-Job -ArgumentList $jobParameters -FilePath "$env:TEMP\AzureSQLConnectivityChecker\AdvancedConnectivityPolicyTests.ps1"
     Wait-Job $job | Out-Null
     Receive-Job -Job $job

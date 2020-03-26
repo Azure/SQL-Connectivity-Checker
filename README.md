@@ -12,6 +12,11 @@ In case you cannot run in administrator mode please continue, the tool will stil
 3. Paste the following in the script window:
 
 ```powershell
+# Developer parameters
+$Local = $false # Set to true if script is being tested locally
+$LocalPath = $(pwd).Path # Set to the absolute position of the script (defaults to the current working directory)
+$RepositoryBranch = 'master' # GitHub branch containing the script version that's being tested
+
 $parameters = @{
     Server = '.database.windows.net'
     Database = ''  # Set the name of the database you wish to test, 'master' will be used by default if nothing is set
@@ -23,11 +28,20 @@ $parameters = @{
     RunAdvancedConnectivityPolicyTests = $true  # Set as $true (default) or $false, this will download the library needed for running advanced connectivity tests
     CollectNetworkTrace = $true  # Set as $true (default) or $false
     #EncryptionProtocol = '' # Supported values: 'Tls 1.0', 'Tls 1.1', 'Tls 1.2'; Without this parameter operating system will choose the best protocol to use
+
+    ## Script internal parameters
+    Local = $Local # Do Not Change
+    LocalPath = $LocalPath # Do Not Change
+    RepositoryBranch = $RepositoryBranch # Do Not Change
 }
 
 $ProgressPreference = "SilentlyContinue";
-$scriptUrlBase = 'raw.githubusercontent.com/Azure/SQL-Connectivity-Checker/master'
-Invoke-Command -ScriptBlock ([Scriptblock]::Create((iwr ($scriptUrlBase+'/AzureSQLConnectivityChecker.ps1')).Content)) -ArgumentList $parameters
+if ($Local) {
+    Invoke-Command -ScriptBlock ([Scriptblock]::Create($($LocalPath + './AzureSQLConnectivityChecker.ps1 $parameters')))
+} else {
+    $scriptUrlBase = 'raw.githubusercontent.com/Azure/SQL-Connectivity-Checker/' + $RepositoryBranch
+    Invoke-Command -ScriptBlock ([Scriptblock]::Create((iwr ($scriptUrlBase+'/AzureSQLConnectivityChecker.ps1')).Content)) -ArgumentList $parameters
+}
 #end
 ```
 4. Set the parameters on the script, you need to set server name. Database name, user and password are optional but desirable.

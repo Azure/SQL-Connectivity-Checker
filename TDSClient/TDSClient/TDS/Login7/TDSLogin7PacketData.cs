@@ -169,6 +169,7 @@ namespace TDSClient.TDS.Login7
 
             var temp = this.Data;
             Array.Resize(ref temp, prevLength + optionData.Length);
+            this.Data = temp;
 
             if (optionName == "Password")
             {
