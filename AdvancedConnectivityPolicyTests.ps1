@@ -77,10 +77,11 @@ $User = $parameters['User']
 $Password = $parameters['Password']
 $Database = $parameters['Database']
 $EncryptionProtocol = $parameters['EncryptionProtocol']
+$RepositoryBranch = $parameters['RepositoryBranch']
 
 try {
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls11 -bor [Net.SecurityProtocolType]::Tls
-    Invoke-WebRequest -Uri 'https://github.com/Azure/SQL-Connectivity-Checker/raw/master/TDSClient.dll' -OutFile "$env:TEMP\AzureSQLConnectivityChecker\TDSClient.dll"
+    Invoke-WebRequest -Uri 'https://github.com/Azure/SQL-Connectivity-Checker/raw/'$RepositoryBranch'/netstandard2.0/TDSClient.dll' -OutFile "$env:TEMP\AzureSQLConnectivityChecker\TDSClient.dll"
 
     $assembly = [System.IO.File]::ReadAllBytes("$env:TEMP\AzureSQLConnectivityChecker\TDSClient.dll")
     [System.Reflection.Assembly]::Load($assembly) | Out-Null
