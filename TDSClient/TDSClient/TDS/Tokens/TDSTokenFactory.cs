@@ -43,6 +43,13 @@ namespace TDSClient.TDS.Tokens
                         return token;
                     }
 
+                case TDSTokenType.Info:
+                    {
+                        var token = new TDSInfoToken();
+                        token.Unpack(stream);
+
+                        return token;
+                    }
                 default:
                     {
                         IgnoreToken(tokenType, stream);

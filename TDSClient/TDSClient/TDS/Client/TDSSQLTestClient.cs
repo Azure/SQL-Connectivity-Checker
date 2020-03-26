@@ -237,6 +237,19 @@ namespace TDSClient.TDS.Client
                             throw new Exception("Login failure.");
                         }
                     }
+                    else if (token is TDSInfoToken)
+                    {
+                        var infoToken = token as TDSInfoToken;
+                        LoggingUtilities.WriteLog($" Client recieved Info token:");
+
+                        LoggingUtilities.WriteLog($"     Number: {infoToken.Number}");
+                        LoggingUtilities.WriteLog($"     State: {infoToken.State}");
+                        LoggingUtilities.WriteLog($"     Class: {infoToken.Class}");
+                        LoggingUtilities.WriteLog($"     MsgText: {infoToken.MsgText}");
+                        LoggingUtilities.WriteLog($"     ServerName: {infoToken.ServerName}");
+                        LoggingUtilities.WriteLog($"     ProcName: {infoToken.ProcName}");
+                        LoggingUtilities.WriteLog($"     LineNumber: {infoToken.LineNumber}");
+                    }
                 }
             }
             else
