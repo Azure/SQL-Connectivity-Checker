@@ -7,14 +7,18 @@
 namespace TDSClient.TDS.Login7
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using TDSClient.TDS.Interfaces;
     using TDSClient.TDS.Utilities;
 
     /// <summary>
     /// Class describing variable length portion of the TDS Login7 packet
     /// </summary>
-    public class TDSLogin7OffsetLength : IPackageable
+#pragma warning disable CS0659 // Type overrides Object.Equals(object o) but does not override Object.GetHashCode()
+    public class TDSLogin7OffsetLength : IPackageable, IEquatable<TDSLogin7OffsetLength>
+#pragma warning restore CS0659 // Type overrides Object.Equals(object o) but does not override Object.GetHashCode()
     {
         /// <summary>
         /// Last Position written to within the data portion of TDS Login7 Packet.
@@ -309,6 +313,7 @@ namespace TDSClient.TDS.Login7
         {
             LittleEndianUtilities.WriteUShort(stream, this.HostNamePosition);
             LittleEndianUtilities.WriteUShort(stream, this.HostNameLength);
+            LittleEndianUtilities.WriteUShort(stream, this.UserNamePosition);
             LittleEndianUtilities.WriteUShort(stream, this.UserNameLength);
             LittleEndianUtilities.WriteUShort(stream, this.PasswordPosition);
             LittleEndianUtilities.WriteUShort(stream, this.PasswordLength);
@@ -316,8 +321,8 @@ namespace TDSClient.TDS.Login7
             LittleEndianUtilities.WriteUShort(stream, this.AppNameLength);
             LittleEndianUtilities.WriteUShort(stream, this.ServerNamePosition);
             LittleEndianUtilities.WriteUShort(stream, this.ServerNameLength);
-            LittleEndianUtilities.WriteUShort(stream, 0); // Extension unsupported
-            LittleEndianUtilities.WriteUShort(stream, 0); // Extension unsupported
+            LittleEndianUtilities.WriteUShort(stream, this.ExtensionPosition);
+            LittleEndianUtilities.WriteUShort(stream, this.ExtensionLength);
             LittleEndianUtilities.WriteUShort(stream, this.CltIntNamePosition);
             LittleEndianUtilities.WriteUShort(stream, this.CltIntNameLength);
             LittleEndianUtilities.WriteUShort(stream, this.LanguagePosition);
@@ -331,7 +336,7 @@ namespace TDSClient.TDS.Login7
             LittleEndianUtilities.WriteUShort(stream, this.AtchDBFileLength);
             LittleEndianUtilities.WriteUShort(stream, this.ChangePasswordPosition);
             LittleEndianUtilities.WriteUShort(stream, this.ChangePasswordLength);
-            LittleEndianUtilities.WriteUInt(stream, 0); // Long SSPI not supported
+            LittleEndianUtilities.WriteUInt(stream, this.SSPILengthLong);
         }
 
         /// <summary>
@@ -369,6 +374,53 @@ namespace TDSClient.TDS.Login7
             this.SSPILengthLong = LittleEndianUtilities.ReadUInt(stream);
             
             return true;
+        }
+
+        /// <summary>
+        /// Determines whether the specified object is equal to the current object.
+        /// </summary>
+        /// <param name="obj">The object to compare with the current object.</param>
+        /// <returns>true if the specified object is equal to the current object; otherwise, false</returns>
+        public override bool Equals(object obj)
+        {
+            return this.Equals(obj as TDSLogin7OffsetLength);
+        }
+
+        /// <summary>
+        /// Determines whether the specified object is equal to the current object.
+        /// </summary>
+        /// <param name="other">The object to compare with the current object.</param>
+        /// <returns>true if the specified object is equal to the current object; otherwise, false</returns>
+        public bool Equals(TDSLogin7OffsetLength other)
+        {
+            return other != null &&
+                   this.lastPos == other.lastPos &&
+                   this.HostNamePosition == other.HostNamePosition &&
+                   this.HostNameLength == other.HostNameLength &&
+                   this.UserNamePosition == other.UserNamePosition &&
+                   this.UserNameLength == other.UserNameLength &&
+                   this.PasswordPosition == other.PasswordPosition &&
+                   this.PasswordLength == other.PasswordLength &&
+                   this.AppNamePosition == other.AppNamePosition &&
+                   this.AppNameLength == other.AppNameLength &&
+                   this.ServerNamePosition == other.ServerNamePosition &&
+                   this.ServerNameLength == other.ServerNameLength &&
+                   this.ExtensionPosition == other.ExtensionPosition &&
+                   this.ExtensionLength == other.ExtensionLength &&
+                   this.CltIntNamePosition == other.CltIntNamePosition &&
+                   this.CltIntNameLength == other.CltIntNameLength &&
+                   this.LanguagePosition == other.LanguagePosition &&
+                   this.LanguageLength == other.LanguageLength &&
+                   this.DatabasePosition == other.DatabasePosition &&
+                   this.DatabaseLength == other.DatabaseLength &&
+                   this.ClientID.SequenceEqual(other.ClientID) &&
+                   this.SSPIPosition == other.SSPIPosition &&
+                   this.SSPILength == other.SSPILength &&
+                   this.AtchDBFilePosition == other.AtchDBFilePosition &&
+                   this.AtchDBFileLength == other.AtchDBFileLength &&
+                   this.ChangePasswordPosition == other.ChangePasswordPosition &&
+                   this.ChangePasswordLength == other.ChangePasswordLength &&
+                   this.SSPILengthLong == other.SSPILengthLong;
         }
     }
 }

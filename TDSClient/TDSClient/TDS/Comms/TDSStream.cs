@@ -75,32 +75,32 @@ namespace TDSClient.TDS.Comms
         public TDSMessageType CurrentOutboundMessageType { get; set; }
 
         /// <summary>
-        /// Gets CanTimeout Flag.
+        /// Gets or sets CanTimeout Flag.
         /// </summary>
         public override bool CanTimeout => true;
 
         /// <summary>
-        /// Gets CanRead Flag.
+        /// Gets or sets CanRead Flag.
         /// </summary>
         public override bool CanRead => this.InnerStream.CanRead;
 
         /// <summary>
-        /// Gets CanSeek Flag.
+        /// Gets or sets CanSeek Flag.
         /// </summary>
         public override bool CanSeek => this.InnerStream.CanSeek;
 
         /// <summary>
-        /// Gets CanWrite Flag.
+        /// Gets or sets CanWrite Flag.
         /// </summary>
         public override bool CanWrite => this.InnerStream.CanWrite;
 
         /// <summary>
-        /// Gets Stream Length.
+        /// Gets or sets Stream Length.
         /// </summary>
         public override long Length => this.InnerStream.Length;
 
         /// <summary>
-        /// Gets Stream Position.
+        /// Gets or sets Stream Position.
         /// </summary>
         public override long Position { get => this.InnerStream.Position; set => this.InnerStream.Position = value; }
 
@@ -197,7 +197,7 @@ namespace TDSClient.TDS.Comms
 
             while (bytesSent < count)
             {
-                if (count - bytesSent - 8 < this.negotiatedPacketSize)
+                if (count - bytesSent + 8 < this.negotiatedPacketSize)
                 {
                     this.currentOutboundTDSHeader.Status = TDSMessageStatus.EndOfMessage;
                 }

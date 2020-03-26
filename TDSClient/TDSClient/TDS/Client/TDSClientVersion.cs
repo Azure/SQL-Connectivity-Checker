@@ -14,28 +14,10 @@ namespace TDSClient.TDS.Client
     /// <summary>
     /// Class describing TDS Client Version.
     /// </summary>
-    public class TDSClientVersion : IPackageable
+#pragma warning disable CS0659 // Type overrides Object.Equals(object o) but does not override Object.GetHashCode()
+    public class TDSClientVersion : IPackageable, IEquatable<TDSClientVersion>
+#pragma warning restore CS0659 // Type overrides Object.Equals(object o) but does not override Object.GetHashCode()
     {
-        /// <summary>
-        /// Major version
-        /// </summary>
-        private byte major;
-
-        /// <summary>
-        /// Minor version
-        /// </summary>
-        private byte minor;
-
-        /// <summary>
-        /// Build number
-        /// </summary>
-        private ushort buildNumber;
-
-        /// <summary>
-        /// SubBuild number
-        /// </summary>
-        private ushort subBuildNumber;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="TDSClientVersion" /> class.
         /// </summary>
@@ -52,11 +34,31 @@ namespace TDSClient.TDS.Client
         /// <param name="subBuildNumber">SubBuild number</param>
         public TDSClientVersion(byte major, byte minor, ushort buildNumber, ushort subBuildNumber)
         {
-            this.major = major;
-            this.minor = minor;
-            this.buildNumber = buildNumber;
-            this.subBuildNumber = subBuildNumber;
+            this.Major = major;
+            this.Minor = minor;
+            this.BuildNumber = buildNumber;
+            this.SubBuildNumber = subBuildNumber;
         }
+
+        /// <summary>
+        /// Gets or sets the Major version
+        /// </summary>
+        public byte Major { get; set; }
+
+        /// <summary>
+        /// Gets or sets the Minor version
+        /// </summary>
+        public byte Minor { get; set; }
+
+        /// <summary>
+        /// Gets or sets the Build number
+        /// </summary>
+        public ushort BuildNumber { get; set; }
+
+        /// <summary>
+        /// Gets or sets the SubBuild number
+        /// </summary>
+        public ushort SubBuildNumber { get; set; }
 
         /// <summary>
         /// Used to pack IPackageable to a stream.
@@ -64,10 +66,10 @@ namespace TDSClient.TDS.Client
         /// <param name="stream">MemoryStream in which IPackageable is packet into.</param>
         public void Pack(MemoryStream stream)
         {
-            BigEndianUtilities.WriteUShort(stream, this.buildNumber);
-            stream.WriteByte(this.minor);
-            stream.WriteByte(this.major);
-            BigEndianUtilities.WriteUShort(stream, this.subBuildNumber);
+            BigEndianUtilities.WriteUShort(stream, this.BuildNumber);
+            stream.WriteByte(this.Minor);
+            stream.WriteByte(this.Major);
+            BigEndianUtilities.WriteUShort(stream, this.SubBuildNumber);
         }
 
         /// <summary>
@@ -77,12 +79,36 @@ namespace TDSClient.TDS.Client
         /// <returns>Returns true if successful.</returns>
         public bool Unpack(MemoryStream stream)
         {
-            this.buildNumber = BigEndianUtilities.ReadUShort(stream);
-            this.minor = Convert.ToByte(stream.ReadByte());
-            this.major = Convert.ToByte(stream.ReadByte());
-            this.subBuildNumber = BigEndianUtilities.ReadUShort(stream);
+            this.BuildNumber = BigEndianUtilities.ReadUShort(stream);
+            this.Minor = Convert.ToByte(stream.ReadByte());
+            this.Major = Convert.ToByte(stream.ReadByte());
+            this.SubBuildNumber = BigEndianUtilities.ReadUShort(stream);
            
             return true;
+        }
+
+        /// <summary>
+        /// Determines whether the specified object is equal to the current object.
+        /// </summary>
+        /// <param name="obj">The object to compare with the current object.</param>
+        /// <returns>true if the specified object is equal to the current object; otherwise, false</returns>
+        public override bool Equals(object obj)
+        {
+            return this.Equals(obj as TDSClientVersion);
+        }
+
+        /// <summary>
+        /// Determines whether the specified object is equal to the current object.
+        /// </summary>
+        /// <param name="other">The object to compare with the current object.</param>
+        /// <returns>true if the specified object is equal to the current object; otherwise, false</returns>
+        public bool Equals(TDSClientVersion other)
+        {
+            return other != null &&
+                   this.Major == other.Major &&
+                   this.Minor == other.Minor &&
+                   this.BuildNumber == other.BuildNumber &&
+                   this.SubBuildNumber == other.SubBuildNumber;
         }
     }
 }

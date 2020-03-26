@@ -61,54 +61,54 @@ namespace TDSClient.TDS.Client
         }
 
         /// <summary>
-        /// Gets the Server.
+        /// Gets or sets the Server.
         /// </summary>
-        public string Server { get; private set; }
+        public string Server { get; set; }
 
         /// <summary>
-        /// Gets the Server Name.
+        /// Gets or sets the Server Name.
         /// </summary>
-        public string ServerName { get; private set; }
+        public string ServerName { get; set; }
 
         /// <summary>
-        /// Gets the Port Number.
+        /// Gets or sets the Port Number.
         /// </summary>
-        public int Port { get; private set; }
+        public int Port { get; set; }
 
         /// <summary>
-        /// Gets the User ID.
+        /// Gets or sets the User ID.
         /// </summary>
-        public string UserID { get; private set; }
+        public string UserID { get; set; }
 
         /// <summary>
-        /// Gets the Password.
+        /// Gets or sets the Password.
         /// </summary>
-        public string Password { get; private set; }
+        public string Password { get; set; }
 
         /// <summary>
-        /// Gets the Database.
+        /// Gets or sets the Database.
         /// </summary>
-        public string Database { get; private set; }
+        public string Database { get; set; }
 
         /// <summary>
-        /// Gets the TDS Communicator.
+        /// Gets or sets the TDS Communicator.
         /// </summary>
-        public TDSCommunicator TdsCommunicator { get; private set; }
+        public TDSCommunicator TdsCommunicator { get; set; }
         
         /// <summary>
-        /// Gets the TCP Client.
+        /// Gets or sets the TCP Client.
         /// </summary>
-        public TcpClient Client { get; private set; }
+        public TcpClient Client { get; set; }
         
         /// <summary>
-        /// Gets the TDS Client Version.
+        /// Gets or sets the TDS Client Version.
         /// </summary>
-        public TDSClientVersion Version { get; private set; }
+        public TDSClientVersion Version { get; set; }
 
         /// <summary>
-        /// Gets the Encryption Protocol.
+        /// Gets or sets the Encryption Protocol.
         /// </summary>
-        public SslProtocols EncryptionProtocol { get; private set; }
+        public SslProtocols EncryptionProtocol { get; set; }
 
         /// <summary>
         /// Sends PreLogin message to the server.

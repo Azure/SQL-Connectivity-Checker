@@ -93,7 +93,9 @@ namespace TDSClient.TDS.Login7
     /// <summary>
     /// TDS Login7 Message Option Flags 2
     /// </summary>
-    public class TDSLogin7OptionFlags2 : IPackageable
+#pragma warning disable CS0659 // Type overrides Object.Equals(object o) but does not override Object.GetHashCode()
+    public class TDSLogin7OptionFlags2 : IPackageable, IEquatable<TDSLogin7OptionFlags2>
+#pragma warning restore CS0659 // Type overrides Object.Equals(object o) but does not override Object.GetHashCode()
     {
         /// <summary>
         /// Gets or sets the Language Flag.
@@ -119,7 +121,31 @@ namespace TDSClient.TDS.Login7
         /// The type of security required by the client.
         /// </summary>
         public TDSLogin7OptionFlags2IntSecurity IntSecurity { get; set; }
-        
+
+        /// <summary>
+        /// Determines whether the specified object is equal to the current object.
+        /// </summary>
+        /// <param name="obj">The object to compare with the current object.</param>
+        /// <returns>true if the specified object is equal to the current object; otherwise, false</returns>
+        public override bool Equals(object obj)
+        {
+            return this.Equals(obj as TDSLogin7OptionFlags2);
+        }
+
+        /// <summary>
+        /// Determines whether the specified object is equal to the current object.
+        /// </summary>
+        /// <param name="other">The object to compare with the current object.</param>
+        /// <returns>true if the specified object is equal to the current object; otherwise, false</returns>
+        public bool Equals(TDSLogin7OptionFlags2 other)
+        {
+            return other != null &&
+                   this.Language == other.Language &&
+                   this.ODBC == other.ODBC &&
+                   this.UserType == other.UserType &&
+                   this.IntSecurity == other.IntSecurity;
+        }
+
         /// <summary>
         /// Used to pack IPackageable to a stream.
         /// </summary>

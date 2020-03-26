@@ -28,27 +28,27 @@ namespace TDSClient.TDS.Comms
         public Stream InnerStream { get; set; }
 
         /// <summary>
-        /// Gets a value indicating whether you can read from this stream.
+        /// Gets or sets a value indicating whether you can read from this stream.
         /// </summary>
         public override bool CanRead => this.InnerStream.CanRead;
 
         /// <summary>
-        /// Gets a value indicating whether you can seek throughout this stream.
+        /// Gets or sets a value indicating whether you can seek throughout this stream.
         /// </summary>
         public override bool CanSeek => this.InnerStream.CanSeek;
 
         /// <summary>
-        /// Gets a value indicating whether you can write to this stream.
+        /// Gets or sets a value indicating whether you can write to this stream.
         /// </summary>
         public override bool CanWrite => this.InnerStream.CanWrite;
 
         /// <summary>
-        /// Gets the length of this stream, in bytes.
+        /// Gets or sets the length of this stream, in bytes.
         /// </summary>
         public override long Length => this.InnerStream.Length;
 
         /// <summary>
-        /// Gets the current position within this stream.
+        /// Gets or sets the current position within this stream.
         /// </summary>
         public override long Position { get => this.InnerStream.Position; set => this.InnerStream.Position = value; }
 

@@ -138,7 +138,9 @@ namespace TDSClient.TDS.Login7
     /// <summary>
     /// TDS Login7 Message Option Flags 1
     /// </summary>
-    public class TDSLogin7OptionFlags1 : IPackageable
+#pragma warning disable CS0659 // Type overrides Object.Equals(object o) but does not override Object.GetHashCode()
+    public class TDSLogin7OptionFlags1 : IPackageable, IEquatable<TDSLogin7OptionFlags1>
+#pragma warning restore CS0659 // Type overrides Object.Equals(object o) but does not override Object.GetHashCode()
     {
         /// <summary>
         /// Gets or sets the byte order used by client for numeric and datetime data types.
@@ -181,7 +183,34 @@ namespace TDSClient.TDS.Login7
         /// statement.
         /// </summary>
         public TDSLogin7OptionFlags1SetLang SetLang { get; set; }
-        
+
+        /// <summary>
+        /// Determines whether the specified object is equal to the current object.
+        /// </summary>
+        /// <param name="obj">The object to compare with the current object.</param>
+        /// <returns>true if the specified object is equal to the current object; otherwise, false</returns>
+        public override bool Equals(object obj)
+        {
+            return this.Equals(obj as TDSLogin7OptionFlags1);
+        }
+
+        /// <summary>
+        /// Determines whether the specified object is equal to the current object.
+        /// </summary>
+        /// <param name="other">The object to compare with the current object.</param>
+        /// <returns>true if the specified object is equal to the current object; otherwise, false</returns>
+        public bool Equals(TDSLogin7OptionFlags1 other)
+        {
+            return other != null &&
+                   this.ByteOrder == other.ByteOrder &&
+                   this.Char == other.Char &&
+                   this.Float == other.Float &&
+                   this.DumpLoad == other.DumpLoad &&
+                   this.UseDB == other.UseDB &&
+                   this.Database == other.Database &&
+                   this.SetLang == other.SetLang;
+        }
+
         /// <summary>
         /// Used to pack IPackageable to a stream.
         /// </summary>

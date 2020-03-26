@@ -14,7 +14,9 @@ namespace TDSClient.TDS.PreLogin
     /// <summary>
     /// Class describing TDS PreLogin Option Token
     /// </summary>
-    public class TDSPreLoginOptionToken : IPackageable
+#pragma warning disable CS0659 // Type overrides Object.Equals(object o) but does not override Object.GetHashCode()
+    public class TDSPreLoginOptionToken : IPackageable, IEquatable<TDSPreLoginOptionToken>
+#pragma warning restore CS0659 // Type overrides Object.Equals(object o) but does not override Object.GetHashCode()
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="TDSPreLoginOptionToken"/> class.
@@ -88,9 +90,9 @@ namespace TDSClient.TDS.PreLogin
         }
 
         /// <summary>
-        /// Gets TDS PreLogin Option Token Type.
+        /// Gets or sets TDS PreLogin Option Token Type.
         /// </summary>
-        public TDSPreLoginOptionTokenType Type { get; private set; }
+        public TDSPreLoginOptionTokenType Type { get; set; }
 
         /// <summary>
         /// Gets or sets Offset.
@@ -98,9 +100,32 @@ namespace TDSClient.TDS.PreLogin
         public ushort Offset { get; set; }
 
         /// <summary>
-        /// Gets Length.
+        /// Gets or sets Length.
         /// </summary>
-        public ushort Length { get; private set; }
+        public ushort Length { get; set; }
+
+        /// <summary>
+        /// Determines whether the specified object is equal to the current object.
+        /// </summary>
+        /// <param name="obj">The object to compare with the current object.</param>
+        /// <returns>true if the specified object is equal to the current object; otherwise, false</returns>
+        public override bool Equals(object obj)
+        {
+            return this.Equals(obj as TDSPreLoginOptionToken);
+        }
+
+        /// <summary>
+        /// Determines whether the specified object is equal to the current object.
+        /// </summary>
+        /// <param name="other">The object to compare with the current object.</param>
+        /// <returns>true if the specified object is equal to the current object; otherwise, false</returns>
+        public bool Equals(TDSPreLoginOptionToken other)
+        {
+            return other != null &&
+                   this.Type == other.Type &&
+                   this.Offset == other.Offset &&
+                   this.Length == other.Length;
+        }
 
         /// <summary>
         /// Used to pack IPackageable to a stream.

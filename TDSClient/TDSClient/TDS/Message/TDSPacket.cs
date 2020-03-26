@@ -37,14 +37,14 @@ namespace TDSClient.TDS.Message
         }
 
         /// <summary>
-        /// Gets TDS Packet Header.
+        /// Gets or sets TDS Packet Header.
         /// </summary>
-        public TDSPacketHeader Header { get; private set; }
+        public TDSPacketHeader Header { get; set; }
 
         /// <summary>
-        /// Gets TDS Packet Data.
+        /// Gets or sets TDS Packet Data.
         /// </summary>
-        public ITDSPacketData Data { get; private set; }
+        public ITDSPacketData Data { get; set; }
 
         /// <summary>
         /// Used to pack IPackageable to a stream.

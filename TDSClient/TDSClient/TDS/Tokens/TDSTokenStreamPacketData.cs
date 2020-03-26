@@ -25,9 +25,9 @@ namespace TDSClient.TDS.Tokens
         }
 
         /// <summary>
-        /// Gets TDS Token Stream Token List
+        /// Gets or sets TDS Token Stream Token List
         /// </summary>
-        public LinkedList<TDSToken> Tokens { get; private set; }
+        public LinkedList<TDSToken> Tokens { get; set; }
 
         /// <summary>
         /// TDS Token Stream Packet Data Length

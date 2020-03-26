@@ -27,14 +27,14 @@ namespace TDSClient.TDS.Tokens
         }
 
         /// <summary>
-        /// Gets TDS EnvChange Token Type
+        /// Gets or sets TDS EnvChange Token Type
         /// </summary>
-        public TDSEnvChangeType Type { get; private set; }
+        public TDSEnvChangeType Type { get; set; }
 
         /// <summary>
-        /// Gets TDS EnvChange Token values
+        /// Gets or sets TDS EnvChange Token values
         /// </summary>
-        public Dictionary<string, string> Values { get; private set; }
+        public Dictionary<string, string> Values { get; set; }
 
         /// <summary>
         /// EnvChange Token Length

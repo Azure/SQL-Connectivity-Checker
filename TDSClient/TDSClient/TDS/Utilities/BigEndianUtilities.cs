@@ -128,7 +128,7 @@ namespace TDSClient.TDS.Utilities
         public static byte[] ReadByteArray(MemoryStream stream, uint length)
         {
             byte[] result = new byte[length];
-            for (int i = 0; i < length; i++)
+            for (int i = 1; i <= length; i++)
             {
                 result[length - i] = Convert.ToByte(stream.ReadByte());
             }

@@ -49,7 +49,7 @@ namespace TDSClient.TDS.Comms
         /// </summary>
         /// <param name="stream">NetworkStream used for communication</param>
         /// <param name="packetSize">TDS packet size</param>
-        public TDSCommunicator(NetworkStream stream, ushort packetSize)
+        public TDSCommunicator(Stream stream, ushort packetSize)
         {
             this.packetSize = packetSize;
             this.innerTdsStream = new TDSStream(stream, new TimeSpan(0, 0, 30), packetSize);

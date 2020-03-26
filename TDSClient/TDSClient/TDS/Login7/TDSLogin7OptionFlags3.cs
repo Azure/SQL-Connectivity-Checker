@@ -103,7 +103,9 @@ namespace TDSClient.TDS.Login7
     /// <summary>
     /// TDS Login7 Message Option Flags 3
     /// </summary>
-    public class TDSLogin7OptionFlags3 : IPackageable
+#pragma warning disable CS0659 // Type overrides Object.Equals(object o) but does not override Object.GetHashCode()
+    public class TDSLogin7OptionFlags3 : IPackageable, IEquatable<TDSLogin7OptionFlags3>
+#pragma warning restore CS0659 // Type overrides Object.Equals(object o) but does not override Object.GetHashCode()
     {
         /// <summary>
         ///  Gets or sets the ChangePassword Flag.
@@ -135,7 +137,32 @@ namespace TDSClient.TDS.Login7
         /// Specifies whether IBExtension or CBExtension fields are used.
         /// </summary>
         public TDSLogin7OptionFlags3Extension Extension { get; set; }
-        
+
+        /// <summary>
+        /// Determines whether the specified object is equal to the current object.
+        /// </summary>
+        /// <param name="obj">The object to compare with the current object.</param>
+        /// <returns>true if the specified object is equal to the current object; otherwise, false</returns>
+        public override bool Equals(object obj)
+        {
+            return this.Equals(obj as TDSLogin7OptionFlags3);
+        }
+
+        /// <summary>
+        /// Determines whether the specified object is equal to the current object.
+        /// </summary>
+        /// <param name="other">The object to compare with the current object.</param>
+        /// <returns>true if the specified object is equal to the current object; otherwise, false</returns>
+        public bool Equals(TDSLogin7OptionFlags3 other)
+        {
+            return other != null &&
+                   this.ChangePassword == other.ChangePassword &&
+                   this.SendYukonBinaryXML == other.SendYukonBinaryXML &&
+                   this.UserInstanceProcess == other.UserInstanceProcess &&
+                   this.UnknownCollationHandling == other.UnknownCollationHandling &&
+                   this.Extension == other.Extension;
+        }
+
         /// <summary>
         /// Used to pack IPackageable to a stream.
         /// </summary>

@@ -17,41 +17,41 @@ namespace TDSClient.TDS.Tokens
     public class TDSErrorToken : TDSToken
     {
         /// <summary>
-        /// Gets error number.
+        /// Gets or sets error number.
         /// </summary>
-        public int Number { get; private set; }
+        public int Number { get; set; }
 
         /// <summary>
-        /// Gets error state.
+        /// Gets or sets error state.
         /// Used as a modifier to the error number.
         /// </summary>
-        public byte State { get; private set; }
+        public byte State { get; set; }
 
         /// <summary>
-        /// Gets error class.
+        /// Gets or sets error class.
         /// The class (severity) of the error. A class of less than 10 indicates an informational message.
         /// </summary>
-        public byte Class { get; private set; }
+        public byte Class { get; set; }
 
         /// <summary>
-        /// Gets error message.
+        /// Gets or sets error message.
         /// </summary>
-        public string MsgText { get; private set; }
+        public string MsgText { get; set; }
 
         /// <summary>
-        /// Gets server name.
+        /// Gets or sets server name.
         /// </summary>
-        public string ServerName { get; private set; }
+        public string ServerName { get; set; }
 
         /// <summary>
-        /// Gets stored procedure name.
+        /// Gets or sets stored procedure name.
         /// </summary>
-        public string ProcName { get; private set; }
+        public string ProcName { get; set; }
 
         /// <summary>
-        /// Gets line number.
+        /// Gets or sets line number.
         /// </summary>
-        public uint LineNumber { get; private set; }
+        public uint LineNumber { get; set; }
 
         /// <summary>
         /// TDS Error Token Length
