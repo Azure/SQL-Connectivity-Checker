@@ -1,36 +1,63 @@
 ﻿//  ---------------------------------------------------------------------------
-//  <copyright file="TDSTokenStreamPacketData.cs" company="Microsoft">
+//  <copyright file="TDSLogin7Option.cs" company="Microsoft">
 //     Copyright (c) Microsoft Corporation.  All rights reserved.
 //  </copyright>
 //  ---------------------------------------------------------------------------
 
-namespace TDSClient.TDS.Tokens
+namespace TDSClient.TDS.Login7.Options
 {
     using System;
-    using System.Collections.Generic;
     using System.IO;
-    using System.Linq;
     using TDSClient.TDS.Interfaces;
 
     /// <summary>
-    /// Class describing data portion of a TDS Token Stream
+    /// TDS Login7 Packet Option
     /// </summary>
 #pragma warning disable CS0659 // Type overrides Object.Equals(object o) but does not override Object.GetHashCode()
-    public class TDSTokenStreamPacketData : ITDSPacketData, IEquatable<TDSTokenStreamPacketData>
+    public abstract class TDSLogin7Option : IPackageable, IEquatable<TDSLogin7Option>
 #pragma warning restore CS0659 // Type overrides Object.Equals(object o) but does not override Object.GetHashCode()
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="TDSTokenStreamPacketData"/> class.
+        /// Initializes a new instance of the <see cref="TDSLogin7Option" /> class.
         /// </summary>
-        public TDSTokenStreamPacketData()
+        public TDSLogin7Option()
         {
-            this.Tokens = new List<TDSToken>();
         }
 
         /// <summary>
-        /// Gets or sets TDS Token Stream Token List
+        /// Initializes a new instance of the <see cref="TDSLogin7Option" /> class.
         /// </summary>
-        public List<TDSToken> Tokens { get; set; }
+        /// <param name="name">Option name</param>
+        /// <param name="position">Option position within the packet</param>
+        /// <param name="length">Option data length</param>
+        /// <param name="trueLength">Option data length (in bytes)</param>
+        public TDSLogin7Option(string name, ushort position, ushort length, ushort trueLength)
+        {
+            this.Name = name;
+            this.Position = position;
+            this.Length = length;
+            this.TrueLength = trueLength;
+        }
+
+        /// <summary>
+        /// Gets or sets option name
+        /// </summary>
+        public string Name { get; set; }
+
+        /// <summary>
+        /// Gets or sets option position within the packet
+        /// </summary>
+        public ushort Position { get; set; }
+
+        /// <summary>
+        /// Gets or sets option data length
+        /// </summary>
+        public ushort Length { get; set; }
+
+        /// <summary>
+        /// Gets or sets option true data length (in bytes)
+        /// </summary>
+        public ushort TrueLength { get; set; }
 
         /// <summary>
         /// Determines whether the specified object is equal to the current object.
@@ -39,7 +66,7 @@ namespace TDSClient.TDS.Tokens
         /// <returns>true if the specified object is equal to the current object; otherwise, false</returns>
         public override bool Equals(object obj)
         {
-            return this.Equals(obj as TDSTokenStreamPacketData);
+            return this.Equals(obj as TDSLogin7Option);
         }
 
         /// <summary>
@@ -47,47 +74,26 @@ namespace TDSClient.TDS.Tokens
         /// </summary>
         /// <param name="other">The object to compare with the current object.</param>
         /// <returns>true if the specified object is equal to the current object; otherwise, false</returns>
-        public bool Equals(TDSTokenStreamPacketData other)
+        public bool Equals(TDSLogin7Option other)
         {
             return other != null &&
-                   this.Tokens.SequenceEqual(other.Tokens);
-        }
-
-        /// <summary>
-        /// TDS Token Stream Packet Data Length
-        /// </summary>
-        /// <returns>Returns TDS Token Stream Packet data portion length</returns>
-        public ushort Length()
-        {
-            throw new NotImplementedException();
+                   this.Name == other.Name &&
+                   this.Position == other.Position &&
+                   this.Length == other.Length &&
+                   this.TrueLength == other.TrueLength;
         }
 
         /// <summary>
         /// Used to pack IPackageable to a stream.
         /// </summary>
         /// <param name="stream">MemoryStream in which IPackageable is packet into.</param>
-        public void Pack(MemoryStream stream)
-        {
-            throw new NotImplementedException();
-        }
+        public abstract void Pack(MemoryStream stream);
 
         /// <summary>
         /// Used to unpack IPackageable from a stream.
         /// </summary>
         /// <param name="stream">MemoryStream from which to unpack IPackageable.</param>
         /// <returns>Returns true if successful.</returns>
-        public bool Unpack(MemoryStream stream)
-        {
-            while (stream.Length > stream.Position)
-            {
-                TDSToken token = TDSTokenFactory.ReadTokenFromStream(stream);
-                if (token != null)
-                {
-                    this.Tokens.Add(token);
-                }
-            }
-
-            return true;
-        }
+        public abstract bool Unpack(MemoryStream stream);
     }
 }

@@ -50,6 +50,7 @@ namespace TDSClient.TDS.Tokens
 
                         return token;
                     }
+
                 default:
                     {
                         IgnoreToken(tokenType, stream);

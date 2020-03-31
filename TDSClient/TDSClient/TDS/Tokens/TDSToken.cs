@@ -12,7 +12,9 @@ namespace TDSClient.TDS.Tokens
     /// <summary>
     /// Abstract class describing functionalities of a TDS Token
     /// </summary>
+#pragma warning disable CS0659 // Type overrides Object.Equals(object o) but does not override Object.GetHashCode()
     public abstract class TDSToken : ITDSPacketData
+#pragma warning restore CS0659 // Type overrides Object.Equals(object o) but does not override Object.GetHashCode()
     {
         /// <summary>
         /// TDS Token length
@@ -32,5 +34,12 @@ namespace TDSClient.TDS.Tokens
         /// <param name="stream">MemoryStream that contains the token to unpack</param>
         /// <returns>Returns true if successful</returns>
         public abstract bool Unpack(MemoryStream stream);
+
+        /// <summary>
+        /// Determines whether the specified object is equal to the current object.
+        /// </summary>
+        /// <param name="obj">The object to compare with the current object.</param>
+        /// <returns>true if the specified object is equal to the current object; otherwise, false</returns>
+        public override abstract bool Equals(object obj);
     }
 }

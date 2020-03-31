@@ -1,0 +1,62 @@
+{
+  "$type": "TDSClient.TDS.PreLogin.TDSPreLoginPacketData, TDSClient",
+  "Options": {
+    "$type": "System.Collections.Generic.List`1[[TDSClient.TDS.PreLogin.TDSPreLoginOptionToken, TDSClient]], System.Private.CoreLib",
+    "$values": [
+      {
+        "$type": "TDSClient.TDS.PreLogin.TDSPreLoginOptionToken, TDSClient",
+        "Type": 0,
+        "Offset": 26,
+        "Length": 6
+      },
+      {
+        "$type": "TDSClient.TDS.PreLogin.TDSPreLoginOptionToken, TDSClient",
+        "Type": 1,
+        "Offset": 32,
+        "Length": 1
+      },
+      {
+        "$type": "TDSClient.TDS.PreLogin.TDSPreLoginOptionToken, TDSClient",
+        "Type": 2,
+        "Offset": 33,
+        "Length": 1
+      },
+      {
+        "$type": "TDSClient.TDS.PreLogin.TDSPreLoginOptionToken, TDSClient",
+        "Type": 3,
+        "Offset": 34,
+        "Length": 4
+      },
+      {
+        "$type": "TDSClient.TDS.PreLogin.TDSPreLoginOptionToken, TDSClient",
+        "Type": 4,
+        "Offset": 38,
+        "Length": 1
+      },
+      {
+        "$type": "TDSClient.TDS.PreLogin.TDSPreLoginOptionToken, TDSClient",
+        "Type": 255,
+        "Offset": 0,
+        "Length": 0
+      }
+    ]
+  },
+  "ClientVersion": {
+    "$type": "TDSClient.TDS.Client.TDSClientVersion, TDSClient",
+    "Major": 0,
+    "Minor": 0,
+    "BuildNumber": 2304,
+    "SubBuildNumber": 0
+  },
+  "Encryption": 1,
+  "ThreadID": 3087859712,
+  "MARS": true,
+  "TraceID": null,
+  "FedAuthRequired": false,
+  "Nonce": null,
+  "Instance": {
+    "$type": "System.Byte[], System.Private.CoreLib",
+    "$value": "AA=="
+  },
+  "Terminated": true
+}

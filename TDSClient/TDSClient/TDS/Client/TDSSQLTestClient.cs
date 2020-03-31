@@ -134,12 +134,12 @@ namespace TDSClient.TDS.Client
 
             var tdsMessageBody = new TDSLogin7PacketData();
 
-            tdsMessageBody.AddOption("HostName", (ushort)Environment.MachineName.Length, Environment.MachineName);
-            tdsMessageBody.AddOption("UserName", (ushort)this.UserID.Length, this.UserID);
-            tdsMessageBody.AddOption("ServerName", (ushort)this.ServerName.Length, this.ServerName);
-            tdsMessageBody.AddOption("Password", (ushort)this.Password.Length, this.Password);
-            tdsMessageBody.AddOption("Database", (ushort)this.Database.Length, this.Database);
-            tdsMessageBody.AddOption("IntName", (ushort)"TDSSQLTestClient".Length, "TDSSQLTestClient");
+            tdsMessageBody.AddOption("HostName", Environment.MachineName);
+            tdsMessageBody.AddOption("UserName", this.UserID);
+            tdsMessageBody.AddOption("ServerName", this.ServerName);
+            tdsMessageBody.AddOption("Password", this.Password);
+            tdsMessageBody.AddOption("Database", this.Database);
+            tdsMessageBody.AddOption("CltIntName", "TDSSQLTestClient");
 
             tdsMessageBody.OptionFlags1.Char = TDSLogin7OptionFlags1Char.CharsetASCII;
             tdsMessageBody.OptionFlags1.Database = TDSLogin7OptionFlags1Database.InitDBFatal;

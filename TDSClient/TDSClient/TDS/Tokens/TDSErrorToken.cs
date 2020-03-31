@@ -14,7 +14,9 @@ namespace TDSClient.TDS.Tokens
     /// <summary>
     /// Class describing TDS Error Token
     /// </summary>
-    public class TDSErrorToken : TDSToken
+#pragma warning disable CS0659 // Type overrides Object.Equals(object o) but does not override Object.GetHashCode()
+    public class TDSErrorToken : TDSToken, IEquatable<TDSErrorToken>
+#pragma warning restore CS0659 // Type overrides Object.Equals(object o) but does not override Object.GetHashCode()
     {
         /// <summary>
         /// Gets or sets error number.
@@ -52,6 +54,33 @@ namespace TDSClient.TDS.Tokens
         /// Gets or sets line number.
         /// </summary>
         public uint LineNumber { get; set; }
+        
+        /// <summary>
+        /// Determines whether the specified object is equal to the current object.
+        /// </summary>
+        /// <param name="obj">The object to compare with the current object.</param>
+        /// <returns>true if the specified object is equal to the current object; otherwise, false</returns>
+        public override bool Equals(object obj)
+        {
+            return this.Equals(obj as TDSErrorToken);
+        }
+
+        /// <summary>
+        /// Determines whether the specified object is equal to the current object.
+        /// </summary>
+        /// <param name="other">The object to compare with the current object.</param>
+        /// <returns>true if the specified object is equal to the current object; otherwise, false</returns>
+        public bool Equals(TDSErrorToken other)
+        {
+            return other != null &&
+                   this.Number == other.Number &&
+                   this.State == other.State &&
+                   this.Class == other.Class &&
+                   this.MsgText == other.MsgText &&
+                   this.ServerName == other.ServerName &&
+                   this.ProcName == other.ProcName &&
+                   this.LineNumber == other.LineNumber;
+        }
 
         /// <summary>
         /// TDS Error Token Length

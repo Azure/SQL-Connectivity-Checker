@@ -9,6 +9,7 @@ namespace TDSClient.UnitTests.TDS.Packets
     using System.IO;
     using System.Xml.Serialization;
     using Microsoft.VisualStudio.TestTools.UnitTesting;
+    using Newtonsoft.Json;
     using TDSClient.TDS.PreLogin;
 
     [TestClass]
@@ -17,14 +18,12 @@ namespace TDSClient.UnitTests.TDS.Packets
         [TestMethod]
         public void PreLoginPacking()
         {
-            var bytesXML = File.ReadAllBytes("./Assets/PacketData/PreLogin_Bytes.xml");
-            var packetXML = File.ReadAllBytes("./Assets/PacketData/PreLogin_Object.xml");
+            var bytesJSON = File.ReadAllText("./Assets/PacketData/PreLogin_Bytes.json");
+            var packetJSON = File.ReadAllText("./Assets/PacketData/PreLogin_Object.json");
 
-            var bytesSerializer = new XmlSerializer(typeof(byte[]));
-            var packetSerializer = new XmlSerializer(typeof(TDSPreLoginPacketData));
-
-            var bytes = (byte[])bytesSerializer.Deserialize(new MemoryStream(bytesXML));
-            var packet = (TDSPreLoginPacketData)packetSerializer.Deserialize(new MemoryStream(packetXML));
+            JsonSerializerSettings settings = new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.All };
+            var bytes = JsonConvert.DeserializeObject<byte[]>(bytesJSON, settings);
+            var packet = JsonConvert.DeserializeObject<TDSPreLoginPacketData>(packetJSON, settings);
 
             var testArray = new byte[bytes.Length];
             packet.Pack(new MemoryStream(testArray));
@@ -35,14 +34,12 @@ namespace TDSClient.UnitTests.TDS.Packets
         [TestMethod]
         public void PreLoginUnpacking()
         {
-            var bytesXML = File.ReadAllBytes("./Assets/PacketData/PreLogin_Bytes.xml");
-            var packetXML = File.ReadAllBytes("./Assets/PacketData/PreLogin_Object.xml");
+            var bytesJSON = File.ReadAllText("./Assets/PacketData/PreLogin_Bytes.json");
+            var packetJSON = File.ReadAllText("./Assets/PacketData/PreLogin_Object.json");
 
-            var bytesSerializer = new XmlSerializer(typeof(byte[]));
-            var packetSerializer = new XmlSerializer(typeof(TDSPreLoginPacketData));
-
-            var bytes = (byte[])bytesSerializer.Deserialize(new MemoryStream(bytesXML));
-            var packet = (TDSPreLoginPacketData)packetSerializer.Deserialize(new MemoryStream(packetXML));
+            JsonSerializerSettings settings = new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.All };
+            var bytes = JsonConvert.DeserializeObject<byte[]>(bytesJSON, settings);
+            var packet = JsonConvert.DeserializeObject<TDSPreLoginPacketData>(packetJSON, settings);
 
             var testPacket = new TDSPreLoginPacketData();
             testPacket.Unpack(new MemoryStream(bytes));

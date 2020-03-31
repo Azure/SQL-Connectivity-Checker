@@ -19,17 +19,23 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Assets\PacketData\Login7_Bytes.xml">
+    <None Update="Assets\PacketData\Login7_Bytes.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\PacketData\Login7_Object.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\PacketData\LoginResponse_Bytes.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Assets\PacketData\Login7_Object.xml">
+    <None Update="Assets\PacketData\LoginResponse_Object.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Assets\PacketData\PreLogin_Bytes.xml">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <None Update="Assets\PacketData\PreLogin_Bytes.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="Assets\PacketData\PreLogin_Object.xml">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <None Update="Assets\PacketData\PreLogin_Object.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 

@@ -9,6 +9,7 @@ namespace TDSClient.TDS.Tokens
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using System.Text;
     using TDSClient.TDS.Tokens.EnvChange;
     using TDSClient.TDS.Utilities;
@@ -16,7 +17,9 @@ namespace TDSClient.TDS.Tokens
     /// <summary>
     /// Class describing TDS EnvChange Token
     /// </summary>
-    public class TDSEnvChangeToken : TDSToken
+#pragma warning disable CS0659 // Type overrides Object.Equals(object o) but does not override Object.GetHashCode()
+    public class TDSEnvChangeToken : TDSToken, IEquatable<TDSEnvChangeToken>
+#pragma warning restore CS0659 // Type overrides Object.Equals(object o) but does not override Object.GetHashCode()
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="TDSEnvChangeToken" /> class.
@@ -35,6 +38,29 @@ namespace TDSClient.TDS.Tokens
         /// Gets or sets TDS EnvChange Token values
         /// </summary>
         public Dictionary<string, string> Values { get; set; }
+
+        /// <summary>
+        /// Determines whether the specified object is equal to the current object.
+        /// </summary>
+        /// <param name="obj">The object to compare with the current object.</param>
+        /// <returns>true if the specified object is equal to the current object; otherwise, false</returns>
+        public override bool Equals(object obj)
+        {
+            return this.Equals(obj as TDSEnvChangeToken);
+        }
+
+        /// <summary>
+        /// Determines whether the specified object is equal to the current object.
+        /// </summary>
+        /// <param name="other">The object to compare with the current object.</param>
+        /// <returns>true if the specified object is equal to the current object; otherwise, false</returns>
+        public bool Equals(TDSEnvChangeToken other)
+        {
+            return other != null &&
+                   this.Type == other.Type &&
+                   this.Values.Count == other.Values.Count &&
+                   !this.Values.Except(other.Values).Any();
+        }
 
         /// <summary>
         /// EnvChange Token Length

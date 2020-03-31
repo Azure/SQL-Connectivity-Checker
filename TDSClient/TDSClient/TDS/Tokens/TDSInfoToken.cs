@@ -11,7 +11,12 @@ namespace TDSClient.TDS.Tokens
     using System.Text;
     using TDSClient.TDS.Utilities;
 
-    public class TDSInfoToken : TDSToken
+    /// <summary>
+    /// Class describing TDS Information Token
+    /// </summary>
+#pragma warning disable CS0659 // Type overrides Object.Equals(object o) but does not override Object.GetHashCode()
+    public class TDSInfoToken : TDSToken, IEquatable<TDSInfoToken>
+#pragma warning restore CS0659 // Type overrides Object.Equals(object o) but does not override Object.GetHashCode()
     {
         /// <summary>
         /// Gets or sets information message number.
@@ -47,6 +52,33 @@ namespace TDSClient.TDS.Tokens
         /// Gets or sets line number.
         /// </summary>
         public uint LineNumber { get; set; }
+
+        /// <summary>
+        /// Determines whether the specified object is equal to the current object.
+        /// </summary>
+        /// <param name="obj">The object to compare with the current object.</param>
+        /// <returns>true if the specified object is equal to the current object; otherwise, false</returns>
+        public override bool Equals(object obj)
+        {
+            return this.Equals(obj as TDSInfoToken);
+        }
+
+        /// <summary>
+        /// Determines whether the specified object is equal to the current object.
+        /// </summary>
+        /// <param name="other">The object to compare with the current object.</param>
+        /// <returns>true if the specified object is equal to the current object; otherwise, false</returns>
+        public bool Equals(TDSInfoToken other)
+        {
+            return other != null &&
+                   this.Number == other.Number &&
+                   this.State == other.State &&
+                   this.Class == other.Class &&
+                   this.MsgText == other.MsgText &&
+                   this.ServerName == other.ServerName &&
+                   this.ProcName == other.ProcName &&
+                   this.LineNumber == other.LineNumber;
+        }
 
         /// <summary>
         /// TDS Error Token Length

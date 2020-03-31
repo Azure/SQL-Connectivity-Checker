@@ -11,8 +11,10 @@ namespace TDSClient.TDS.Login7
     using System.Diagnostics;
     using System.IO;
     using System.Linq;
+    using System.Runtime.CompilerServices;
     using System.Text;
     using TDSClient.TDS.Interfaces;
+    using TDSClient.TDS.Login7.Options;
     using TDSClient.TDS.Utilities;
 
     /// <summary>
@@ -25,18 +27,39 @@ namespace TDSClient.TDS.Login7
         /// <summary>
         /// Initializes a new instance of the <see cref="TDSLogin7PacketData" /> class.
         /// </summary>
-        public TDSLogin7PacketData()
+        /// <param name="tdsVersion">TDS Version</param>
+        /// <param name="packetSize">Packet size</param>
+        /// <param name="clientProgVer">Client program version</param>
+        /// <param name="connectionID">Connection ID</param>
+        /// <param name="clientLCID">Client LCID</param>
+        /// <param name="clientID">Client ID</param>
+        public TDSLogin7PacketData(uint tdsVersion = 1946157060, uint packetSize = 4096, uint clientProgVer = 117440512, uint connectionID = 0, uint clientLCID = 1033, byte[] clientID = null)
         {
-            this.TDSVersion = 1946157060; // TDS 7.4
-            this.ConnectionID = 0;
+            this.TDSVersion = tdsVersion;
+            this.PacketSize = packetSize;
+            this.ClientProgVer = clientProgVer;
             this.ClientPID = (uint)Process.GetCurrentProcess().Id;
-            this.PacketSize = 4096;
-            this.ClientProgVer = 117440512;
+            this.ConnectionID = connectionID;
+            this.ClientLCID = clientLCID;
+
             this.OptionFlags1 = new TDSLogin7OptionFlags1();
             this.OptionFlags2 = new TDSLogin7OptionFlags2();
             this.OptionFlags3 = new TDSLogin7OptionFlags3();
             this.TypeFlags = new TDSLogin7TypeFlags();
-            this.OffsetLength = new TDSLogin7OffsetLength();
+            this.Options = new List<TDSLogin7Option>();
+
+            if (this.ClientID == null)
+            {
+                this.ClientID = new byte[] { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05 };
+            }
+            else if (this.ClientID.Length != 6)
+            {
+                throw new Exception("Invalid ClientID length!");
+            }
+            else
+            {
+                this.ClientID = clientID;
+            }
         }
 
         /// <summary>
@@ -46,7 +69,7 @@ namespace TDSClient.TDS.Login7
         {
             get
             {
-                return Convert.ToUInt32((7 * sizeof(uint)) + sizeof(int) + (4 * sizeof(byte)) + this.Data.Length + (24 * sizeof(ushort)) + sizeof(uint) + (6 * sizeof(byte)));
+                return Convert.ToUInt32((8 * sizeof(uint)) + (4 * sizeof(byte)) + this.Options.Sum(opt => opt.TrueLength) + (24 * sizeof(ushort)) + sizeof(uint) + (6 * sizeof(byte)));
             }
         }
 
@@ -100,7 +123,7 @@ namespace TDSClient.TDS.Login7
         /// Gets or sets ClientTimeZone.
         /// This field is not used and can be set to zero.
         /// </summary>
-        public int ClientTimeZone { get; set; }
+        public uint ClientTimeZone { get; set; }
 
         /// <summary>
         /// Gets or sets Client LCID.
@@ -111,77 +134,45 @@ namespace TDSClient.TDS.Login7
         public uint ClientLCID { get; set; }
 
         /// <summary>
+        /// Gets or sets Client ID
+        /// </summary>
+        public byte[] ClientID { get; set; }
+
+        /// <summary>
         /// Gets or sets the variable portion of this message. A stream of bytes in the order shown, indicates the offset
         /// (from the start of the message) and length of various parameters.
         /// </summary>
-        public TDSLogin7OffsetLength OffsetLength { get; set; }
-
-        /// <summary>
-        /// Gets or sets the actual variable-length data portion referred to by OffsetLength.
-        /// </summary>
-        public byte[] Data { get; set; }
+        public List<TDSLogin7Option> Options { get; set; }
 
         /// <summary>
         /// Add TDS Login7 Option.
         /// </summary>
         /// <param name="optionName">Option Name</param>
-        /// <param name="length">Option Length</param>
         /// <param name="data">Option Data</param>
-        public void AddOption(string optionName, ushort length, object data)
+        public void AddOption(string optionName, string data)
         {
             if (optionName == null || data == null)
             {
                 throw new ArgumentNullException();
             }
 
-            this.OffsetLength.AddOptionPositionInfo(optionName, length);
-            var prevLength = this.Data != null ? this.Data.Length : 0;
-
-            byte[] optionData;
-            if (optionName != "SSPI")
+            if (this.Options.Where(opt => opt.Name == optionName).Any())
             {
-                if (!(data is string))
-                {
-                    throw new ArgumentException();
-                }
+                throw new Exception("Login7 option already set!");
+            }
 
-                optionData = Encoding.Unicode.GetBytes((string)data);
-
-                if (optionName != "Password")
-                {
-                    LoggingUtilities.WriteLogVerboseOnly($" Adding Login7 option {optionName} [{(string)data}].");
-                }
-                else
-                {
-                    LoggingUtilities.WriteLogVerboseOnly($" Adding Login7 option {optionName}.");
-                }
+            if (optionName != "Password" && optionName != "ChangePassword")
+            {
+                LoggingUtilities.WriteLogVerboseOnly($" Adding Login7 option {optionName} [{data}].");
             }
             else
             {
-                if (!(data is byte[]))
-                {
-                    throw new ArgumentException();
-                }
-
-                optionData = (byte[])data;
                 LoggingUtilities.WriteLogVerboseOnly($" Adding Login7 option {optionName}.");
             }
 
-            var temp = this.Data;
-            Array.Resize(ref temp, prevLength + optionData.Length);
-            this.Data = temp;
+            var option = TDSLogin7OptionFactory.CreateOption(optionName, data);
 
-            if (optionName == "Password")
-            {
-                for (int i = 0; i < optionData.Length; i++)
-                {
-                    var piece0 = (byte)(optionData[i] >> 4);
-                    var piece1 = (byte)(optionData[i] & 0x0f);
-                    optionData[i] = (byte)((piece0 | (piece1 << 4)) ^ 0xA5);
-                }
-            }
-
-            Array.Copy(optionData, 0, this.Data, prevLength, optionData.Length);
+            this.Options.Add(option);
         }
 
         /// <summary>
@@ -202,7 +193,6 @@ namespace TDSClient.TDS.Login7
         public bool Equals(TDSLogin7PacketData other)
         {
             return other != null &&
-                   ((this.Data != null && this.Data.SequenceEqual(other.Data)) || (this.Data == other.Data)) &&
                    this.Length == other.Length &&
                    this.TDSVersion == other.TDSVersion &&
                    this.PacketSize == other.PacketSize &&
@@ -215,7 +205,8 @@ namespace TDSClient.TDS.Login7
                    this.OptionFlags3.Equals(other.OptionFlags3) &&
                    this.ClientTimeZone == other.ClientTimeZone &&
                    this.ClientLCID == other.ClientLCID &&
-                   this.OffsetLength.Equals(other.OffsetLength);
+                   this.ClientID.SequenceEqual(other.ClientID) &&
+                   this.Options.All(other.Options.Contains);
         }
 
         /// <summary>
@@ -234,12 +225,9 @@ namespace TDSClient.TDS.Login7
             this.OptionFlags2.Pack(stream);
             this.TypeFlags.Pack(stream);
             this.OptionFlags3.Pack(stream);
-            LittleEndianUtilities.WriteUInt(stream, 480); // Client time zone
-            LittleEndianUtilities.WriteUInt(stream, 1033); // Client LCID
-            this.OffsetLength.Pack(stream);
-            stream.Write(this.Data, 0, this.Data.Length);
-
-            // ToDo: Extensions not supported
+            LittleEndianUtilities.WriteUInt(stream, this.ClientTimeZone);
+            LittleEndianUtilities.WriteUInt(stream, this.ClientLCID);
+            TDSLogin7OptionFactory.WriteOptionsToStream(stream, this.Options, this.ClientID);
         }
 
         /// <summary>
@@ -259,14 +247,13 @@ namespace TDSClient.TDS.Login7
             this.OptionFlags2.Unpack(stream);
             this.TypeFlags.Unpack(stream);
             this.OptionFlags3.Unpack(stream);
-            this.ClientTimeZone = Convert.ToInt32(LittleEndianUtilities.ReadUInt(stream));
+            this.ClientTimeZone = Convert.ToUInt32(LittleEndianUtilities.ReadUInt(stream));
             this.ClientLCID = LittleEndianUtilities.ReadUInt(stream);
-            this.OffsetLength.Unpack(stream);
 
-            this.Data = new byte[(int)this.OffsetLength.TotalLength()];
-            stream.Read(this.Data, 0, (int)this.OffsetLength.TotalLength());
+            var result = TDSLogin7OptionFactory.ReadOptionsFromStream(stream);
+            this.ClientID = result.Item2;
+            this.Options = result.Item1;
 
-            // Extensions not supported
             return true;
         }
 
