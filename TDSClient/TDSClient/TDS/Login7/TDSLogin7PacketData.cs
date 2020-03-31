@@ -48,11 +48,11 @@ namespace TDSClient.TDS.Login7
             this.TypeFlags = new TDSLogin7TypeFlags();
             this.Options = new List<TDSLogin7Option>();
 
-            if (this.ClientID == null)
+            if (clientID == null)
             {
                 this.ClientID = new byte[] { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05 };
             }
-            else if (this.ClientID.Length != 6)
+            else if (clientID.Length != 6)
             {
                 throw new Exception("Invalid ClientID length!");
             }
