@@ -462,9 +462,9 @@ function RunConnectivityPolicyTests($port) {
         User               = $User
         Password           = $Password
         EncryptionProtocol = $EncryptionProtocol
-        RepositoryBranch = $RepositoryBranch
-        Local = $Local
-        LocalPath = $LocalPath
+        RepositoryBranch   = $RepositoryBranch
+        Local              = $Local
+        LocalPath          = $LocalPath
     }
 
     if (Test-Path "$env:TEMP\AzureSQLConnectivityChecker\") {
@@ -473,9 +473,10 @@ function RunConnectivityPolicyTests($port) {
 
     New-Item "$env:TEMP\AzureSQLConnectivityChecker\" -ItemType directory | Out-Null
 
-    if($Local) {
+    if ($Local) {
         Copy-Item -Path $($LocalPath + './AdvancedConnectivityPolicyTests.ps1') -Destination "$env:TEMP\AzureSQLConnectivityChecker\AdvancedConnectivityPolicyTests.ps1"
-    } else {
+    }
+    else {
         Invoke-WebRequest -Uri $('https://raw.githubusercontent.com/Azure/SQL-Connectivity-Checker/' + $RepositoryBranch + '/AdvancedConnectivityPolicyTests.ps1') -OutFile "$env:TEMP\AzureSQLConnectivityChecker\AdvancedConnectivityPolicyTests.ps1"
     }
 
@@ -608,7 +609,7 @@ try {
                 $dbPort = 3342
             }
             else {
-                if(!(RunSqlMIVNetConnectivityTests $resolvedAddress)){
+                if (!(RunSqlMIVNetConnectivityTests $resolvedAddress)) {
                     throw
                 }
             }
