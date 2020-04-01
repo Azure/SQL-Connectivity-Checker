@@ -495,7 +495,7 @@ function SendAnonymousUsageData {
             | Add-Member -PassThru NoteProperty baseType 'EventData' `
             | Add-Member -PassThru NoteProperty baseData (New-Object PSObject `
                 | Add-Member -PassThru NoteProperty ver 2 `
-                | Add-Member -PassThru NoteProperty name '1.0'));
+                | Add-Member -PassThru NoteProperty name '1.1'));
 
         $body = $body | ConvertTo-JSON -depth 5;
         Invoke-WebRequest -Uri 'https://dc.services.visualstudio.com/v2/track' -Method 'POST' -UseBasicParsing -body $body > $null
@@ -541,7 +541,7 @@ try {
 
     try {
         Write-Host '******************************************' -ForegroundColor Green
-        Write-Host '  Azure SQL Connectivity Checker v1.0  ' -ForegroundColor Green
+        Write-Host '  Azure SQL Connectivity Checker v1.1  ' -ForegroundColor Green
         Write-Host '******************************************' -ForegroundColor Green
         Write-Host
 
