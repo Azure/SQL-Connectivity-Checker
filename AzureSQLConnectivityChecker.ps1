@@ -43,6 +43,15 @@ if ($null -ne $parameters) {
         $CollectNetworkTrace = $parameters['CollectNetworkTrace']
     }
     $EncryptionProtocol = $parameters['EncryptionProtocol']
+    if ($null -ne $parameters['Local']) {
+        $Local = $parameters['Local']
+    }
+    if ($null -ne $parameters['LocalPath']) {
+        $LocalPath = $parameters['LocalPath']
+    }
+    if ($null -ne $parameters['RepositoryBranch']) {
+        $RepositoryBranch = $parameters['RepositoryBranch']
+    }
 }
 
 $Server = $Server.Trim()
@@ -61,6 +70,14 @@ if ($null -eq $Password -or '' -eq $Password) {
 
 if ($null -eq $Database -or '' -eq $Database) {
     $Database = 'master'
+}
+
+if ($null -eq $Local) {
+    $Local = $false
+}
+
+if ($null -eq $RepositoryBranch) {
+    $RepositoryBranch = 'master'
 }
 
 $CustomerRunningInElevatedMode = $false
@@ -438,6 +455,9 @@ function RunConnectivityPolicyTests($port) {
         User               = $User
         Password           = $Password
         EncryptionProtocol = $EncryptionProtocol
+        RepositoryBranch = $RepositoryBranch
+        Local = $Local
+        LocalPath = $LocalPath
     }
 
     if (Test-Path "$env:TEMP\AzureSQLConnectivityChecker\") {
@@ -445,7 +465,13 @@ function RunConnectivityPolicyTests($port) {
     }
 
     New-Item "$env:TEMP\AzureSQLConnectivityChecker\" -ItemType directory | Out-Null
-    Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/Azure/SQL-Connectivity-Checker/master/AdvancedConnectivityPolicyTests.ps1' -OutFile "$env:TEMP\AzureSQLConnectivityChecker\AdvancedConnectivityPolicyTests.ps1"
+
+    if($Local) {
+        Copy-Item -Path $($LocalPath + './AdvancedConnectivityPolicyTests.ps1') -Destination "$env:TEMP\AzureSQLConnectivityChecker\AdvancedConnectivityPolicyTests.ps1"
+    } else {
+        Invoke-WebRequest -Uri $('https://raw.githubusercontent.com/Azure/SQL-Connectivity-Checker/' + $RepositoryBranch + '/AdvancedConnectivityPolicyTests.ps1') -OutFile "$env:TEMP\AzureSQLConnectivityChecker\AdvancedConnectivityPolicyTests.ps1"
+    }
+
     $job = Start-Job -ArgumentList $jobParameters -FilePath "$env:TEMP\AzureSQLConnectivityChecker\AdvancedConnectivityPolicyTests.ps1"
     Wait-Job $job | Out-Null
     Receive-Job -Job $job
@@ -469,7 +495,7 @@ function SendAnonymousUsageData {
             | Add-Member -PassThru NoteProperty baseType 'EventData' `
             | Add-Member -PassThru NoteProperty baseData (New-Object PSObject `
                 | Add-Member -PassThru NoteProperty ver 2 `
-                | Add-Member -PassThru NoteProperty name '1.0'));
+                | Add-Member -PassThru NoteProperty name '1.1'));
 
         $body = $body | ConvertTo-JSON -depth 5;
         Invoke-WebRequest -Uri 'https://dc.services.visualstudio.com/v2/track' -Method 'POST' -UseBasicParsing -body $body > $null
@@ -515,7 +541,7 @@ try {
 
     try {
         Write-Host '******************************************' -ForegroundColor Green
-        Write-Host '  Azure SQL Connectivity Checker v1.0  ' -ForegroundColor Green
+        Write-Host '  Azure SQL Connectivity Checker v1.1  ' -ForegroundColor Green
         Write-Host '******************************************' -ForegroundColor Green
         Write-Host
 

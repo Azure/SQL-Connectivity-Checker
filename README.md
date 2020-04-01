@@ -4,8 +4,7 @@ This PowerShell script will run some connectivity checks from this machine to th
 
 **In order to run it you need to:**
 1. Open Windows PowerShell ISE in Administrator mode  
-Administrator privileges are required to 'RunAdvancedConnectivityPolicyTests' and 'CollectNetworkTrace'.
-In case you cannot run in administrator mode please continue, the tool will still run relevant tests.
+For the better results, our recommendation is to use the advanced connectivity tests which demand to start PowerShell in Administrator mode. You can still run the basic tests, in case you decide not to run this way. Please note that script parameters 'RunAdvancedConnectivityPolicyTests' and 'CollectNetworkTrace' will only work if the admin privileges are granted.
 
 2. Open a New Script window
 
@@ -20,7 +19,7 @@ $parameters = @{
 
     ## Optional parameters (default values will be used if ommited)
     SendAnonymousUsageData = $true  # Set as $true (default) or $false
-    RunAdvancedConnectivityPolicyTests = $true  # Set as $true (default) or $false, this will download the library needed for running advanced connectivity tests
+    RunAdvancedConnectivityPolicyTests = $true  # Set as $true (default) or $false, this will load the library from Microsoft's GitHub repository needed for running advanced connectivity tests
     CollectNetworkTrace = $true  # Set as $true (default) or $false
     #EncryptionProtocol = '' # Supported values: 'Tls 1.0', 'Tls 1.1', 'Tls 1.2'; Without this parameter operating system will choose the best protocol to use
 }

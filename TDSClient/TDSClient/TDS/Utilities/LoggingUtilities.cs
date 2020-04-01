@@ -10,11 +10,25 @@ namespace TDSClient.TDS.Utilities
     using System.Globalization;
     using System.IO;
 
+    /// <summary>
+    /// Utility class used for logging relevant information
+    /// </summary>
     public static class LoggingUtilities
     {
+        /// <summary>
+        /// Log output.
+        /// </summary>
         private static readonly WeakReference<TextWriter> Log = new WeakReference<TextWriter>(null);
+
+        /// <summary>
+        /// Verbose log output.
+        /// </summary>
         private static readonly WeakReference<TextWriter> VerboseLog = new WeakReference<TextWriter>(null);
 
+        /// <summary>
+        /// Used to set Log output.
+        /// </summary>
+        /// <param name="log">Log output.</param>
         public static void SetLog(TextWriter log)
         {
             if (!Log.TryGetTarget(out TextWriter temp) || temp == null)
@@ -27,6 +41,10 @@ namespace TDSClient.TDS.Utilities
             }
         }
 
+        /// <summary>
+        /// Used to set Verbose Log output.
+        /// </summary>
+        /// <param name="log">Verbose log output.</param>
         public static void SetVerboseLog(TextWriter log)
         {
             if (!VerboseLog.TryGetTarget(out TextWriter temp) || temp == null)
@@ -39,6 +57,10 @@ namespace TDSClient.TDS.Utilities
             }
         }
 
+        /// <summary>
+        /// Used to write message to Log and Verbose Log. 
+        /// </summary>
+        /// <param name="message">Message to write to Log.</param>
         public static void WriteLog(string message)
         {
             if (Log.TryGetTarget(out TextWriter temp) && temp != null)
@@ -52,6 +74,10 @@ namespace TDSClient.TDS.Utilities
             }
         }
 
+        /// <summary>
+        /// Used to write message to Verbose Log only.
+        /// </summary>
+        /// <param name="message">Message to write to Log.</param>
         public static void WriteLogVerboseOnly(string message)
         {
             if (VerboseLog.TryGetTarget(out TextWriter temp) && temp != null)
@@ -60,11 +86,17 @@ namespace TDSClient.TDS.Utilities
             }
         }
 
+        /// <summary>
+        /// Used to remove Log output.
+        /// </summary>
         public static void ClearLog()
         {
             Log.SetTarget(null);
         }
 
+        /// <summary>
+        /// Used to remove Verbose Log output.
+        /// </summary>
         public static void ClearVerboseLog()
         {
             VerboseLog.SetTarget(null);

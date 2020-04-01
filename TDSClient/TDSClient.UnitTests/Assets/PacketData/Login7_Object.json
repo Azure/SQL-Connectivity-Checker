@@ -1,0 +1,83 @@
+{
+  "$type": "TDSClient.TDS.Login7.TDSLogin7PacketData, TDSClient",
+  "Length": 136,
+  "TDSVersion": 1913192450,
+  "PacketSize": 4096,
+  "ClientProgVer": 117440512,
+  "ClientPID": 256,
+  "ConnectionID": 0,
+  "OptionFlags1": {
+    "$type": "TDSClient.TDS.Login7.TDSLogin7OptionFlags1, TDSClient",
+    "ByteOrder": 0,
+    "Char": 0,
+    "Float": 0,
+    "DumpLoad": 0,
+    "UseDB": 1,
+    "Database": 1,
+    "SetLang": 1
+  },
+  "OptionFlags2": {
+    "$type": "TDSClient.TDS.Login7.TDSLogin7OptionFlags2, TDSClient",
+    "Language": 1,
+    "ODBC": 1,
+    "UserType": 0,
+    "IntSecurity": 0
+  },
+  "TypeFlags": {
+    "$type": "TDSClient.TDS.Login7.TDSLogin7TypeFlags, TDSClient",
+    "SQLType": 0,
+    "OLEDB": 0,
+    "ReadOnlyIntent": 0
+  },
+  "OptionFlags3": {
+    "$type": "TDSClient.TDS.Login7.TDSLogin7OptionFlags3, TDSClient",
+    "ChangePassword": 0,
+    "SendYukonBinaryXML": 0,
+    "UserInstanceProcess": 0,
+    "UnknownCollationHandling": 0,
+    "Extension": 0
+  },
+  "ClientTimeZone": 480,
+  "ClientLCID": 1033,
+  "ClientID": {
+    "$type": "System.Byte[], System.Private.CoreLib",
+    "$value": "AFCL4reP"
+  },
+  "Options": {
+    "$type": "System.Collections.Generic.List`1[[TDSClient.TDS.Login7.Options.TDSLogin7Option, TDSClient]], System.Private.CoreLib",
+    "$values": [
+      {
+        "$type": "TDSClient.TDS.Login7.Options.TDSLogin7TextOption, TDSClient",
+        "Text": "skostov1",
+        "Name": "HostName",
+        "Position": 94,
+        "Length": 8,
+        "TrueLength": 16
+      },
+      {
+        "$type": "TDSClient.TDS.Login7.Options.TDSLogin7TextOption, TDSClient",
+        "Text": "sa",
+        "Name": "UserName",
+        "Position": 110,
+        "Length": 2,
+        "TrueLength": 4
+      },
+      {
+        "$type": "TDSClient.TDS.Login7.Options.TDSLogin7TextOption, TDSClient",
+        "Text": "OSQL-32",
+        "Name": "AppName",
+        "Position": 114,
+        "Length": 7,
+        "TrueLength": 14
+      },
+      {
+        "$type": "TDSClient.TDS.Login7.Options.TDSLogin7TextOption, TDSClient",
+        "Text": "ODBC",
+        "Name": "CltIntName",
+        "Position": 128,
+        "Length": 4,
+        "TrueLength": 8
+      }
+    ]
+  }
+}

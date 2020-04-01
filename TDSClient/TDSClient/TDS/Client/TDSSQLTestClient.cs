@@ -16,28 +16,25 @@ namespace TDSClient.TDS.Client
     using TDSClient.TDS.Tokens;
     using TDSClient.TDS.Utilities;
 
+    /// <summary>
+    /// SQL Test Client used to run diagnostics on SQL Server using TDS protocol.
+    /// </summary>
     public class TDSSQLTestClient
     {
-        public string Server { get; private set; }
+        /// <summary>
+        /// Field describing whether reconnection is required
+        /// </summary>
+        private bool reconnect;
 
-        public string ServerName { get; private set; }
-
-        public int Port { get; private set; }
-
-        public string UserID { get; private set; }
-
-        public string Password { get; private set; }
-
-        public string Database { get; private set; }
-
-        public TDSCommunicator TdsCommunicator { get; private set; }
-        public TcpClient Client { get; private set; }
-        public TDSClientVersion Version { get; private set; }
-
-        public SslProtocols EncryptionProtocol { get; private set; }
-
-        private bool Reconnect;
-
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TDSSQLTestClient"/> class.
+        /// </summary>
+        /// <param name="server">Server to connect to</param>
+        /// <param name="port">Port to connect to</param>
+        /// <param name="userID">Used ID</param>
+        /// <param name="password">User password</param>
+        /// <param name="database">Database to connect to</param>
+        /// <param name="encryptionProtocol">Encryption Protocol</param>
         public TDSSQLTestClient(string server, int port, string userID, string password, string database, SslProtocols encryptionProtocol = SslProtocols.Tls12)
         {
             if (string.IsNullOrEmpty(server) || string.IsNullOrEmpty(userID) || string.IsNullOrEmpty(password) || string.IsNullOrEmpty(database))
@@ -45,15 +42,15 @@ namespace TDSClient.TDS.Client
                 throw new ArgumentNullException();
             }
 
-            Client = null;
-            Version = new TDSClientVersion(1, 0, 0, 0);
-            Server = server;
-            ServerName = server;
-            Port = port;
-            UserID = userID;
-            Password = password;
-            Database = database;
-            EncryptionProtocol = encryptionProtocol;
+            this.Client = null;
+            this.Version = new TDSClientVersion(1, 0, 0, 0);
+            this.Server = server;
+            this.ServerName = server;
+            this.Port = port;
+            this.UserID = userID;
+            this.Password = password;
+            this.Database = database;
+            this.EncryptionProtocol = encryptionProtocol;
 
             LoggingUtilities.WriteLog($" Instantiating TDSSQLTestClient with the following parameters:");
 
@@ -63,30 +60,86 @@ namespace TDSClient.TDS.Client
             LoggingUtilities.WriteLog($"     Database: {database}.");
         }
 
+        /// <summary>
+        /// Gets or sets the Server.
+        /// </summary>
+        public string Server { get; set; }
+
+        /// <summary>
+        /// Gets or sets the Server Name.
+        /// </summary>
+        public string ServerName { get; set; }
+
+        /// <summary>
+        /// Gets or sets the Port Number.
+        /// </summary>
+        public int Port { get; set; }
+
+        /// <summary>
+        /// Gets or sets the User ID.
+        /// </summary>
+        public string UserID { get; set; }
+
+        /// <summary>
+        /// Gets or sets the Password.
+        /// </summary>
+        public string Password { get; set; }
+
+        /// <summary>
+        /// Gets or sets the Database.
+        /// </summary>
+        public string Database { get; set; }
+
+        /// <summary>
+        /// Gets or sets the TDS Communicator.
+        /// </summary>
+        public TDSCommunicator TdsCommunicator { get; set; }
+        
+        /// <summary>
+        /// Gets or sets the TCP Client.
+        /// </summary>
+        public TcpClient Client { get; set; }
+        
+        /// <summary>
+        /// Gets or sets the TDS Client Version.
+        /// </summary>
+        public TDSClientVersion Version { get; set; }
+
+        /// <summary>
+        /// Gets or sets the Encryption Protocol.
+        /// </summary>
+        public SslProtocols EncryptionProtocol { get; set; }
+
+        /// <summary>
+        /// Sends PreLogin message to the server.
+        /// </summary>
         public void SendPreLogin()
         {
             LoggingUtilities.WriteLog($" SendPreLogin initiated.");
-            var tdsMessageBody = new TDSPreLoginPacketData(Version);
+            var tdsMessageBody = new TDSPreLoginPacketData(this.Version);
 
             tdsMessageBody.AddOption(TDSPreLoginOptionTokenType.Encryption, TDSEncryptionOption.EncryptOff);
             tdsMessageBody.Terminate();
 
-            TdsCommunicator.SendTDSMessage(tdsMessageBody);
+            this.TdsCommunicator.SendTDSMessage(tdsMessageBody);
             LoggingUtilities.WriteLog($" SendPreLogin done.");
         }
 
+        /// <summary>
+        /// Sends Login7 message to the server
+        /// </summary>
         public void SendLogin7()
         {
             LoggingUtilities.WriteLog($" SendLogin7 initiated.");
 
             var tdsMessageBody = new TDSLogin7PacketData();
 
-            tdsMessageBody.AddOption("HostName", (ushort)Environment.MachineName.Length, Environment.MachineName);
-            tdsMessageBody.AddOption("UserName", (ushort)UserID.Length, UserID);
-            tdsMessageBody.AddOption("ServerName", (ushort)ServerName.Length, ServerName);
-            tdsMessageBody.AddOption("Password", (ushort)Password.Length, Password);
-            tdsMessageBody.AddOption("Database", (ushort)Database.Length, Database);
-            tdsMessageBody.AddOption("IntName", (ushort)"TDSSQLTestClient".Length, "TDSSQLTestClient");
+            tdsMessageBody.AddOption("HostName", Environment.MachineName);
+            tdsMessageBody.AddOption("UserName", this.UserID);
+            tdsMessageBody.AddOption("ServerName", this.ServerName);
+            tdsMessageBody.AddOption("Password", this.Password);
+            tdsMessageBody.AddOption("Database", this.Database);
+            tdsMessageBody.AddOption("CltIntName", "TDSSQLTestClient");
 
             tdsMessageBody.OptionFlags1.Char = TDSLogin7OptionFlags1Char.CharsetASCII;
             tdsMessageBody.OptionFlags1.Database = TDSLogin7OptionFlags1Database.InitDBFatal;
@@ -109,16 +162,48 @@ namespace TDSClient.TDS.Client
             tdsMessageBody.TypeFlags.SQLType = TDSLogin7TypeFlagsSQLType.DFLT;
             tdsMessageBody.TypeFlags.ReadOnlyIntent = TDSLogin7TypeFlagsReadOnlyIntent.On;
 
-            TdsCommunicator.SendTDSMessage(tdsMessageBody);
+            this.TdsCommunicator.SendTDSMessage(tdsMessageBody);
 
             LoggingUtilities.WriteLog($" SendLogin7 done.");
         }
 
+        /// <summary>
+        /// Receive PreLogin response from the server.
+        /// </summary>
+        public void ReceivePreLoginResponse()
+        {
+            LoggingUtilities.WriteLog($" ReceivePreLoginResponse initiated.");
+
+            if (this.TdsCommunicator.ReceiveTDSMessage() is TDSPreLoginPacketData response)
+            {
+                if (response.Options.Exists(opt => opt.Type == TDSPreLoginOptionTokenType.Encryption) && response.Encryption == TDSEncryptionOption.EncryptReq)
+                {
+                    LoggingUtilities.WriteLog($" Server requires encryption, enabling encryption.");
+                    this.TdsCommunicator.EnableEncryption(this.Server, this.EncryptionProtocol);
+                    LoggingUtilities.WriteLog($" Encryption enabled.");
+                }
+
+                if (response.Options.Exists(opt => opt.Type == TDSPreLoginOptionTokenType.FedAuthRequired) && response.FedAuthRequired == true)
+                {
+                    throw new NotSupportedException("FedAuth is being requested but the client doesn't support FedAuth.");
+                }
+            }
+            else
+            {
+                throw new InvalidOperationException();
+            }
+
+            LoggingUtilities.WriteLog($" ReceivePreLoginResponse done.");
+        }
+
+        /// <summary>
+        /// Receive Login7 response from the server.
+        /// </summary>
         public void ReceiveLogin7Response()
         {
             LoggingUtilities.WriteLog($" ReceiveLogin7Response initiated.");
 
-            if (TdsCommunicator.ReceiveTDSMessage() is TDSTokenStreamPacketData response)
+            if (this.TdsCommunicator.ReceiveTDSMessage() is TDSTokenStreamPacketData response)
             {
                 foreach (var token in response.Tokens)
                 {
@@ -128,10 +213,10 @@ namespace TDSClient.TDS.Client
                         if (envChangeToken.Type == Tokens.EnvChange.TDSEnvChangeType.Routing)
                         {
                             LoggingUtilities.WriteLog($" Client recieved EnvChange routing token, client is being routed.");
-                            Server = envChangeToken.Values["AlternateServer"];
-                            ServerName = Server;
-                            Port = int.Parse(envChangeToken.Values["ProtocolProperty"]);
-                            Reconnect = true;
+                            this.Server = envChangeToken.Values["AlternateServer"];
+                            this.ServerName = this.Server;
+                            this.Port = int.Parse(envChangeToken.Values["ProtocolProperty"]);
+                            this.reconnect = true;
                         }
                     }
                     else if (token is TDSErrorToken)
@@ -152,6 +237,19 @@ namespace TDSClient.TDS.Client
                             throw new Exception("Login failure.");
                         }
                     }
+                    else if (token is TDSInfoToken)
+                    {
+                        var infoToken = token as TDSInfoToken;
+                        LoggingUtilities.WriteLog($" Client recieved Info token:");
+
+                        LoggingUtilities.WriteLog($"     Number: {infoToken.Number}");
+                        LoggingUtilities.WriteLog($"     State: {infoToken.State}");
+                        LoggingUtilities.WriteLog($"     Class: {infoToken.Class}");
+                        LoggingUtilities.WriteLog($"     MsgText: {infoToken.MsgText}");
+                        LoggingUtilities.WriteLog($"     ServerName: {infoToken.ServerName}");
+                        LoggingUtilities.WriteLog($"     ProcName: {infoToken.ProcName}");
+                        LoggingUtilities.WriteLog($"     LineNumber: {infoToken.LineNumber}");
+                    }
                 }
             }
             else
@@ -162,61 +260,41 @@ namespace TDSClient.TDS.Client
             LoggingUtilities.WriteLog($" ReceiveLogin7Response done.");
         }
 
-        public void ReceivePreLoginResponse()
-        {
-            LoggingUtilities.WriteLog($" ReceivePreLoginResponse initiated.");
-
-            if (TdsCommunicator.ReceiveTDSMessage() is TDSPreLoginPacketData response)
-            {
-                if (response.Options.Exists(opt => opt.Type == TDSPreLoginOptionTokenType.Encryption) && response.Encryption == TDSEncryptionOption.EncryptReq)
-                {
-                    LoggingUtilities.WriteLog($" Server requires encryption, enabling encryption.");
-                    TdsCommunicator.EnableEncryption(Server, EncryptionProtocol);
-                    LoggingUtilities.WriteLog($" Encryption enabled.");
-                }
-
-                if (response.Options.Exists(opt => opt.Type == TDSPreLoginOptionTokenType.FedAuthRequired) && response.FedAuthRequired == true)
-                {
-                    throw new NotSupportedException("FedAuth is being requested but the client doesn't support FedAuth.");
-                }
-            }
-            else
-            {
-                throw new InvalidOperationException();
-            }
-
-            LoggingUtilities.WriteLog($" ReceivePreLoginResponse done.");
-        }
-
+        /// <summary>
+        /// Connect to the server.
+        /// </summary>
         public void Connect()
         {
             LoggingUtilities.WriteLog($" Connect initiated.");
             do
             {
-                Reconnect = false;
-                Client = new TcpClient(Server, Port);
-                TdsCommunicator = new TDSCommunicator(Client.GetStream(), 4096);
-                SendPreLogin();
-                ReceivePreLoginResponse();
-                SendLogin7();
-                ReceiveLogin7Response();
+                this.reconnect = false;
+                this.Client = new TcpClient(this.Server, this.Port);
+                this.TdsCommunicator = new TDSCommunicator(this.Client.GetStream(), 4096);
+                this.SendPreLogin();
+                this.ReceivePreLoginResponse();
+                this.SendLogin7();
+                this.ReceiveLogin7Response();
 
-                if (Reconnect)
+                if (this.reconnect)
                 {
-                    Disconnect();
-                    LoggingUtilities.WriteLog($" Routing to: {Server}:{Port}.");
+                    this.Disconnect();
+                    LoggingUtilities.WriteLog($" Routing to: {this.Server}:{this.Port}.");
                 }
             } 
-            while (Reconnect);
+            while (this.reconnect);
 
             LoggingUtilities.WriteLog($" Connect done.");
         }
 
+        /// <summary>
+        /// Disconnect from the server.
+        /// </summary>
         public void Disconnect()
         {
             LoggingUtilities.WriteLog($" Disconnect initiated.");
-            Client.Close();
-            Client = null;
+            this.Client.Close();
+            this.Client = null;
             LoggingUtilities.WriteLog($" Disconnect done.");
         }
     }

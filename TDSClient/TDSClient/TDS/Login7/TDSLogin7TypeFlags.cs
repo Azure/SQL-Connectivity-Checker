@@ -10,56 +10,133 @@ namespace TDSClient.TDS.Login7
     using System.IO;
     using TDSClient.TDS.Interfaces;
 
+    /// <summary>
+    /// The type of SQL the client sends to the server.
+    /// </summary>
     public enum TDSLogin7TypeFlagsSQLType
     {
+        /// <summary>
+        /// Default SQL Type
+        /// </summary>
         DFLT,
+
+        /// <summary>
+        /// Transact-SQL Type
+        /// </summary>
         TSQL
     }
 
+    /// <summary>
+    /// Enum describing OLEDB flag
+    /// Set if the client is the OLEDB driver. This causes the server to set
+    /// ANSI_DEFAULTS to ON, CURSOR_CLOSE_ON_COMMIT and IMPLICIT_TRANSACTIONS to
+    /// OFF, TEXTSIZE to 0x7FFFFFFF (2GB) (TDS 7.2 and earlier), TEXTSIZE to infinite
+    /// (introduced in TDS 7.3), and ROWCOUNT to infinite.
+    /// </summary>
     public enum TDSLogin7TypeFlagsOLEDB
     {
+        /// <summary>
+        /// OLEDB Flag Off
+        /// </summary>
         Off,
+
+        /// <summary>
+        /// OLEDB Flag On
+        /// </summary>
         On
     }
 
+    /// <summary>
+    /// Enum describing ReadOnlyIntent flag
+    /// This bit was introduced in TDS 7.4; however, TDS 7.1, 7.2, and 7.3
+    /// clients can also use this bit in LOGIN7 to specify that the application intent of the
+    /// connection is read-only.
+    /// </summary>
     public enum TDSLogin7TypeFlagsReadOnlyIntent
     {
+        /// <summary>
+        /// Read Only Intent Flag Off
+        /// </summary>
         Off,
+
+        /// <summary>
+        /// Read Only Intent Flag On
+        /// </summary>
         On
     }
 
-    public class TDSLogin7TypeFlags : IPackageable
+    /// <summary>
+    /// TDS Login7 Type Flags
+    /// </summary>
+#pragma warning disable CS0659 // Type overrides Object.Equals(object o) but does not override Object.GetHashCode()
+    public class TDSLogin7TypeFlags : IPackageable, IEquatable<TDSLogin7TypeFlags>
+#pragma warning restore CS0659 // Type overrides Object.Equals(object o) but does not override Object.GetHashCode()
     {
         /// <summary>
-        ///  The type of SQL the client sends to the server.
+        /// Gets or sets the type of SQL the client sends to the server.
         /// </summary>
         public TDSLogin7TypeFlagsSQLType SQLType { get; set; }
 
         /// <summary>
+        /// Gets or sets the OLEDB Flag.
         /// Set if the client is the OLEDB driver. 
         /// </summary>
         public TDSLogin7TypeFlagsOLEDB OLEDB { get; set; }
 
         /// <summary>
+        /// Gets or sets the ReadOnlyIntent Flag.
         /// Specifies that the application intent of the
         /// connection is read-only.
         /// </summary>
         public TDSLogin7TypeFlagsReadOnlyIntent ReadOnlyIntent { get; set; }
 
+        /// <summary>
+        /// Determines whether the specified object is equal to the current object.
+        /// </summary>
+        /// <param name="obj">The object to compare with the current object.</param>
+        /// <returns>true if the specified object is equal to the current object; otherwise, false</returns>
+        public override bool Equals(object obj)
+        {
+            return this.Equals(obj as TDSLogin7TypeFlags);
+        }
+
+        /// <summary>
+        /// Determines whether the specified object is equal to the current object.
+        /// </summary>
+        /// <param name="other">The object to compare with the current object.</param>
+        /// <returns>true if the specified object is equal to the current object; otherwise, false</returns>
+        public bool Equals(TDSLogin7TypeFlags other)
+        {
+            return other != null &&
+                   this.SQLType == other.SQLType &&
+                   this.OLEDB == other.OLEDB &&
+                   this.ReadOnlyIntent == other.ReadOnlyIntent;
+        }
+
+        /// <summary>
+        /// Used to pack IPackageable to a stream.
+        /// </summary>
+        /// <param name="stream">MemoryStream in which IPackageable is packet into.</param>
         public void Pack(MemoryStream stream)
         {
-            byte packedByte = (byte)((byte)SQLType
-                | ((byte)OLEDB << 4)
-                | ((byte)ReadOnlyIntent << 5));
+            byte packedByte = (byte)((byte)this.SQLType
+                | ((byte)this.OLEDB << 4)
+                | ((byte)this.ReadOnlyIntent << 5));
             stream.WriteByte(packedByte);
         }
 
+        /// <summary>
+        /// Used to unpack IPackageable from a stream.
+        /// </summary>
+        /// <param name="stream">MemoryStream from which to unpack IPackageable.</param>
+        /// <returns>Returns true if successful.</returns>
         public bool Unpack(MemoryStream stream)
         {
             byte flagByte = Convert.ToByte(stream.ReadByte());
-            SQLType = (TDSLogin7TypeFlagsSQLType)(flagByte & 0x0F);
-            OLEDB = (TDSLogin7TypeFlagsOLEDB)((flagByte >> 4) & 0x01);
-            ReadOnlyIntent = (TDSLogin7TypeFlagsReadOnlyIntent)((flagByte >> 5) & 0x01);
+            this.SQLType = (TDSLogin7TypeFlagsSQLType)(flagByte & 0x0F);
+            this.OLEDB = (TDSLogin7TypeFlagsOLEDB)((flagByte >> 4) & 0x01);
+            this.ReadOnlyIntent = (TDSLogin7TypeFlagsReadOnlyIntent)((flagByte >> 5) & 0x01);
+            
             return true;
         }
     }

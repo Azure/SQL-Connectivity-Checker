@@ -19,21 +19,51 @@ namespace TDSClient.TDS.Comms
     using TDSClient.TDS.Tokens;
     using TDSClient.TDS.Utilities;
 
+    /// <summary>
+    /// Class that implements TDS communication.
+    /// </summary>
     public class TDSCommunicator
     {
-        private readonly TDSStream InnerTdsStream;
-        private readonly Stream InnerStream;
-        private readonly ushort PacketSize;
+        /// <summary>
+        /// Inner TDS Stream used for communication
+        /// </summary>
+        private readonly TDSStream innerTdsStream;
 
-        public TDSCommunicatorState CommunicatorState { get; private set; }
+        /// <summary>
+        /// Inner Stream (TDS/TLS) used for communication
+        /// </summary>
+        private readonly Stream innerStream;
 
-        public TDSCommunicator(NetworkStream stream, ushort packetSize)
+        /// <summary>
+        /// TDS packet size
+        /// </summary>
+        private readonly ushort packetSize;
+
+        /// <summary>
+        /// Current TDS Communicator State
+        /// </summary>
+        private TDSCommunicatorState communicatorState;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TDSCommunicator" /> class.
+        /// </summary>
+        /// <param name="stream">NetworkStream used for communication</param>
+        /// <param name="packetSize">TDS packet size</param>
+        public TDSCommunicator(Stream stream, ushort packetSize)
         {
-            PacketSize = packetSize;
-            InnerTdsStream = new TDSStream(stream, new TimeSpan(0, 0, 30), packetSize);
-            InnerStream = InnerTdsStream;
+            this.packetSize = packetSize;
+            this.innerTdsStream = new TDSStream(stream, new TimeSpan(0, 0, 30), packetSize);
+            this.innerStream = this.innerTdsStream;
         }
 
+        /// <summary>
+        /// Validate Server Certificate
+        /// </summary>
+        /// <param name="sender">Sender object</param>
+        /// <param name="certificate">X509 Certificate</param>
+        /// <param name="chain">X509 Chain</param>
+        /// <param name="sslPolicyErrors">SSL Policy Errors</param>
+        /// <returns>Returns true if no errors occurred.</returns>
         public static bool ValidateServerCertificate(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
             if (sslPolicyErrors == SslPolicyErrors.None)
@@ -46,15 +76,20 @@ namespace TDSClient.TDS.Comms
             return false;
         }
 
-        public void EnableEncryption(string Server, SslProtocols encryptionProtocol)
+        /// <summary>
+        /// Enable Transport Layer Security over TDS
+        /// </summary>
+        /// <param name="server">Server FQDN</param>
+        /// <param name="encryptionProtocol">Encryption Protocol</param>
+        public void EnableEncryption(string server, SslProtocols encryptionProtocol)
         {
-            var tempStream0 = new TDSTemporaryStream(InnerTdsStream);
+            var tempStream0 = new TDSTemporaryStream(this.innerTdsStream);
             var tempStream1 = new SslStream(tempStream0, true, ValidateServerCertificate);
 
-            tempStream1.AuthenticateAsClient(Server, new X509CertificateCollection(), encryptionProtocol, true);
+            tempStream1.AuthenticateAsClient(server, new X509CertificateCollection(), encryptionProtocol, true);
 
-            tempStream0.InnerStream = InnerTdsStream.InnerStream;
-            InnerTdsStream.InnerStream = tempStream1;
+            tempStream0.InnerStream = this.innerTdsStream.InnerStream;
+            this.innerTdsStream.InnerStream = tempStream1;
 
             LoggingUtilities.WriteLog($"  Cipher: {tempStream1.CipherAlgorithm} strength {tempStream1.CipherStrength}");
             LoggingUtilities.WriteLog($"  Hash: {tempStream1.HashAlgorithm} strength {tempStream1.HashStrength}");
@@ -86,6 +121,10 @@ namespace TDSClient.TDS.Comms
             }
         }
 
+        /// <summary>
+        /// Receive TDS Message from the server.
+        /// </summary>
+        /// <returns>Returns received TDS Message.</returns>
         public ITDSPacketData ReceiveTDSMessage()
         {
             byte[] resultBuffer = null;
@@ -93,15 +132,15 @@ namespace TDSClient.TDS.Comms
 
             do
             {
-                Array.Resize(ref resultBuffer, curOffset + PacketSize);
-                curOffset += InnerStream.Read(resultBuffer, curOffset, PacketSize);
+                Array.Resize(ref resultBuffer, curOffset + this.packetSize);
+                curOffset += this.innerStream.Read(resultBuffer, curOffset, this.packetSize);
             }
-            while (!InnerTdsStream.InboundMessageTerminated);
+            while (!this.innerTdsStream.InboundMessageTerminated);
 
             Array.Resize(ref resultBuffer, curOffset);
 
             ITDSPacketData result;
-            switch (CommunicatorState)
+            switch (this.communicatorState)
             {
                 case TDSCommunicatorState.SentInitialPreLogin:
                     {
@@ -126,9 +165,13 @@ namespace TDSClient.TDS.Comms
             return result;
         }
 
+        /// <summary>
+        /// Send TDS Message to the server.
+        /// </summary>
+        /// <param name="data">TDS Message Data</param>
         public void SendTDSMessage(ITDSPacketData data)
         {
-            switch (CommunicatorState)
+            switch (this.communicatorState)
             {
                 case TDSCommunicatorState.Initial:
                     {
@@ -137,7 +180,7 @@ namespace TDSClient.TDS.Comms
                             throw new InvalidDataException();
                         }
 
-                        InnerTdsStream.CurrentOutboundMessageType = TDSMessageType.PreLogin;
+                        this.innerTdsStream.CurrentOutboundMessageType = TDSMessageType.PreLogin;
                         break;
                     }
 
@@ -148,7 +191,7 @@ namespace TDSClient.TDS.Comms
                             throw new InvalidDataException();
                         }
 
-                        InnerTdsStream.CurrentOutboundMessageType = TDSMessageType.TDS7Login;
+                        this.innerTdsStream.CurrentOutboundMessageType = TDSMessageType.TDS7Login;
                         break;
                     }
 
@@ -166,19 +209,19 @@ namespace TDSClient.TDS.Comms
             var buffer = new byte[data.Length()];
             data.Pack(new MemoryStream(buffer));
 
-            InnerStream.Write(buffer, 0, buffer.Length);
+            this.innerStream.Write(buffer, 0, buffer.Length);
 
-            switch (CommunicatorState)
+            switch (this.communicatorState)
             {
                 case TDSCommunicatorState.Initial:
                     {
-                        CommunicatorState = TDSCommunicatorState.SentInitialPreLogin;
+                        this.communicatorState = TDSCommunicatorState.SentInitialPreLogin;
                         break;
                     }
 
                 case TDSCommunicatorState.SentInitialPreLogin:
                     {
-                        CommunicatorState = TDSCommunicatorState.SentLogin7RecordWithCompleteAuthToken;
+                        this.communicatorState = TDSCommunicatorState.SentLogin7RecordWithCompleteAuthToken;
                         break;
                     }
             }

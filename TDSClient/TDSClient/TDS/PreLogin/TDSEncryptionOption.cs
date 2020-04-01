@@ -38,14 +38,44 @@
 
 namespace TDSClient.TDS.Header
 {
+    /// <summary>
+    /// Enum describing TDSEncryptionOption
+    /// </summary>
     public enum TDSEncryptionOption : byte
     {
-        EncryptOff, // Encryption is available but off.
-        EncryptOn, // Encryption is available and on.
-        EncryptNotSup, // Encryption is not available.
-        EncryptReq, // Encryption is required.
-        EncryptClientCertOff = 0x80, 
+        /// <summary>
+        /// Encryption is available but off.
+        /// </summary>
+        EncryptOff,
+        
+        /// <summary>
+        /// Encryption is available and on.
+        /// </summary>
+        EncryptOn,
+
+        /// <summary>
+        /// Encryption is not available.
+        /// </summary>
+        EncryptNotSup,
+
+        /// <summary>
+        /// Encryption is required.
+        /// </summary>
+        EncryptReq,
+
+        /// <summary>
+        /// Certificate-based authentication is requested by the client, encryption is off.
+        /// </summary>
+        EncryptClientCertOff = 0x80,
+
+        /// <summary>
+        /// Certificate-based authentication is requested by the client, encryption is on.
+        /// </summary>
         EncryptClientCertOn = 0x81,
+
+        /// <summary>
+        /// Certificate-based authentication is requested by the client, encryption is required.
+        /// </summary>
         EncryptClientCertReq = 0x83
     }
 }

@@ -47,16 +47,55 @@ namespace TDSClient.TDS.PreLogin
     // +-----------------+----------------------------------------------------------------------------------+
     // | TERMINATOR      | Termination token.                                                               |
     // +-----------------+----------------------------------------------------------------------------------+
+   
+    /// <summary>
+    /// Enum describing TDS PreLogin Option Token type
+    /// </summary>
     public enum TDSPreLoginOptionTokenType : byte
     {
+        /// <summary>
+        /// PreLogin Version Option Token.
+        /// </summary>
         Version,
+
+        /// <summary>
+        /// PreLogin Encryption Option Token.
+        /// </summary>
         Encryption,
+
+        /// <summary>
+        /// PreLogin Inst Option Token.
+        /// </summary>
         InstOpt,
+
+        /// <summary>
+        /// PreLogin ThreadID Option Token.
+        /// </summary>
         ThreadID,
+
+        /// <summary>
+        /// PreLogin MARS Option Token.
+        /// </summary>
         MARS,
+
+        /// <summary>
+        /// PreLogin TraceID Option Token.
+        /// </summary>
         TraceID,
+
+        /// <summary>
+        /// PreLogin FedAuth Option Token.
+        /// </summary>
         FedAuthRequired,
+
+        /// <summary>
+        /// PreLogin Nonce Option Token.
+        /// </summary>
         NonceOpt,
+
+        /// <summary>
+        /// PreLogin Token Terminator.
+        /// </summary>
         Terminator = 0xFF
     }
 }

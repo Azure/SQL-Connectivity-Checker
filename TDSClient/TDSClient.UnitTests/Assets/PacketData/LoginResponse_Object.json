@@ -1,0 +1,48 @@
+{
+  "$type": "TDSClient.TDS.Tokens.TDSTokenStreamPacketData, TDSClient",
+  "Tokens": {
+    "$type": "System.Collections.Generic.List`1[[TDSClient.TDS.Tokens.TDSToken, TDSClient]], System.Private.CoreLib",
+    "$values": [
+      {
+        "$type": "TDSClient.TDS.Tokens.TDSEnvChangeToken, TDSClient",
+        "Type": 1,
+        "Values": { "$type": "System.Collections.Generic.Dictionary`2[[System.String, System.Private.CoreLib],[System.String, System.Private.CoreLib]], System.Private.CoreLib" }
+      },
+      {
+        "$type": "TDSClient.TDS.Tokens.TDSInfoToken, TDSClient",
+        "Number": 5701,
+        "State": 2,
+        "Class": 0,
+        "MsgText": "Changed database context to 'master'.",
+        "ServerName": "",
+        "ProcName": "",
+        "LineNumber": 0
+      },
+      {
+        "$type": "TDSClient.TDS.Tokens.TDSEnvChangeToken, TDSClient",
+        "Type": 7,
+        "Values": { "$type": "System.Collections.Generic.Dictionary`2[[System.String, System.Private.CoreLib],[System.String, System.Private.CoreLib]], System.Private.CoreLib" }
+      },
+      {
+        "$type": "TDSClient.TDS.Tokens.TDSEnvChangeToken, TDSClient",
+        "Type": 2,
+        "Values": { "$type": "System.Collections.Generic.Dictionary`2[[System.String, System.Private.CoreLib],[System.String, System.Private.CoreLib]], System.Private.CoreLib" }
+      },
+      {
+        "$type": "TDSClient.TDS.Tokens.TDSEnvChangeToken, TDSClient",
+        "Type": 4,
+        "Values": { "$type": "System.Collections.Generic.Dictionary`2[[System.String, System.Private.CoreLib],[System.String, System.Private.CoreLib]], System.Private.CoreLib" }
+      },
+      {
+        "$type": "TDSClient.TDS.Tokens.TDSInfoToken, TDSClient",
+        "Number": 5703,
+        "State": 1,
+        "Class": 0,
+        "MsgText": "Changed language setting to us_english.",
+        "ServerName": "",
+        "ProcName": "",
+        "LineNumber": 0
+      }
+    ]
+  }
+}
