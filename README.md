@@ -4,19 +4,13 @@ This PowerShell script will run some connectivity checks from this machine to th
 
 **In order to run it you need to:**
 1. Open Windows PowerShell ISE in Administrator mode  
-Administrator privileges are required to 'RunAdvancedConnectivityPolicyTests' and 'CollectNetworkTrace'.
-In case you cannot run in administrator mode please continue, the tool will still run relevant tests.
+For the better results, our recommendation is to use the advanced connectivity tests which demand to start PowerShell in Administrator mode. You can still run the basic tests, in case you decide not to run this way. Please note that script parameters 'RunAdvancedConnectivityPolicyTests' and 'CollectNetworkTrace' will only work if the admin privileges are granted.
 
 2. Open a New Script window
 
 3. Paste the following in the script window:
 
 ```powershell
-# Developer parameters
-$Local = $false # Set to true if script is being tested locally
-$LocalPath = $(pwd).Path # Set to the absolute position of the script (defaults to the current working directory)
-$RepositoryBranch = 'master' # GitHub branch containing the script version that's being tested
-
 $parameters = @{
     Server = '.database.windows.net'
     Database = ''  # Set the name of the database you wish to test, 'master' will be used by default if nothing is set
@@ -25,23 +19,14 @@ $parameters = @{
 
     ## Optional parameters (default values will be used if ommited)
     SendAnonymousUsageData = $true  # Set as $true (default) or $false
-    RunAdvancedConnectivityPolicyTests = $true  # Set as $true (default) or $false, this will download the library needed for running advanced connectivity tests
+    RunAdvancedConnectivityPolicyTests = $true  # Set as $true (default) or $false, this will load the library from Microsoft's GitHub repository needed for running advanced connectivity tests
     CollectNetworkTrace = $true  # Set as $true (default) or $false
     #EncryptionProtocol = '' # Supported values: 'Tls 1.0', 'Tls 1.1', 'Tls 1.2'; Without this parameter operating system will choose the best protocol to use
-
-    ## Script internal parameters
-    Local = $Local # Do Not Change
-    LocalPath = $LocalPath # Do Not Change
-    RepositoryBranch = $RepositoryBranch # Do Not Change
 }
 
 $ProgressPreference = "SilentlyContinue";
-if ($Local) {
-    Invoke-Command -ScriptBlock ([Scriptblock]::Create($($LocalPath + './AzureSQLConnectivityChecker.ps1 $parameters')))
-} else {
-    $scriptUrlBase = 'raw.githubusercontent.com/Azure/SQL-Connectivity-Checker/' + $RepositoryBranch
-    Invoke-Command -ScriptBlock ([Scriptblock]::Create((iwr ($scriptUrlBase+'/AzureSQLConnectivityChecker.ps1')).Content)) -ArgumentList $parameters
-}
+$scriptUrlBase = 'raw.githubusercontent.com/Azure/SQL-Connectivity-Checker/master'
+Invoke-Command -ScriptBlock ([Scriptblock]::Create((iwr ($scriptUrlBase+'/AzureSQLConnectivityChecker.ps1')).Content)) -ArgumentList $parameters
 #end
 ```
 4. Set the parameters on the script, you need to set server name. Database name, user and password are optional but desirable.
