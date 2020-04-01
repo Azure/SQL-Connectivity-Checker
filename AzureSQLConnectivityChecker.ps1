@@ -306,6 +306,7 @@ function RunSqlMIVNetConnectivityTests($resolvedAddress) {
         if ($testResult.TcpTestSucceeded) {
             Write-Host ' -> TCP test succeed' -ForegroundColor Green
             PrintAverageConnectionTime $resolvedAddress 1433
+            return $true
         }
         else {
             Write-Host ' -> TCP test FAILED' -ForegroundColor Red
@@ -313,13 +314,19 @@ function RunSqlMIVNetConnectivityTests($resolvedAddress) {
             Write-Host ' See more about connectivity architecture at https://docs.microsoft.com/en-us/azure/sql-database/sql-database-managed-instance-connectivity-architecture' -ForegroundColor Red
             Write-Host $networkingIssueMessage -ForegroundColor Yellow
             Write-Host
-            Write-Host ' IP routes for interface:' $testResult.InterfaceAlias
-            Get-NetAdapter $testResult.InterfaceAlias | Get-NetRoute
+            Write-Host ' Trying to get IP routes for interface:' $testResult.InterfaceAlias
+            Get-NetAdapter $testResult.InterfaceAlias -ErrorAction SilentlyContinue -ErrorVariable ProcessError | Get-NetRoute
+            If ($ProcessError) {
+                Write-Host '  Could not to get IP routes for this interface'
+            }
+            Write-Host
+            return $false
         }
     }
     Catch {
         Write-Host "Error at RunSqlMIVNetConnectivityTests" -Foreground Red
         Write-Host $_.Exception.Message -ForegroundColor Red
+        return $false
     }
 }
 
@@ -601,7 +608,9 @@ try {
                 $dbPort = 3342
             }
             else {
-                RunSqlMIVNetConnectivityTests $resolvedAddress
+                if(!(RunSqlMIVNetConnectivityTests $resolvedAddress)){
+                    throw
+                }
             }
         }
         else {
