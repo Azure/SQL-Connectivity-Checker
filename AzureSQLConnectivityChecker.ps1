@@ -15,7 +15,7 @@ using namespace System.Diagnostics
 
 # Parameter region for when script is run direcly
 # Supports Single, Elastic Pools and Managed Instance (please provide FQDN, MI public endpoint is supported)
-# Supports Public Cloud (*.database.windows.net), Azure China (*.database.chinacloudapi.cn) and Azure Germany (*.database.cloudapi.de) 
+# Supports Public Cloud (*.database.windows.net), Azure China (*.database.chinacloudapi.cn) and Azure Germany (*.database.cloudapi.de)
 $Server = '.database.windows.net'
 $Database = ''  # Set the name of the database you wish to test, 'master' will be used by default if nothing is set
 $User = ''  # Set the login username yo wish to use, 'AzSQLConnCheckerUser' will be used by default if nothing is set
@@ -555,6 +555,21 @@ try {
         Write-Host '  Azure SQL Connectivity Checker v1.2  ' -ForegroundColor Green
         Write-Host '******************************************' -ForegroundColor Green
         Write-Host
+        Write-Host 'Parameters' -ForegroundColor Yellow
+        Write-Host ' Server:' $Server -ForegroundColor Yellow
+        if ($null -ne $Database) {
+            Write-Host ' Database:' $Database -ForegroundColor Yellow
+        }
+        if ($null -ne $RunAdvancedConnectivityPolicyTests) {
+            Write-Host ' RunAdvancedConnectivityPolicyTests:' $RunAdvancedConnectivityPolicyTests -ForegroundColor Yellow
+        }
+        if ($null -ne $CollectNetworkTrace) {
+            Write-Host ' CollectNetworkTrace:' $CollectNetworkTrace -ForegroundColor Yellow
+        }
+        if ($null -ne $EncryptionProtocol) {
+            Write-Host ' EncryptionProtocol:' $EncryptionProtocol -ForegroundColor Yellow
+        }
+        Write-Host
 
         if (!$Server -or $Server.Length -eq 0) {
             Write-Host 'The $Server parameter is empty' -ForegroundColor Red -BackgroundColor Yellow
@@ -566,14 +581,6 @@ try {
         if (!$Server.EndsWith('.database.windows.net') -and !$Server.EndsWith('.database.cloudapi.de') -and !$Server.EndsWith('.database.chinacloudapi.cn')) {
             $Server = $Server + '.database.windows.net'
         }
-
-        Write-Host '************************************************************************************' -ForegroundColor Yellow
-        Write-Host 'Server:' $Server -ForegroundColor Yellow
-        if (!$null -eq $Database) {
-            Write-Host 'Database:' $Database -ForegroundColor Yellow
-        }
-        Write-Host '************************************************************************************' -ForegroundColor Yellow
-        Write-Host
 
         #Print local network configuration
         PrintLocalNetworkConfiguration
