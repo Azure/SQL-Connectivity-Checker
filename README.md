@@ -16,9 +16,6 @@ $parameters = @{
     Database = ''  # Set the name of the database you wish to test, 'master' will be used by default if nothing is set
     User = ''  # Set the login username you wish to use, 'AzSQLConnCheckerUser' will be used by default if nothing is set
     Password = ''  # Set the login password you wish to use, 'AzSQLConnCheckerPassword' will be used by default if nothing is set
-    # In case you want to hide the password (like during a remote session), uncomment the 2 lines below (by removing leading #) and password will be asked during execution 
-    # $Credentials = Get-Credential -Message "Credentials to test connections to the database (optional)" -User $User  
-    # $Password = $Credentials.GetNetworkCredential().password
 
     ## Optional parameters (default values will be used if ommited)
     SendAnonymousUsageData = $true  # Set as $true (default) or $false
