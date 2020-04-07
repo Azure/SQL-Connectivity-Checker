@@ -17,7 +17,7 @@ $parameters = @{
     User = ''  # Set the login username you wish to use, 'AzSQLConnCheckerUser' will be used by default if nothing is set
     Password = ''  # Set the login password you wish to use, 'AzSQLConnCheckerPassword' will be used by default if nothing is set
 
-    ## Optional parameters (default values will be used if ommited)
+    ## Optional parameters (default values will be used if omitted)
     SendAnonymousUsageData = $true  # Set as $true (default) or $false
     RunAdvancedConnectivityPolicyTests = $true  # Set as $true (default) or $false, this will load the library from Microsoft's GitHub repository needed for running advanced connectivity tests
     CollectNetworkTrace = $true  # Set as $true (default) or $false
