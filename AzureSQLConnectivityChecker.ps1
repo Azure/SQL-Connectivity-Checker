@@ -593,7 +593,7 @@ try {
             throw
         }
 
-        if (!$Server.EndsWith('.database.windows.net') -and !$Server.EndsWith('.database.cloudapi.de') -and !$Server.EndsWith('.database.chinacloudapi.cn')) {
+        if (!$Server.EndsWith('.database.windows.net') -and !$Server.EndsWith('.database.cloudapi.de') -and !$Server.EndsWith('.database.chinacloudapi.cn') -and !$Server.EndsWith('.sql.azuresynapse.net')) {
             $Server = $Server + '.database.windows.net'
         }
 
