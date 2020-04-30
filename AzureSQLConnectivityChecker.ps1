@@ -634,7 +634,8 @@ try {
                     throw
                 }
             }
-        } else {
+        }
+        else {
             RunSqlDBConnectivityTests $resolvedAddress
         }
 
