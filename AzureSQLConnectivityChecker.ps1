@@ -381,7 +381,11 @@ function PrintAverageConnectionTime($addressList, $port) {
 }
 
 function RunSqlDBConnectivityTests($resolvedAddress) {
-    Write-Host 'Detected as SQL DB Server' -ForegroundColor Yellow
+    if(IsSqlOnDemand $Server) {
+        Write-Host 'Detected as SQL on-demand endpoint' -ForegroundColor Yellow
+    } else {
+        Write-Host 'Detected as SQL DB Server' -ForegroundColor Yellow
+    }
     $gateway = $SQLDBGateways | Where-Object { $_.Gateways -eq $resolvedAddress }
     if (!$gateway) {
         Write-Host ' ERROR:' $resolvedAddress 'is not a valid gateway address' -ForegroundColor Red
@@ -630,10 +634,7 @@ try {
                     throw
                 }
             }
-        } if(IsSqlOnDemand $Server) {
-            
-        }
-        else {
+        } else {
             RunSqlDBConnectivityTests $resolvedAddress
         }
 
