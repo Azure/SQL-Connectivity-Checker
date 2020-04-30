@@ -173,6 +173,10 @@ function IsManagedInstance([String] $Server) {
     return [bool]((($Server.ToCharArray() | Where-Object { $_ -eq '.' } | Measure-Object).Count) -ge 4)
 }
 
+function IsSqlOnDemand([String] $Server) {
+    return [bool]$Server.Split('-')[1].Contains('ondemand')
+}
+
 function IsManagedInstancePublicEndpoint([String] $Server) {
     return [bool]((IsManagedInstance $Server) -and ($Server -match '.public.'))
 }
@@ -626,6 +630,8 @@ try {
                     throw
                 }
             }
+        } if(IsSqlOnDemand $Server) {
+            
         }
         else {
             RunSqlDBConnectivityTests $resolvedAddress
