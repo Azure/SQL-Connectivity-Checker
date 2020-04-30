@@ -442,7 +442,11 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
         Write-Host ' Tested (redirect) connectivity' $redirectTests 'times and' $redirectSucceeded 'of them succeeded' -ForegroundColor Yellow
         if ($redirectTests -gt 0) {
             Write-Host ' Please note this was just some tests to check connectivity using the 11000-11999 port range, not your database' -ForegroundColor Yellow
-            Write-Host ' Some tests may even fail and not be a problem since ports tested here are static and SQL DB is a dynamic environment.' -ForegroundColor Yellow
+            if(IsSqlOnDemand $Server) {
+                Write-Host ' Some tests may even fail and not be a problem since ports tested here are static and SQL on-demand is a dynamic serverless environment.' -ForegroundColor Yellow
+            } else {
+                Write-Host ' Some tests may even fail and not be a problem since ports tested here are static and SQL DB is a dynamic environment.' -ForegroundColor Yellow
+            }
             if ($redirectSucceeded / $redirectTests -ge 0.5 ) {
                 Write-Host ' Based on the result it is likely the Redirect Policy will work from this machine' -ForegroundColor Green
             }
