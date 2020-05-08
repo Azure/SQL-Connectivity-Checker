@@ -174,6 +174,10 @@ function IsManagedInstance([String] $Server) {
     return [bool]((($Server.ToCharArray() | Where-Object { $_ -eq '.' } | Measure-Object).Count) -ge 4)
 }
 
+function IsSqlOnDemand([String] $Server) {
+    return [bool]($Server -match '-ondemand.')
+}
+
 function IsManagedInstancePublicEndpoint([String] $Server) {
     return [bool]((IsManagedInstance $Server) -and ($Server -match '.public.'))
 }
@@ -379,8 +383,8 @@ function PrintAverageConnectionTime($addressList, $port) {
 
 function RunSqlDBConnectivityTests($resolvedAddress) {
 
-    if ($Server -match '.sql.azuresynapse.net') {
-        Write-Host 'Detected as Azure Synapse' -ForegroundColor Yellow
+    if (IsSqlOnDemand $Server) {
+        Write-Host 'Detected as SQL on-demand endpoint' -ForegroundColor Yellow
     }
     else {
         Write-Host 'Detected as SQL DB/DW Server' -ForegroundColor Yellow
@@ -442,7 +446,12 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
         Write-Host ' Tested (redirect) connectivity' $redirectTests 'times and' $redirectSucceeded 'of them succeeded' -ForegroundColor Yellow
         if ($redirectTests -gt 0) {
             Write-Host ' Please note this was just some tests to check connectivity using the 11000-11999 port range, not your database' -ForegroundColor Yellow
-            Write-Host ' Some tests may even fail and not be a problem since ports tested here are static and SQL DB is a dynamic environment.' -ForegroundColor Yellow
+            if (IsSqlOnDemand $Server) {
+                Write-Host ' Some tests may even fail and not be a problem since ports tested here are static and SQL on-demand is a dynamic serverless environment.' -ForegroundColor Yellow
+            }
+            else {
+                Write-Host ' Some tests may even fail and not be a problem since ports tested here are static and SQL DB is a dynamic environment.' -ForegroundColor Yellow
+            }
             if ($redirectSucceeded / $redirectTests -ge 0.5 ) {
                 Write-Host ' Based on the result it is likely the Redirect Policy will work from this machine' -ForegroundColor Green
             }
