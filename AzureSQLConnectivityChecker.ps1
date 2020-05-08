@@ -378,7 +378,14 @@ function PrintAverageConnectionTime($addressList, $port) {
 }
 
 function RunSqlDBConnectivityTests($resolvedAddress) {
-    Write-Host 'Detected as SQL DB Server' -ForegroundColor Yellow
+
+    if ($Server -match '.sql.azuresynapse.net') {
+        Write-Host 'Detected as Azure Synapse' -ForegroundColor Yellow
+    }
+    else {
+        Write-Host 'Detected as SQL DB/DW Server' -ForegroundColor Yellow
+    }
+
     $gateway = $SQLDBGateways | Where-Object { $_.Gateways -eq $resolvedAddress }
     if (!$gateway) {
         Write-Host ' ERROR:' $resolvedAddress 'is not a valid gateway address' -ForegroundColor Red
