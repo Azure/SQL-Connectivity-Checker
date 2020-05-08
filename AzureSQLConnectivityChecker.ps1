@@ -28,7 +28,7 @@ $Password = ''  # Set the login password you wish to use, 'AzSQLConnCheckerPassw
 # Optional parameters (default values will be used if ommited)
 $SendAnonymousUsageData = $true  # Set as $true (default) or $false
 $RunAdvancedConnectivityPolicyTests = $true  # Set as $true (default) or $false#Set as $true (default) or $false, this will download library needed for running advanced connectivity policy tests
-$CollectNetworkTrace = $true  # Set as $true (default) or $false
+$CollectNetworkTrace = $false  # Set as $true (default) or $false
 #EncryptionProtocol = ''  # Supported values: 'Tls 1.0', 'Tls 1.1', 'Tls 1.2'; Without this parameter operating system will choose the best protocol to use
 
 # Parameter region when Invoke-Command -ScriptBlock is used
@@ -175,7 +175,7 @@ function IsManagedInstance([String] $Server) {
 }
 
 function IsSqlOnDemand([String] $Server) {
-    return [bool]$Server.Split('-')[1].Contains('ondemand')
+    return [bool]($Server -match '-ondemand.')
 }
 
 function IsManagedInstancePublicEndpoint([String] $Server) {
