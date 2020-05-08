@@ -15,13 +15,14 @@ using namespace System.Diagnostics
 
 # Parameter region for when script is run direcly
 # Supports Single, Elastic Pools and Managed Instance (please provide FQDN, MI public endpoint is supported)
+# Supports Azure Synapse / Azure SQL Data Warehouse (*.sql.azuresynapse.net / *.database.windows.net)
 # Supports Public Cloud (*.database.windows.net), Azure China (*.database.chinacloudapi.cn) and Azure Germany (*.database.cloudapi.de)
-$Server = '.database.windows.net'
+$Server = '.database.windows.net' # or any other supported FQDN
 $Database = ''  # Set the name of the database you wish to test, 'master' will be used by default if nothing is set
 $User = ''  # Set the login username yo wish to use, 'AzSQLConnCheckerUser' will be used by default if nothing is set
 $Password = ''  # Set the login password you wish to use, 'AzSQLConnCheckerPassword' will be used by default if nothing is set
-# In case you want to hide the password (like during a remote session), uncomment the 2 lines below (by removing leading #) and password will be asked during execution 
-# $Credentials = Get-Credential -Message "Credentials to test connections to the database (optional)" -User $User  
+# In case you want to hide the password (like during a remote session), uncomment the 2 lines below (by removing leading #) and password will be asked during execution
+# $Credentials = Get-Credential -Message "Credentials to test connections to the database (optional)" -User $User
 # $Password = $Credentials.GetNetworkCredential().password
 
 # Optional parameters (default values will be used if ommited)
@@ -381,11 +382,13 @@ function PrintAverageConnectionTime($addressList, $port) {
 }
 
 function RunSqlDBConnectivityTests($resolvedAddress) {
+
     if(IsSqlOnDemand $Server) {
         Write-Host 'Detected as SQL on-demand endpoint' -ForegroundColor Yellow
-    } else {
-        Write-Host 'Detected as SQL DB Server' -ForegroundColor Yellow
+    else {
+        Write-Host 'Detected as SQL DB/DW Server' -ForegroundColor Yellow
     }
+
     $gateway = $SQLDBGateways | Where-Object { $_.Gateways -eq $resolvedAddress }
     if (!$gateway) {
         Write-Host ' ERROR:' $resolvedAddress 'is not a valid gateway address' -ForegroundColor Red
@@ -521,7 +524,7 @@ function SendAnonymousUsageData {
             | Add-Member -PassThru NoteProperty baseType 'EventData' `
             | Add-Member -PassThru NoteProperty baseData (New-Object PSObject `
                 | Add-Member -PassThru NoteProperty ver 2 `
-                | Add-Member -PassThru NoteProperty name '1.2'));
+                | Add-Member -PassThru NoteProperty name '1.3'));
 
         $body = $body | ConvertTo-JSON -depth 5;
         Invoke-WebRequest -Uri 'https://dc.services.visualstudio.com/v2/track' -Method 'POST' -UseBasicParsing -body $body > $null
@@ -567,7 +570,7 @@ try {
 
     try {
         Write-Host '******************************************' -ForegroundColor Green
-        Write-Host '  Azure SQL Connectivity Checker v1.2  ' -ForegroundColor Green
+        Write-Host '  Azure SQL Connectivity Checker v1.3  ' -ForegroundColor Green
         Write-Host '******************************************' -ForegroundColor Green
         Write-Host
         Write-Host 'Parameters' -ForegroundColor Yellow
@@ -593,7 +596,10 @@ try {
             throw
         }
 
-        if (!$Server.EndsWith('.database.windows.net') -and !$Server.EndsWith('.database.cloudapi.de') -and !$Server.EndsWith('.database.chinacloudapi.cn') -and !$Server.EndsWith('.sql.azuresynapse.net')) {
+        if (!$Server.EndsWith('.database.windows.net') `
+                -and !$Server.EndsWith('.database.cloudapi.de') `
+                -and !$Server.EndsWith('.database.chinacloudapi.cn') `
+                -and !$Server.EndsWith('.sql.azuresynapse.net')) {
             $Server = $Server + '.database.windows.net'
         }
 
