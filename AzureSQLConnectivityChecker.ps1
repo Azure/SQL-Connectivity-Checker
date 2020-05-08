@@ -383,8 +383,9 @@ function PrintAverageConnectionTime($addressList, $port) {
 
 function RunSqlDBConnectivityTests($resolvedAddress) {
 
-    if(IsSqlOnDemand $Server) {
+    if (IsSqlOnDemand $Server) {
         Write-Host 'Detected as SQL on-demand endpoint' -ForegroundColor Yellow
+    }
     else {
         Write-Host 'Detected as SQL DB/DW Server' -ForegroundColor Yellow
     }
@@ -445,9 +446,10 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
         Write-Host ' Tested (redirect) connectivity' $redirectTests 'times and' $redirectSucceeded 'of them succeeded' -ForegroundColor Yellow
         if ($redirectTests -gt 0) {
             Write-Host ' Please note this was just some tests to check connectivity using the 11000-11999 port range, not your database' -ForegroundColor Yellow
-            if(IsSqlOnDemand $Server) {
+            if (IsSqlOnDemand $Server) {
                 Write-Host ' Some tests may even fail and not be a problem since ports tested here are static and SQL on-demand is a dynamic serverless environment.' -ForegroundColor Yellow
-            } else {
+            }
+            else {
                 Write-Host ' Some tests may even fail and not be a problem since ports tested here are static and SQL DB is a dynamic environment.' -ForegroundColor Yellow
             }
             if ($redirectSucceeded / $redirectTests -ge 0.5 ) {
