@@ -1,9 +1,9 @@
 # AzureSQLConnectivityChecker
 
 This PowerShell script will run some connectivity checks from this machine to the server and database.  
-- Supports Single, Elastic Pools and Managed Instance (please provide FQDN, MI public endpoint is supported).  
-- Supports Azure Synapse / Azure SQL Data Warehouse (\*.sql.azuresynapse.net / \*.database.windows.net).  
-- Supports Public Cloud (\*.database.windows.net), Azure China (\*.database.chinacloudapi.cn) and Azure Germany (\*.database.cloudapi.de).  
+- Supports Single, Elastic Pools, Managed Instance and SQL Data Warehouse (please provide FQDN, MI public endpoint is supported).
+- Supports Public Cloud (\*.database.windows.net), Azure China (\*.database.chinacloudapi.cn) and Azure Germany (\*.database.cloudapi.de).   
+- Also supports SQL on-demand (\*.ondemand.sql.azuresynapse.net or \*.ondemand.database.windows.net).  
 
 **In order to run it you need to:**
 1. Open Windows PowerShell ISE in Administrator mode  
