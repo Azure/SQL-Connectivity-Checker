@@ -13,19 +13,19 @@ using namespace System.net.Sockets
 using namespace System.Collections.Generic
 using namespace System.Diagnostics
 
-# Parameter region for when script is run direcly
+# Parameter region for when script is run directly
 # Supports Single, Elastic Pools and Managed Instance (please provide FQDN, MI public endpoint is supported)
 # Supports Azure Synapse / Azure SQL Data Warehouse (*.sql.azuresynapse.net / *.database.windows.net)
 # Supports Public Cloud (*.database.windows.net), Azure China (*.database.chinacloudapi.cn) and Azure Germany (*.database.cloudapi.de)
 $Server = '.database.windows.net' # or any other supported FQDN
 $Database = ''  # Set the name of the database you wish to test, 'master' will be used by default if nothing is set
-$User = ''  # Set the login username yo wish to use, 'AzSQLConnCheckerUser' will be used by default if nothing is set
+$User = ''  # Set the login username you wish to use, 'AzSQLConnCheckerUser' will be used by default if nothing is set
 $Password = ''  # Set the login password you wish to use, 'AzSQLConnCheckerPassword' will be used by default if nothing is set
 # In case you want to hide the password (like during a remote session), uncomment the 2 lines below (by removing leading #) and password will be asked during execution
 # $Credentials = Get-Credential -Message "Credentials to test connections to the database (optional)" -User $User
 # $Password = $Credentials.GetNetworkCredential().password
 
-# Optional parameters (default values will be used if ommited)
+# Optional parameters (default values will be used if omitted)
 $SendAnonymousUsageData = $true  # Set as $true (default) or $false
 $RunAdvancedConnectivityPolicyTests = $true  # Set as $true (default) or $false#Set as $true (default) or $false, this will download library needed for running advanced connectivity policy tests
 $CollectNetworkTrace = $true  # Set as $true (default) or $false
@@ -477,12 +477,12 @@ function RunConnectivityPolicyTests($port) {
     Write-Host 'Advanced connectivity policy tests:' -ForegroundColor Green
 
     if (!$CustomerRunningInElevatedMode) {
-        Write-Host ' Powershell must be run as an administrator in order to run advanced connectivity policy tests!' -ForegroundColor Yellow
+        Write-Host ' Powershell must be run as an administrator to run advanced connectivity policy tests!' -ForegroundColor Yellow
         return
     }
 
     if ($(Get-ExecutionPolicy) -eq 'Restricted') {
-        Write-Host ' Advanced connectivity policy tests cannot be run because of current execution policy(Restricted)!' -ForegroundColor Yellow
+        Write-Host ' Advanced connectivity policy tests cannot be run because of current execution policy (Restricted)!' -ForegroundColor Yellow
         Write-Host ' Please use Set-ExecutionPolicy to allow scripts to run on this system!' -ForegroundColor Yellow
         return
     }
@@ -639,7 +639,7 @@ try {
             Write-Host ' ERROR: Name resolution of' $Server 'failed' -ForegroundColor Red
             Write-Host ' Please make sure the server name FQDN is correct and that your machine can resolve it.' -ForegroundColor Red
             Write-Host ' Failure to resolve domain name for your logical server is almost always the result of specifying an invalid/misspelled server name,' -ForegroundColor Red
-            Write-Host ' or a client side networking issue that you will need to pursue with your local network administrator.' -ForegroundColor Red
+            Write-Host ' or a client-side networking issue that you will need to pursue with your local network administrator.' -ForegroundColor Red
             Write-Error '' -ErrorAction Stop
         }
         $resolvedAddress = $dnsResult.AddressList[0].IPAddressToString
@@ -710,7 +710,7 @@ try {
         }
 
         Write-Host
-        Write-Host 'Test endpoints for AAD Password and Integrated Authentication :' -ForegroundColor Green
+        Write-Host 'Test endpoints for AAD Password and Integrated Authentication:' -ForegroundColor Green
         Write-Host ' Tested connectivity to login.windows.net:443' -ForegroundColor White -NoNewline
         $testResults = Test-NetConnection 'login.windows.net' -Port 443 -WarningAction SilentlyContinue
         if ($testResults.TcpTestSucceeded) {
