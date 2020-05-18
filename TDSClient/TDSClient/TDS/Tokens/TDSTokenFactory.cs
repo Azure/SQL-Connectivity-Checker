@@ -24,7 +24,7 @@ namespace TDSClient.TDS.Tokens
         {
             var tokenType = (TDSTokenType)stream.ReadByte();
 
-            LoggingUtilities.WriteLogVerboseOnly($" Recieved {tokenType} token in Login7 response.");
+            LoggingUtilities.WriteLogVerboseOnly($" Received {tokenType} token in Login7 response.");
             switch (tokenType)
             {
                 case TDSTokenType.Error:

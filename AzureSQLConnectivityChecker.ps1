@@ -209,11 +209,18 @@ function TestConnectionToDatabase($Server, $gatewayPort, $Database, $User, $Pass
             $Server, $gatewayPort, $Database, $User, $Password)
         $masterDbConnection.Open()
         Write-Host ([string]::Format(" The connection attempt succeeded", $Database))
+        return $true
     }
     catch [System.Data.SqlClient.SqlException] {
         if ($_.Exception.Number -eq 18456) {
             if ($User -eq 'AzSQLConnCheckerUser') {
-                Write-Host ([string]::Format(" Dummy login attempt reached '{0}' database, login failed as expected", $Database))
+                if ($Database -eq 'master') {
+                    Write-Host ([string]::Format(" Dummy login attempt reached '{0}' database, login failed as expected.", $Database))
+                }
+                else {
+                    Write-Host ([string]::Format(" Dummy login attempt on '{0}' database resulted in login failure.", $Database))
+                    Write-Host ' This was either expected due to dummy credentials being used, or database does not exist, which also results in login failed.'
+                }
             }
             else {
                 Write-Host ([string]::Format(" Login attempt reached '{0}' database but login failed for user '{1}'", $Database, $User)) -ForegroundColor Yellow
@@ -226,9 +233,11 @@ function TestConnectionToDatabase($Server, $gatewayPort, $Database, $User, $Pass
                 Write-Host ' Learn how to configure public endpoint at https://docs.microsoft.com/en-us/azure/sql-database/sql-database-managed-instance-public-endpoint-configure' -ForegroundColor Red
             }
         }
+        return $false
     }
     Catch {
         Write-Host $_.Exception.Message -ForegroundColor Yellow
+        return $false
     }
 }
 
@@ -526,7 +535,7 @@ function SendAnonymousUsageData {
             | Add-Member -PassThru NoteProperty baseType 'EventData' `
             | Add-Member -PassThru NoteProperty baseData (New-Object PSObject `
                 | Add-Member -PassThru NoteProperty ver 2 `
-                | Add-Member -PassThru NoteProperty name '1.3'));
+                | Add-Member -PassThru NoteProperty name '1.4'));
 
         $body = $body | ConvertTo-JSON -depth 5;
         Invoke-WebRequest -Uri 'https://dc.services.visualstudio.com/v2/track' -Method 'POST' -UseBasicParsing -body $body > $null
@@ -572,7 +581,7 @@ try {
 
     try {
         Write-Host '******************************************' -ForegroundColor Green
-        Write-Host '  Azure SQL Connectivity Checker v1.3  ' -ForegroundColor Green
+        Write-Host '  Azure SQL Connectivity Checker v1.4  ' -ForegroundColor Green
         Write-Host '******************************************' -ForegroundColor Green
         Write-Host
         Write-Host 'Parameters' -ForegroundColor Yellow
@@ -628,7 +637,9 @@ try {
         }
         catch {
             Write-Host ' ERROR: Name resolution of' $Server 'failed' -ForegroundColor Red
-            Write-Host ' Please make sure the server name FQDN is correct and that your machine can resolve it' -ForegroundColor Red
+            Write-Host ' Please make sure the server name FQDN is correct and that your machine can resolve it.' -ForegroundColor Red
+            Write-Host ' Failure to resolve domain name for your logical server is almost always the result of specifying an invalid/misspelled server name,' -ForegroundColor Red
+            Write-Host ' or a client side networking issue that you will need to pursue with your local network administrator.' -ForegroundColor Red
             Write-Error '' -ErrorAction Stop
         }
         $resolvedAddress = $dnsResult.AddressList[0].IPAddressToString
@@ -656,12 +667,46 @@ try {
             RunConnectivityPolicyTests $dbPort
         }
 
-        #Test master database
-        TestConnectionToDatabase $Server $dbPort 'master' $User $Password
+        $customDatabaseNameWasSet = $Database -and $Database.Length -gt 0 -and $Database -ne 'master'
 
-        #Test database from parameter
-        if ($Database -and $Database.Length -gt 0 -and $Database -ne 'master' ) {
-            TestConnectionToDatabase $Server $dbPort $Database $User $Password
+        #Test master database
+        $canConnectToMaster = TestConnectionToDatabase $Server $dbPort 'master' $User $Password
+
+        if ($customDatabaseNameWasSet) {
+            if ($canConnectToMaster) {
+                Write-Host ' Checking if' $Database 'exist in sys.databases:' -ForegroundColor White
+                $masterDbConnection = [System.Data.SqlClient.SQLConnection]::new()
+                $masterDbConnection.ConnectionString = [string]::Format("Server=tcp:{0},{1};Initial Catalog='master';Persist Security Info=False;User ID={2};Password={3};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;",
+                    $Server, $dbPort, $User, $Password)
+                $masterDbConnection.Open()
+
+                $masterDbCommand = New-Object System.Data.SQLClient.SQLCommand
+                $masterDbCommand.Connection = $masterDbConnection
+
+                $masterDbCommand.CommandText = "select count(*) C from sys.databases where name = '" + $Database + "'"
+                $masterDbResult = $masterDbCommand.ExecuteReader()
+                $masterDbResultDataTable = new-object 'System.Data.DataTable'
+                $masterDbResultDataTable.Load($masterDbResult)
+
+                if ($masterDbResultDataTable.Rows[0].C -eq 0) {
+                    Write-Host ' ERROR:' $Database 'was not found in sys.databases!' -ForegroundColor Red
+                    Write-Host ' Please confirm the database name is correct and/or look at the operation logs to see if the database has been dropped by another user.' -ForegroundColor Red
+                }
+                else {
+                    Write-Host ' ' $Database was found in sys.databases of master database -ForegroundColor Green
+
+                    #Test database from parameter
+                    if ($customDatabaseNameWasSet) {
+                        TestConnectionToDatabase $Server $dbPort $Database $User $Password | Out-Null
+                    }
+                }
+            }
+            else {
+                #Test database from parameter anyway
+                if ($customDatabaseNameWasSet) {
+                    TestConnectionToDatabase $Server $dbPort $Database $User $Password | Out-Null
+                }
+            }
         }
 
         Write-Host

@@ -212,7 +212,7 @@ namespace TDSClient.TDS.Client
                         var envChangeToken = token as TDSEnvChangeToken;
                         if (envChangeToken.Type == Tokens.EnvChange.TDSEnvChangeType.Routing)
                         {
-                            LoggingUtilities.WriteLog($" Client recieved EnvChange routing token, client is being routed.");
+                            LoggingUtilities.WriteLog($" Client received EnvChange routing token, client is being routed.");
                             this.Server = envChangeToken.Values["AlternateServer"];
                             this.ServerName = this.Server;
                             this.Port = int.Parse(envChangeToken.Values["ProtocolProperty"]);
@@ -222,7 +222,7 @@ namespace TDSClient.TDS.Client
                     else if (token is TDSErrorToken)
                     {
                         var errorToken = token as TDSErrorToken;
-                        LoggingUtilities.WriteLog($" Client recieved Error token:");
+                        LoggingUtilities.WriteLog($" Client received Error token:");
 
                         LoggingUtilities.WriteLog($"     Number: {errorToken.Number}");
                         LoggingUtilities.WriteLog($"     State: {errorToken.State}");
@@ -240,7 +240,7 @@ namespace TDSClient.TDS.Client
                     else if (token is TDSInfoToken)
                     {
                         var infoToken = token as TDSInfoToken;
-                        LoggingUtilities.WriteLog($" Client recieved Info token:");
+                        LoggingUtilities.WriteLog($" Client received Info token:");
 
                         LoggingUtilities.WriteLog($"     Number: {infoToken.Number}");
                         LoggingUtilities.WriteLog($"     State: {infoToken.State}");
