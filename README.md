@@ -15,7 +15,10 @@ For the better results, our recommendation is to use the advanced connectivity t
 
 ```powershell
 $parameters = @{
-    Server = '.database.windows.net'
+    # Supports Single, Elastic Pools and Managed Instance (please provide FQDN, MI public endpoint is supported)
+    # Supports Azure Synapse / Azure SQL Data Warehouse (*.sql.azuresynapse.net / *.database.windows.net)
+    # Supports Public Cloud (*.database.windows.net), Azure China (*.database.chinacloudapi.cn) and Azure Germany (*.database.cloudapi.de)
+    Server = '.database.windows.net' # or any other supported FQDN
     Database = ''  # Set the name of the database you wish to test, 'master' will be used by default if nothing is set
     User = ''  # Set the login username you wish to use, 'AzSQLConnCheckerUser' will be used by default if nothing is set
     Password = ''  # Set the login password you wish to use, 'AzSQLConnCheckerPassword' will be used by default if nothing is set
