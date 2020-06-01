@@ -190,7 +190,8 @@ try {
         [TDSClient.TDS.Utilities.LoggingUtilities]::ClearVerboseLog()
     }
 
-    $result = $([System.IO.File]::ReadAllText($env:TEMP + '\AzureSQLConnectivityChecker\ConnectivityPolicyLog.txt'))
+    $path = $env:TEMP + '/AzureSQLConnectivityChecker/ConnectivityPolicyLog.txt'
+    $result = $([System.IO.File]::ReadAllText($path))
 
     Write-Host $result
 
