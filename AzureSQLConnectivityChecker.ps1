@@ -139,18 +139,63 @@ $TRPorts = @('11000', '11001', '11003', '11005', '11006')
 
 $networkingIssueMessage = ' This issue indicates a problem with the networking configuration. If this is related with on-premises resources, the networking team from customer side should be engaged. If this is between Azure resources, Azure Networking team should be engaged.'
 
-if (!Get-Command 'Test-NetConnection' -errorAction SilentlyContinue) {
+
+# PowerShell Container Image Support Start
+
+if (!$(Get-Command 'Test-NetConnection' -errorAction SilentlyContinue)) {
     function Test-NetConnection {
         param(
-            [Parameter(Position=0)] $HostName,
-            [Parameter()] $Port
+            [Parameter(Position = 0, Mandatory = $true)] $HostName,
+            [Parameter(Mandatory = $true)] $Port
         );
         process {
-            $HostName;
-            $Port;
+            $client = [TcpClient]::new()
+            
+            try {
+                $client.Connect($HostName, $Port)
+                $result = @{TcpTestSucceeded = $true; InterfaceAlias = 'Unsupported' }
+            }
+            catch {
+                $result = @{TcpTestSucceeded = $false; InterfaceAlias = 'Unsupported' }
+            }
+
+            $client.Dispose()
+
+            return $result
         }
     }
 }
+
+if (!$(Get-Command 'Resolve-DnsName' -errorAction SilentlyContinue)) {
+    function Resolve-DnsName {
+        param(
+            [Parameter(Position = 0)] $Name,
+            [Parameter()] $Server,
+            [switch] $CacheOnly,
+            [switch] $DnsOnly,
+            [switch] $NoHostsFile
+        );
+        process {
+            # ToDo: Add support
+            Write-Host "WARNING: Current environment doesn't support multiple DNS sources."
+            return @{ IPAddress = [Dns]::GetHostAddresses($Name).IPAddressToString };
+        }
+    }
+}
+
+if (!$(Get-Command 'Get-NetAdapter' -errorAction SilentlyContinue)) {
+    function Get-NetAdapter {
+        param(
+            [Parameter(Position = 0, Mandatory = $true)] $HostName,
+            [Parameter(Mandatory = $true)] $Port
+        );
+        process {
+            Write-Host 'Unsupported'
+        }
+    }
+}
+
+# PowerShell Container Image Support End
 
 function PrintDNSResults($dnsResult, [string] $dnsSource) {
     if ($dnsResult) {

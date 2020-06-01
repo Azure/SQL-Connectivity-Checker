@@ -4,6 +4,63 @@ using namespace System.net.Sockets
 using namespace System.Collections.Generic
 using namespace System.Diagnostics
 
+# PowerShell Container Image Support Start
+
+if (!$(Get-Command 'Test-NetConnection' -errorAction SilentlyContinue)) {
+    function Test-NetConnection {
+        param(
+            [Parameter(Position = 0, Mandatory = $true)] $HostName,
+            [Parameter(Mandatory = $true)] $Port
+        );
+        process {
+            $client = [TcpClient]::new()
+            
+            try {
+                $client.Connect($HostName, $Port)
+                $result = @{TcpTestSucceeded = $true; InterfaceAlias = 'Unsupported' }
+            }
+            catch {
+                $result = @{TcpTestSucceeded = $false; InterfaceAlias = 'Unsupported' }
+            }
+
+            $client.Dispose()
+
+            return $result
+        }
+    }
+}
+
+if (!$(Get-Command 'Resolve-DnsName' -errorAction SilentlyContinue)) {
+    function Resolve-DnsName {
+        param(
+            [Parameter(Position = 0)] $Name,
+            [Parameter()] $Server,
+            [switch] $CacheOnly,
+            [switch] $DnsOnly,
+            [switch] $NoHostsFile
+        );
+        process {
+            # ToDo: Add support
+            Write-Host "WARNING: Current environment doesn't support multiple DNS sources."
+            return @{ IPAddress = [Dns]::GetHostAddresses($Name).IPAddressToString };
+        }
+    }
+}
+
+if (!$(Get-Command 'Get-NetAdapter' -errorAction SilentlyContinue)) {
+    function Get-NetAdapter {
+        param(
+            [Parameter(Position = 0, Mandatory = $true)] $HostName,
+            [Parameter(Mandatory = $true)] $Port
+        );
+        process {
+            Write-Host 'Unsupported'
+        }
+    }
+}
+
+# PowerShell Container Image Support End
+
 function PrintAverageConnectionTime($addressList, $port) {
     Write-Host 'Printing average connection times for 5 connection attempts:' -ForegroundColor Green
     $stopwatch = [StopWatch]::new()
@@ -84,9 +141,10 @@ $LocalPath = $parameters['LocalPath']
 try {
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls11 -bor [Net.SecurityProtocolType]::Tls
     
-    if($Local) {
+    if ($Local) {
         Copy-Item -Path $($LocalPath + '/netstandard2.0/TDSClient.dll') -Destination "$env:TEMP\AzureSQLConnectivityChecker\TDSClient.dll"
-    } else {
+    }
+    else {
         Invoke-WebRequest -Uri $('https://github.com/Azure/SQL-Connectivity-Checker/raw/' + $RepositoryBranch + '/netstandard2.0/TDSClient.dll') -OutFile "$env:TEMP\AzureSQLConnectivityChecker\TDSClient.dll"
     }
 
