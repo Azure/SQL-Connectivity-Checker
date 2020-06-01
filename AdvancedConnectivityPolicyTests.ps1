@@ -142,16 +142,17 @@ try {
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls11 -bor [Net.SecurityProtocolType]::Tls
     
     if ($Local) {
-        Copy-Item -Path $($LocalPath + '/netstandard2.0/TDSClient.dll') -Destination "$env:TEMP\AzureSQLConnectivityChecker\TDSClient.dll"
+        Copy-Item -Path $($LocalPath + '/netstandard2.0/TDSClient.dll') -Destination "$env:TEMP/AzureSQLConnectivityChecker/TDSClient.dll"
     }
     else {
         Invoke-WebRequest -Uri $('https://github.com/Azure/SQL-Connectivity-Checker/raw/' + $RepositoryBranch + '/netstandard2.0/TDSClient.dll') -OutFile "$env:TEMP\AzureSQLConnectivityChecker\TDSClient.dll"
     }
 
-    $assembly = [System.IO.File]::ReadAllBytes("$env:TEMP\AzureSQLConnectivityChecker\TDSClient.dll")
+    $path = $env:TEMP + "/AzureSQLConnectivityChecker/TDSClient.dll"
+    $assembly = [System.IO.File]::ReadAllBytes($path)
     [System.Reflection.Assembly]::Load($assembly) | Out-Null
 
-    $log = [System.IO.File]::CreateText($env:TEMP + '\AzureSQLConnectivityChecker\ConnectivityPolicyLog.txt')
+    $log = [System.IO.File]::CreateText($env:TEMP + '/AzureSQLConnectivityChecker/ConnectivityPolicyLog.txt')
     [TDSClient.TDS.Utilities.LoggingUtilities]::SetVerboseLog($log)
     try {
         switch ($EncryptionProtocol) {
