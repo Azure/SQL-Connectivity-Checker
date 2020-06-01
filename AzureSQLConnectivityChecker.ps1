@@ -534,10 +534,10 @@ function RunConnectivityPolicyTests($port) {
     Write-Host
     Write-Host 'Advanced connectivity policy tests:' -ForegroundColor Green
 
-    if (!$CustomerRunningInElevatedMode) {
-        Write-Host ' Powershell must be run as an administrator to run advanced connectivity policy tests!' -ForegroundColor Yellow
-        return
-    }
+    #if (!$CustomerRunningInElevatedMode) {
+    #    Write-Host ' Powershell must be run as an administrator to run advanced connectivity policy tests!' -ForegroundColor Yellow
+    #    return
+    #}
 
     if ($(Get-ExecutionPolicy) -eq 'Restricted') {
         Write-Host ' Advanced connectivity policy tests cannot be run because of current execution policy (Restricted)!' -ForegroundColor Yellow
