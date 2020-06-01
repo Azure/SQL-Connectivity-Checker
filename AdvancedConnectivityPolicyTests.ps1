@@ -142,10 +142,12 @@ try {
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls11 -bor [Net.SecurityProtocolType]::Tls
     
     if ($Local) {
-        Copy-Item -Path $($LocalPath + '/netstandard2.0/TDSClient.dll') -Destination "$env:TEMP/AzureSQLConnectivityChecker/TDSClient.dll"
+        $path = $env:TEMP +  "/AzureSQLConnectivityChecker/TDSClient.dll"
+        Copy-Item -Path $($LocalPath + '/netstandard2.0/TDSClient.dll') -Destination $path
     }
     else {
-        Invoke-WebRequest -Uri $('https://github.com/Azure/SQL-Connectivity-Checker/raw/' + $RepositoryBranch + '/netstandard2.0/TDSClient.dll') -OutFile "$env:TEMP\AzureSQLConnectivityChecker\TDSClient.dll"
+        $path = $env:TEMP +  "/AzureSQLConnectivityChecker/TDSClient.dll"
+        Invoke-WebRequest -Uri $('https://github.com/Azure/SQL-Connectivity-Checker/raw/' + $RepositoryBranch + '/netstandard2.0/TDSClient.dll') -OutFile $path
     }
 
     $path = $env:TEMP + "/AzureSQLConnectivityChecker/TDSClient.dll"

@@ -195,6 +195,12 @@ if (!$(Get-Command 'Get-NetAdapter' -errorAction SilentlyContinue)) {
     }
 }
 
+if (!$(Get-Command 'netsh' -errorAction SilentlyContinue) -and $CollectNetworkTrace) {
+    Write-Host "WARNING: Current environment doesn't support network trace capture. This option is now disabled!"
+    $CollectNetworkTrace = $false
+}
+
+
 # PowerShell Container Image Support End
 
 function PrintDNSResults($dnsResult, [string] $dnsSource) {
