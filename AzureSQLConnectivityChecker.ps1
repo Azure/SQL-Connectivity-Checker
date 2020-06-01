@@ -143,13 +143,11 @@ if (!Get-Command 'Test-NetConnection' -errorAction SilentlyContinue) {
     function Test-NetConnection {
         param(
             [Parameter(Position=0)] $HostName,
-            [Parameter()] $Port,
-            [Parameter()] $WarningAction
+            [Parameter()] $Port
         );
         process {
             $HostName;
             $Port;
-            $WarningAction;
         }
     }
 }
