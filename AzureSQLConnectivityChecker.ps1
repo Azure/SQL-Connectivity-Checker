@@ -139,6 +139,21 @@ $TRPorts = @('11000', '11001', '11003', '11005', '11006')
 
 $networkingIssueMessage = ' This issue indicates a problem with the networking configuration. If this is related with on-premises resources, the networking team from customer side should be engaged. If this is between Azure resources, Azure Networking team should be engaged.'
 
+if (!Get-Command 'Test-NetConnection' -errorAction SilentlyContinue) {
+    function Test-NetConnection {
+        param(
+            [Parameter(Position=0)] $HostName,
+            [Parameter()] $Port,
+            [Parameter()] $WarningAction
+        );
+        process {
+            $HostName;
+            $Port;
+            $WarningAction;
+        }
+    }
+}
+
 function PrintDNSResults($dnsResult, [string] $dnsSource) {
     if ($dnsResult) {
         Write-Host ' Found DNS record in' $dnsSource '(IP Address:'$dnsResult.IPAddress')'
