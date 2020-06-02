@@ -546,10 +546,11 @@ function RunConnectivityPolicyTests($port) {
     Write-Host
     Write-Host 'Advanced connectivity policy tests:' -ForegroundColor Green
 
-    if (!$CustomerRunningInElevatedMode) {
-        Write-Host ' Powershell must be run as an administrator to run advanced connectivity policy tests!' -ForegroundColor Yellow
-        return
-    }
+    # Removed for testing purposes
+    #if (!$CustomerRunningInElevatedMode) {
+    #    Write-Host ' Powershell must be run as an administrator to run advanced connectivity policy tests!' -ForegroundColor Yellow
+    #    return
+    #}
 
     if ($(Get-ExecutionPolicy) -eq 'Restricted') {
         Write-Host ' Advanced connectivity policy tests cannot be run because of current execution policy (Restricted)!' -ForegroundColor Yellow
@@ -848,6 +849,11 @@ finally {
             Compress-Archive -Path (Get-Location).Path -DestinationPath $destAllFiles -Force
             Write-Host 'A zip file with all the files can be found at' $destAllFiles -ForegroundColor Green
         }
-        Invoke-Item (Get-Location).Path
+
+        if ($PSVersionTable.Platform -eq 'Unix') {
+            Get-ChildItem
+        } else {
+            Invoke-Item (Get-Location).Path
+        }
     }
 }
