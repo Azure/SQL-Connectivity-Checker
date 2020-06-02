@@ -595,7 +595,7 @@ function SendAnonymousUsageData {
         
         $text = $env:computername + $env:username
         if ([string]::IsNullOrEmpty($test)) {
-            $test = $Host.InstanceId
+            $text = $Host.InstanceId
         }
         
         [System.Security.Cryptography.HashAlgorithm]::Create("MD5").ComputeHash([System.Text.Encoding]::UTF8.GetBytes($text)) | ForEach-Object {
