@@ -592,7 +592,13 @@ function SendAnonymousUsageData {
     try {
         #Despite computername and username will be used to calculate a hash string, this will keep you anonymous but allow us to identify multiple runs from the same user
         $StringBuilderHash = [System.Text.StringBuilder]::new()
-        [System.Security.Cryptography.HashAlgorithm]::Create("MD5").ComputeHash([System.Text.Encoding]::UTF8.GetBytes($env:computername + $env:username)) | ForEach-Object {
+        
+        $text = $env:computername + $env:username
+        if ([string]::IsNullOrEmpty($test)) {
+            $test = $Host.InstanceId
+        }
+        
+        [System.Security.Cryptography.HashAlgorithm]::Create("MD5").ComputeHash([System.Text.Encoding]::UTF8.GetBytes($text)) | ForEach-Object {
             [Void]$StringBuilderHash.Append($_.ToString("x2"))
         }
 
@@ -651,7 +657,7 @@ try {
 
     try {
         Write-Host '******************************************' -ForegroundColor Green
-        Write-Host '  Azure SQL Connectivity Checker v1.4  ' -ForegroundColor Green
+        Write-Host '  Azure SQL Connectivity Checker v1.5  ' -ForegroundColor Green
         Write-Host '******************************************' -ForegroundColor Green
         Write-Host
         Write-Host 'Parameters' -ForegroundColor Yellow
