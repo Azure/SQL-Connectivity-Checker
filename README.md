@@ -31,7 +31,8 @@ $parameters = @{
 }
 
 $ProgressPreference = "SilentlyContinue";
-$scriptUrlBase = 'raw.githubusercontent.com/Azure/SQL-Connectivity-Checker/master'
+$branch = [string]::IsNullOrEmpty($parameters.RepositoryBranch) ? 'master' : $parameters.RepositoryBranch
+$scriptUrlBase = 'raw.githubusercontent.com/Azure/SQL-Connectivity-Checker/' + $branch
 Invoke-Command -ScriptBlock ([Scriptblock]::Create((iwr ($scriptUrlBase+'/AzureSQLConnectivityChecker.ps1')).Content)) -ArgumentList $parameters
 #end
 ```
@@ -43,6 +44,61 @@ Invoke-Command -ScriptBlock ([Scriptblock]::Create((iwr ($scriptUrlBase+'/AzureS
 If the user has the permissions to create folders, a folder with the resulting log file will be created.
 When running on Windows, the folder will be opened automatically after the script completes.
 A zip file with all the log files (AllFiles.zip) will be created.
+
+**Running SQL Connectivity Checker in containerized environment**
+
+In order to troubleshoot your containerized application you'll have to temporarily deploy a Powershell Image which will allow you to execute this script and collect the results, you can see all the available Powershell Images [here](https://hub.docker.com/_/microsoft-powershell).
+
+Our suggestion would be to use a lightweight image for this purpose, such as `lts-alpine-3.10` image.
+
+**Kubernetes**
+
+The following steps show the Kubernetes kubectl commands required to download the image and start an interactive PowerShell session.
+
+```
+kubectl run -it sqlconncheckerpowershellinstance --image=mcr.microsoft.com/powershell:lts-alpine-3.10
+```
+
+The following command is used to exit the current Powershell session.
+```
+exit
+```
+
+The following command is used to attach to an existing Powershell instance.
+```
+kubectl attach -it sqlconncheckerpowershellinstance
+```
+
+The following command is used to delete the pod running this image when you no longer need it.
+
+```
+kubectl delete pod sqlconncheckerpowershellinstance
+```
+
+**Docker**
+
+The following steps show the Docker commands required to download the image and start an interactive PowerShell session.
+
+```
+docker run -it --name sqlconncheckerpowershellinstance --image=mcr.microsoft.com/powershell:lts-alpine-3.10
+```
+
+The following command is used to exit the current Powershell session.
+```
+exit
+```
+
+The following command is used to attach to an existing Powershell instance.
+```
+docker attach sqlconncheckerpowershellinstance
+```
+
+The following command is used to delete the container running this image when you no longer need it.
+
+```
+docker container rm sqlconncheckerpowershellinstance
+```
+
 
 # Contributing
 
