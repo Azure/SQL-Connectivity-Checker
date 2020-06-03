@@ -31,7 +31,11 @@ $parameters = @{
 }
 
 $ProgressPreference = "SilentlyContinue";
-$branch = [string]::IsNullOrEmpty($parameters.RepositoryBranch) ? 'master' : $parameters.RepositoryBranch
+if ([string]::IsNullOrEmpty($parameters.RepositoryBranch)) {
+    $branch = 'master'
+} else {
+    $branch = $parameters.RepositoryBranch
+}
 $scriptUrlBase = 'raw.githubusercontent.com/Azure/SQL-Connectivity-Checker/' + $branch
 Invoke-Command -ScriptBlock ([Scriptblock]::Create((iwr ($scriptUrlBase+'/AzureSQLConnectivityChecker.ps1')).Content)) -ArgumentList $parameters
 #end
