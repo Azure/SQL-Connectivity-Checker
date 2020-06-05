@@ -37,7 +37,7 @@ if ([string]::IsNullOrEmpty($parameters.RepositoryBranch)) {
     $branch = $parameters.RepositoryBranch
 }
 $scriptUrlBase = 'raw.githubusercontent.com/Azure/SQL-Connectivity-Checker/' + $branch
-Invoke-Command -ScriptBlock ([Scriptblock]::Create((iwr ($scriptUrlBase+'/AzureSQLConnectivityChecker.ps1')).Content)) -ArgumentList $parameters
+Invoke-Command -ScriptBlock ([Scriptblock]::Create((Invoke-WebRequest ($scriptUrlBase+'/AzureSQLConnectivityChecker.ps1') -UseBasicParsing).Content)) -ArgumentList $parameters
 #end
 ```
 4. Set the parameters on the script, you need to set server name. Database name, user and password are optional but desirable.

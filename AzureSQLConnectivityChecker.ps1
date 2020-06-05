@@ -625,6 +625,10 @@ function SendAnonymousUsageData {
 
 $ProgressPreference = "SilentlyContinue";
 
+if ([string]::IsNullOrEmpty($env:TEMP)) {
+    $env:TEMP = '/tmp';
+}
+
 try {
     Clear-Host
     $canWriteFiles = $true

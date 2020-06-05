@@ -138,6 +138,11 @@ $RepositoryBranch = $parameters['RepositoryBranch']
 $Local = $parameters['Local']
 $LocalPath = $parameters['LocalPath']
 
+
+if ([string]::IsNullOrEmpty($env:TEMP)) {
+    $env:TEMP = '/tmp';
+}
+
 try {
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls11 -bor [Net.SecurityProtocolType]::Tls
     
