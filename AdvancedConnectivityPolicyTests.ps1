@@ -147,7 +147,7 @@ try {
     }
     else {
         $path = $env:TEMP +  "/AzureSQLConnectivityChecker/TDSClient.dll"
-        Invoke-WebRequest -Uri $('https://github.com/Azure/SQL-Connectivity-Checker/raw/' + $RepositoryBranch + '/netstandard2.0/TDSClient.dll') -OutFile $path
+        Invoke-WebRequest -Uri $('https://github.com/Azure/SQL-Connectivity-Checker/raw/' + $RepositoryBranch + '/netstandard2.0/TDSClient.dll') -OutFile $path -UseBasicParsing
     }
 
     $path = $env:TEMP + "/AzureSQLConnectivityChecker/TDSClient.dll"
