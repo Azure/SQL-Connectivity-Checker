@@ -4,6 +4,63 @@ using namespace System.net.Sockets
 using namespace System.Collections.Generic
 using namespace System.Diagnostics
 
+# PowerShell Container Image Support Start
+
+if (!$(Get-Command 'Test-NetConnection' -errorAction SilentlyContinue)) {
+    function Test-NetConnection {
+        param(
+            [Parameter(Position = 0, Mandatory = $true)] $HostName,
+            [Parameter(Mandatory = $true)] $Port
+        );
+        process {
+            $client = [TcpClient]::new()
+            
+            try {
+                $client.Connect($HostName, $Port)
+                $result = @{TcpTestSucceeded = $true; InterfaceAlias = 'Unsupported' }
+            }
+            catch {
+                $result = @{TcpTestSucceeded = $false; InterfaceAlias = 'Unsupported' }
+            }
+
+            $client.Dispose()
+
+            return $result
+        }
+    }
+}
+
+if (!$(Get-Command 'Resolve-DnsName' -errorAction SilentlyContinue)) {
+    function Resolve-DnsName {
+        param(
+            [Parameter(Position = 0)] $Name,
+            [Parameter()] $Server,
+            [switch] $CacheOnly,
+            [switch] $DnsOnly,
+            [switch] $NoHostsFile
+        );
+        process {
+            # ToDo: Add support
+            Write-Host "WARNING: Current environment doesn't support multiple DNS sources."
+            return @{ IPAddress = [Dns]::GetHostAddresses($Name).IPAddressToString };
+        }
+    }
+}
+
+if (!$(Get-Command 'Get-NetAdapter' -errorAction SilentlyContinue)) {
+    function Get-NetAdapter {
+        param(
+            [Parameter(Position = 0, Mandatory = $true)] $HostName,
+            [Parameter(Mandatory = $true)] $Port
+        );
+        process {
+            Write-Host 'Unsupported'
+        }
+    }
+}
+
+# PowerShell Container Image Support End
+
 function PrintAverageConnectionTime($addressList, $port) {
     Write-Host 'Printing average connection times for 5 connection attempts:' -ForegroundColor Green
     $stopwatch = [StopWatch]::new()
@@ -81,19 +138,28 @@ $RepositoryBranch = $parameters['RepositoryBranch']
 $Local = $parameters['Local']
 $LocalPath = $parameters['LocalPath']
 
+
+if ([string]::IsNullOrEmpty($env:TEMP)) {
+    $env:TEMP = '/tmp';
+}
+
 try {
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls11 -bor [Net.SecurityProtocolType]::Tls
     
-    if($Local) {
-        Copy-Item -Path $($LocalPath + '/netstandard2.0/TDSClient.dll') -Destination "$env:TEMP\AzureSQLConnectivityChecker\TDSClient.dll"
-    } else {
-        Invoke-WebRequest -Uri $('https://github.com/Azure/SQL-Connectivity-Checker/raw/' + $RepositoryBranch + '/netstandard2.0/TDSClient.dll') -OutFile "$env:TEMP\AzureSQLConnectivityChecker\TDSClient.dll"
+    if ($Local) {
+        $path = $env:TEMP +  "/AzureSQLConnectivityChecker/TDSClient.dll"
+        Copy-Item -Path $($LocalPath + '/netstandard2.0/TDSClient.dll') -Destination $path
+    }
+    else {
+        $path = $env:TEMP +  "/AzureSQLConnectivityChecker/TDSClient.dll"
+        Invoke-WebRequest -Uri $('https://github.com/Azure/SQL-Connectivity-Checker/raw/' + $RepositoryBranch + '/netstandard2.0/TDSClient.dll') -OutFile $path -UseBasicParsing
     }
 
-    $assembly = [System.IO.File]::ReadAllBytes("$env:TEMP\AzureSQLConnectivityChecker\TDSClient.dll")
+    $path = $env:TEMP + "/AzureSQLConnectivityChecker/TDSClient.dll"
+    $assembly = [System.IO.File]::ReadAllBytes($path)
     [System.Reflection.Assembly]::Load($assembly) | Out-Null
 
-    $log = [System.IO.File]::CreateText($env:TEMP + '\AzureSQLConnectivityChecker\ConnectivityPolicyLog.txt')
+    $log = [System.IO.File]::CreateText($env:TEMP + '/AzureSQLConnectivityChecker/ConnectivityPolicyLog.txt')
     [TDSClient.TDS.Utilities.LoggingUtilities]::SetVerboseLog($log)
     try {
         switch ($EncryptionProtocol) {
@@ -131,7 +197,8 @@ try {
         [TDSClient.TDS.Utilities.LoggingUtilities]::ClearVerboseLog()
     }
 
-    $result = $([System.IO.File]::ReadAllText($env:TEMP + '\AzureSQLConnectivityChecker\ConnectivityPolicyLog.txt'))
+    $path = $env:TEMP + '/AzureSQLConnectivityChecker/ConnectivityPolicyLog.txt'
+    $result = $([System.IO.File]::ReadAllText($path))
 
     Write-Host $result
 

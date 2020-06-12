@@ -86,9 +86,15 @@ if ($null -eq $RepositoryBranch) {
 }
 
 $CustomerRunningInElevatedMode = $false
-$currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
-if ($currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-    $CustomerRunningInElevatedMode = $true
+if ($PSVersionTable.Platform -eq 'Unix') {
+    if ((id -u) -eq 0) {
+        $CustomerRunningInElevatedMode = $true
+    }
+} else {
+    $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+    if ($currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+        $CustomerRunningInElevatedMode = $true
+    }
 }
 
 $SQLDBGateways = @(
@@ -138,6 +144,70 @@ $SQLDBGateways = @(
 $TRPorts = @('11000', '11001', '11003', '11005', '11006')
 
 $networkingIssueMessage = ' This issue indicates a problem with the networking configuration. If this is related with on-premises resources, the networking team from customer side should be engaged. If this is between Azure resources, Azure Networking team should be engaged.'
+
+
+# PowerShell Container Image Support Start
+
+if (!$(Get-Command 'Test-NetConnection' -errorAction SilentlyContinue)) {
+    function Test-NetConnection {
+        param(
+            [Parameter(Position = 0, Mandatory = $true)] $HostName,
+            [Parameter(Mandatory = $true)] $Port
+        );
+        process {
+            $client = [TcpClient]::new()
+            
+            try {
+                $client.Connect($HostName, $Port)
+                $result = @{TcpTestSucceeded = $true; InterfaceAlias = 'Unsupported' }
+            }
+            catch {
+                $result = @{TcpTestSucceeded = $false; InterfaceAlias = 'Unsupported' }
+            }
+
+            $client.Dispose()
+
+            return $result
+        }
+    }
+}
+
+if (!$(Get-Command 'Resolve-DnsName' -errorAction SilentlyContinue)) {
+    function Resolve-DnsName {
+        param(
+            [Parameter(Position = 0)] $Name,
+            [Parameter()] $Server,
+            [switch] $CacheOnly,
+            [switch] $DnsOnly,
+            [switch] $NoHostsFile
+        );
+        process {
+            # ToDo: Add support
+            Write-Host "WARNING: Current environment doesn't support multiple DNS sources."
+            return @{ IPAddress = [Dns]::GetHostAddresses($Name).IPAddressToString };
+        }
+    }
+}
+
+if (!$(Get-Command 'Get-NetAdapter' -errorAction SilentlyContinue)) {
+    function Get-NetAdapter {
+        param(
+            [Parameter(Position = 0, Mandatory = $true)] $HostName,
+            [Parameter(Mandatory = $true)] $Port
+        );
+        process {
+            Write-Host 'Unsupported'
+        }
+    }
+}
+
+if (!$(Get-Command 'netsh' -errorAction SilentlyContinue) -and $CollectNetworkTrace) {
+    Write-Host "WARNING: Current environment doesn't support network trace capture. This option is now disabled!"
+    $CollectNetworkTrace = $false
+}
+
+
+# PowerShell Container Image Support End
 
 function PrintDNSResults($dnsResult, [string] $dnsSource) {
     if ($dnsResult) {
@@ -476,10 +546,11 @@ function RunConnectivityPolicyTests($port) {
     Write-Host
     Write-Host 'Advanced connectivity policy tests:' -ForegroundColor Green
 
-    if (!$CustomerRunningInElevatedMode) {
-        Write-Host ' Powershell must be run as an administrator to run advanced connectivity policy tests!' -ForegroundColor Yellow
-        return
-    }
+    # Check removed
+    #if (!$CustomerRunningInElevatedMode) {
+    #    Write-Host ' Powershell must be run as an administrator to run advanced connectivity policy tests!' -ForegroundColor Yellow
+    #    return
+    #}
 
     if ($(Get-ExecutionPolicy) -eq 'Restricted') {
         Write-Host ' Advanced connectivity policy tests cannot be run because of current execution policy (Restricted)!' -ForegroundColor Yellow
@@ -509,7 +580,7 @@ function RunConnectivityPolicyTests($port) {
         Copy-Item -Path $($LocalPath + './AdvancedConnectivityPolicyTests.ps1') -Destination "$env:TEMP\AzureSQLConnectivityChecker\AdvancedConnectivityPolicyTests.ps1"
     }
     else {
-        Invoke-WebRequest -Uri $('https://raw.githubusercontent.com/Azure/SQL-Connectivity-Checker/' + $RepositoryBranch + '/AdvancedConnectivityPolicyTests.ps1') -OutFile "$env:TEMP\AzureSQLConnectivityChecker\AdvancedConnectivityPolicyTests.ps1"
+        Invoke-WebRequest -Uri $('https://raw.githubusercontent.com/Azure/SQL-Connectivity-Checker/' + $RepositoryBranch + '/AdvancedConnectivityPolicyTests.ps1') -OutFile "$env:TEMP\AzureSQLConnectivityChecker\AdvancedConnectivityPolicyTests.ps1" -UseBasicParsing
     }
 
     $job = Start-Job -ArgumentList $jobParameters -FilePath "$env:TEMP\AzureSQLConnectivityChecker\AdvancedConnectivityPolicyTests.ps1"
@@ -522,7 +593,13 @@ function SendAnonymousUsageData {
     try {
         #Despite computername and username will be used to calculate a hash string, this will keep you anonymous but allow us to identify multiple runs from the same user
         $StringBuilderHash = [System.Text.StringBuilder]::new()
-        [System.Security.Cryptography.HashAlgorithm]::Create("MD5").ComputeHash([System.Text.Encoding]::UTF8.GetBytes($env:computername + $env:username)) | ForEach-Object {
+        
+        $text = $env:computername + $env:username
+        if ([string]::IsNullOrEmpty($test)) {
+            $text = $Host.InstanceId
+        }
+        
+        [System.Security.Cryptography.HashAlgorithm]::Create("MD5").ComputeHash([System.Text.Encoding]::UTF8.GetBytes($text)) | ForEach-Object {
             [Void]$StringBuilderHash.Append($_.ToString("x2"))
         }
 
@@ -547,6 +624,10 @@ function SendAnonymousUsageData {
 }
 
 $ProgressPreference = "SilentlyContinue";
+
+if ([string]::IsNullOrEmpty($env:TEMP)) {
+    $env:TEMP = '/tmp';
+}
 
 try {
     Clear-Host
@@ -581,7 +662,7 @@ try {
 
     try {
         Write-Host '******************************************' -ForegroundColor Green
-        Write-Host '  Azure SQL Connectivity Checker v1.4  ' -ForegroundColor Green
+        Write-Host '  Azure SQL Connectivity Checker v1.5  ' -ForegroundColor Green
         Write-Host '******************************************' -ForegroundColor Green
         Write-Host
         Write-Host 'Parameters' -ForegroundColor Yellow
@@ -772,6 +853,11 @@ finally {
             Compress-Archive -Path (Get-Location).Path -DestinationPath $destAllFiles -Force
             Write-Host 'A zip file with all the files can be found at' $destAllFiles -ForegroundColor Green
         }
-        Invoke-Item (Get-Location).Path
+
+        if ($PSVersionTable.Platform -eq 'Unix') {
+            Get-ChildItem
+        } else {
+            Invoke-Item (Get-Location).Path
+        }
     }
 }
