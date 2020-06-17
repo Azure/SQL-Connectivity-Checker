@@ -630,7 +630,7 @@ if ([string]::IsNullOrEmpty($env:TEMP)) {
 }
 
 try {
-    Clear-Host
+    cls
     $canWriteFiles = $true
     try {
         $logsFolderName = 'AzureSQLConnectivityCheckerResults'
