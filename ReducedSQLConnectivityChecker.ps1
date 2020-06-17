@@ -37,6 +37,10 @@ if ($null -eq $RepositoryBranch) {
     $RepositoryBranch = 'master'
 }
 
+function IsManagedInstance([String] $Server) {
+    return [bool]((($Server.ToCharArray() | Where-Object { $_ -eq '.' } | Measure-Object).Count) -ge 4)
+}
+
 function IsManagedInstancePublicEndpoint([String] $Server) {
     return [bool]((IsManagedInstance $Server) -and ($Server -match '.public.'))
 }
@@ -105,10 +109,9 @@ try {
             }
         }
     
+        $Port = 1433
         if (IsManagedInstancePublicEndpoint $Server) {
             $Port = 3342
-        } else {
-            $Port = 1433
         }
     
         $tdsClient = [TDSClient.TDS.Client.TDSSQLTestClient]::new($Server, $Port, $User, $Password, $Database, $encryption)
@@ -124,5 +127,4 @@ try {
 } catch {
 
 } finally {
-    Remove-Item $path
 }

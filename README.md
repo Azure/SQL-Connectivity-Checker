@@ -41,7 +41,7 @@ if ([string]::IsNullOrEmpty($parameters.RepositoryBranch)) {
 if ("AzureKudu" -eq $env:DOTNET_CLI_TELEMETRY_PROFILE) {
     $scriptFile = '/ReducedSQLConnectivityChecker.ps1'
 } else {
-    $sriptFile = '/AzureSQLConnectivityCheccker.ps1'
+    $scriptFile = '/AzureSQLConnectivityChecker.ps1'
 }
 
 $scriptUrlBase = 'raw.githubusercontent.com/Azure/SQL-Connectivity-Checker/' + $branch
