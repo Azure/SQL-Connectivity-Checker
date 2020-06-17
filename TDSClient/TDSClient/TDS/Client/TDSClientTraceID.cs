@@ -85,9 +85,9 @@ namespace TDSClient.TDS.Client
         /// <param name="stream">MemoryStream in which IPackageable is packet into.</param>
         public void Pack(MemoryStream stream)
         {
-            BigEndianUtilities.WriteByteArray(stream, this.TraceID);
-            BigEndianUtilities.WriteByteArray(stream, this.ActivityID);
-            BigEndianUtilities.WriteUInt(stream, this.ActivitySequence);
+            stream.Write(this.TraceID, 0, this.TraceID.Length);
+            stream.Write(this.ActivityID, 0, this.ActivityID.Length);
+            LittleEndianUtilities.WriteUInt(stream, this.ActivitySequence);
         }
 
         /// <summary>
@@ -97,9 +97,9 @@ namespace TDSClient.TDS.Client
         /// <returns>Returns true if successful.</returns>
         public bool Unpack(MemoryStream stream)
         {
-            this.TraceID = BigEndianUtilities.ReadByteArray(stream, 16);
-            this.ActivityID = BigEndianUtilities.ReadByteArray(stream, 16);
-            this.ActivitySequence = BigEndianUtilities.ReadUInt(stream);
+            stream.Read(this.TraceID, 0, 16);
+            stream.Read(this.ActivityID, 0, 16);
+            this.ActivitySequence = LittleEndianUtilities.ReadUInt(stream);
             
             return true;
         }
