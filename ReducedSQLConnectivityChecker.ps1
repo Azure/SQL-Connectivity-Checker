@@ -150,7 +150,7 @@ function PrintLocalNetworkConfiguration() {
     $computerProperties = [System.Net.NetworkInformation.IPGlobalProperties]::GetIPGlobalProperties()
     $networkInterfaces = [System.Net.NetworkInformation.NetworkInterface]::GetAllNetworkInterfaces()
 
-    Write-Output 'Interface information for '$computerProperties.HostName'.'$networkInterfaces.DomainName
+    Write-Output $('Interface information for ' + $computerProperties.HostName + '.' + $networkInterfaces.DomainName)
 
     foreach ($networkInterface in $networkInterfaces) {
         if ($networkInterface.NetworkInterfaceType -eq 'Loopback') {
@@ -159,10 +159,10 @@ function PrintLocalNetworkConfiguration() {
 
         $properties = $networkInterface.GetIPProperties()
 
-        Write-Output ' Interface name: ' + $networkInterface.Name
-        Write-Output ' Interface description: ' + $networkInterface.Description
-        Write-Output ' Interface type: ' + $networkInterface.NetworkInterfaceType
-        Write-Output ' Operational status: ' + $networkInterface.OperationalStatus
+        Write-Output $(' Interface name: ' + $networkInterface.Name)
+        Write-Output $(' Interface description: ' + $networkInterface.Description)
+        Write-Output $(' Interface type: ' + $networkInterface.NetworkInterfaceType)
+        Write-Output $(' Operational status: ' + $networkInterface.OperationalStatus)
 
         Write-Output ' Unicast address list:'
         Write-Output $('  ' + [String]::Join([Environment]::NewLine + '  ', [System.Linq.Enumerable]::Select($properties.UnicastAddresses, [Func[System.Net.NetworkInformation.UnicastIPAddressInformation, IPAddress]] { $args[0].Address })))
@@ -170,22 +170,22 @@ function PrintLocalNetworkConfiguration() {
         Write-Output ' DNS server address list:'
         Write-Output $('  ' + [String]::Join([Environment]::NewLine + '  ', $properties.DnsAddresses))
 
-        Write-Output
+        Write-Output ''
     }
 }
 
 function PrintDNSResults($dnsResult, [string] $dnsSource) {
     if ($dnsResult) {
-        Write-Output ' Found DNS record in' + $dnsSource + '(IP Address:' + $dnsResult.IPAddress + ')'
+        Write-Output $(' Found DNS record in' + $dnsSource + '(IP Address:' + $dnsResult.IPAddress + ')')
     }
     else {
-        Write-Output ' Could not find DNS record in' + $dnsSource
+        Write-Output $(' Could not find DNS record in' + $dnsSource)
     }
 }
 
 function ValidateDNS([String] $Server) {
     Try {
-        Write-Output 'Validating DNS record for' + $Server
+        Write-Output $('Validating DNS record for' + $Server)
 
         $DNSfromHosts = Resolve-DnsName -Name $Server -CacheOnly -ErrorAction SilentlyContinue
         PrintDNSResults $DNSfromHosts 'hosts file'
@@ -219,7 +219,7 @@ try {
     if (!$Server -or $Server.Length -eq 0) {
         Write-Output 'The $Server parameter is empty'
         Write-Output 'Please see more details about how to use this tool at https://github.com/Azure/SQL-Connectivity-Checker'
-        Write-Output
+        Write-Output ''
         throw
     }
     
