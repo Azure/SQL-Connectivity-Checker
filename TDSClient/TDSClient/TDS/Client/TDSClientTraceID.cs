@@ -34,7 +34,7 @@ namespace TDSClient.TDS.Client
         /// <param name="traceID">Trace ID</param>
         /// <param name="activityID">Activity ID</param>
         /// <param name="activitySequence">Activity Sequence</param>
-        public TDSClientTraceID(byte[] traceID, byte[] activityID, ulong activitySequence)
+        public TDSClientTraceID(byte[] traceID, byte[] activityID, uint activitySequence)
         {
             this.TraceID = traceID;
             this.ActivityID = activityID;
@@ -54,7 +54,7 @@ namespace TDSClient.TDS.Client
         /// <summary>
         /// Gets or sets the TDS Client Application Activity Sequence
         /// </summary>
-        public ulong ActivitySequence { get; set; }
+        public uint ActivitySequence { get; set; }
 
         /// <summary>
         /// Determines whether the specified object is equal to the current object.
@@ -87,7 +87,7 @@ namespace TDSClient.TDS.Client
         {
             BigEndianUtilities.WriteByteArray(stream, this.TraceID);
             BigEndianUtilities.WriteByteArray(stream, this.ActivityID);
-            BigEndianUtilities.WriteULong(stream, this.ActivitySequence);
+            BigEndianUtilities.WriteUInt(stream, this.ActivitySequence);
         }
 
         /// <summary>
@@ -99,7 +99,7 @@ namespace TDSClient.TDS.Client
         {
             this.TraceID = BigEndianUtilities.ReadByteArray(stream, 16);
             this.ActivityID = BigEndianUtilities.ReadByteArray(stream, 16);
-            this.ActivitySequence = BigEndianUtilities.ReadULong(stream);
+            this.ActivitySequence = BigEndianUtilities.ReadUInt(stream);
             
             return true;
         }

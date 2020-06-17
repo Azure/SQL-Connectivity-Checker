@@ -41,7 +41,7 @@ if (!$(Get-Command 'Resolve-DnsName' -errorAction SilentlyContinue)) {
         );
         process {
             # ToDo: Add support
-            Write-Host "WARNING: Current environment doesn't support multiple DNS sources."
+            Write-Output "WARNING: Current environment doesn't support multiple DNS sources."
             return @{ IPAddress = [Dns]::GetHostAddresses($Name).IPAddressToString };
         }
     }
@@ -54,7 +54,7 @@ if (!$(Get-Command 'Get-NetAdapter' -errorAction SilentlyContinue)) {
             [Parameter(Mandatory = $true)] $Port
         );
         process {
-            Write-Host 'Unsupported'
+            Write-Output 'Unsupported'
         }
     }
 }
@@ -62,7 +62,7 @@ if (!$(Get-Command 'Get-NetAdapter' -errorAction SilentlyContinue)) {
 # PowerShell Container Image Support End
 
 function PrintAverageConnectionTime($addressList, $port) {
-    Write-Host 'Printing average connection times for 5 connection attempts:' -ForegroundColor Green
+    Write-Output 'Printing average connection times for 5 connection attempts:' -ForegroundColor Green
     $stopwatch = [StopWatch]::new()
 
     foreach ($ipAddress in $addressList) {
@@ -92,22 +92,22 @@ function PrintAverageConnectionTime($addressList, $port) {
             $avg = $sum / $numSuccessful
         }
 
-        Write-Host '  IP Address:'$ipAddress'  Port:'$port'  Successful connections:'$numSuccessful'  Failed connections:'$numFailed'  Average response time:'$avg' ms '
+        Write-Output '  IP Address:'$ipAddress'  Port:'$port'  Successful connections:'$numSuccessful'  Failed connections:'$numFailed'  Average response time:'$avg' ms '
     }
 }
 
 function PrintDNSResults($dnsResult, [string] $dnsSource) {
     if ($dnsResult) {
-        Write-Host ' Found DNS record in' $dnsSource '(IP Address:'$dnsResult.IPAddress')'
+        Write-Output ' Found DNS record in' $dnsSource '(IP Address:'$dnsResult.IPAddress')'
     }
     else {
-        Write-Host ' Could not find DNS record in' $dnsSource
+        Write-Output ' Could not find DNS record in' $dnsSource
     }
 }
 
 function ValidateDNS([String] $Server) {
     Try {
-        Write-Host 'Validating DNS record for' $Server -ForegroundColor Green
+        Write-Output 'Validating DNS record for' $Server -ForegroundColor Green
 
         $DNSfromHosts = Resolve-DnsName -Name $Server -CacheOnly -ErrorAction SilentlyContinue
         PrintDNSResults $DNSfromHosts 'hosts file'
@@ -122,8 +122,8 @@ function ValidateDNS([String] $Server) {
         PrintDNSResults $DNSfromAzureDNS 'Open DNS'
     }
     Catch {
-        Write-Host "Error at ValidateDNS" -Foreground Red
-        Write-Host $_.Exception.Message -ForegroundColor Red
+        Write-Output "Error at ValidateDNS" -Foreground Red
+        Write-Output $_.Exception.Message -ForegroundColor Red
     }
 }
 
@@ -200,7 +200,7 @@ try {
     $path = $env:TEMP + '/AzureSQLConnectivityChecker/ConnectivityPolicyLog.txt'
     $result = $([System.IO.File]::ReadAllText($path))
 
-    Write-Host $result
+    Write-Output $result
 
     $match = [Regex]::Match($result, "Routing to: (.*)\.")
     if ($match.Success) {
@@ -208,27 +208,27 @@ try {
         $server = $array[0]
         $port = $array[1]
 
-        Write-Host 'Redirect connectivity policy has been detected, running additional tests:' -ForegroundColor Green
+        Write-Output 'Redirect connectivity policy has been detected, running additional tests:' -ForegroundColor Green
         ValidateDNS $server
 
         try {
             $dnsResult = [System.Net.DNS]::GetHostEntry($Server)
         }
         catch {
-            Write-Host ' ERROR: Name resolution of' $Server 'failed' -ForegroundColor Red
+            Write-Output ' ERROR: Name resolution of' $Server 'failed' -ForegroundColor Red
             throw
         }
 
         $resolvedAddress = $dnsResult.AddressList[0].IPAddressToString
 
-        Write-Host
+        Write-Output
         PrintAverageConnectionTime $resolvedAddress $port
     }
     else {
-        Write-Host ' Proxy connection policy detected!' -ForegroundColor Green
+        Write-Output ' Proxy connection policy detected!' -ForegroundColor Green
     }
 }
 catch {
-    Write-Host 'Running advanced connectivity policy tests failed!' -ForegroundColor Red
-    Write-Host $_.Exception
+    Write-Output 'Running advanced connectivity policy tests failed!' -ForegroundColor Red
+    Write-Output $_.Exception
 }
