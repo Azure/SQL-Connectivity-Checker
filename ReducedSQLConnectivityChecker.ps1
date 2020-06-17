@@ -37,12 +37,172 @@ if ($null -eq $RepositoryBranch) {
     $RepositoryBranch = 'master'
 }
 
+# PowerShell Container Image Support Start
+
+if (!$(Get-Command 'Test-NetConnection' -errorAction SilentlyContinue)) {
+    function Test-NetConnection {
+        param(
+            [Parameter(Position = 0, Mandatory = $true)] $HostName,
+            [Parameter(Mandatory = $true)] $Port
+        );
+        process {
+            $client = [TcpClient]::new()
+            
+            try {
+                $client.Connect($HostName, $Port)
+                $result = @{TcpTestSucceeded = $true; InterfaceAlias = 'Unsupported' }
+            }
+            catch {
+                $result = @{TcpTestSucceeded = $false; InterfaceAlias = 'Unsupported' }
+            }
+
+            $client.Dispose()
+
+            return $result
+        }
+    }
+}
+
+if (!$(Get-Command 'Resolve-DnsName' -errorAction SilentlyContinue)) {
+    function Resolve-DnsName {
+        param(
+            [Parameter(Position = 0)] $Name,
+            [Parameter()] $Server,
+            [switch] $CacheOnly,
+            [switch] $DnsOnly,
+            [switch] $NoHostsFile
+        );
+        process {
+            # ToDo: Add support
+            Write-Host "WARNING: Current environment doesn't support multiple DNS sources."
+            return @{ IPAddress = [Dns]::GetHostAddresses($Name).IPAddressToString };
+        }
+    }
+}
+
+if (!$(Get-Command 'Get-NetAdapter' -errorAction SilentlyContinue)) {
+    function Get-NetAdapter {
+        param(
+            [Parameter(Position = 0, Mandatory = $true)] $HostName,
+            [Parameter(Mandatory = $true)] $Port
+        );
+        process {
+            Write-Host 'Unsupported'
+        }
+    }
+}
+
+if (!$(Get-Command 'netsh' -errorAction SilentlyContinue) -and $CollectNetworkTrace) {
+    Write-Host "WARNING: Current environment doesn't support network trace capture. This option is now disabled!"
+    $CollectNetworkTrace = $false
+}
+
+# PowerShell Container Image Support End
+
 function IsManagedInstance([String] $Server) {
     return [bool]((($Server.ToCharArray() | Where-Object { $_ -eq '.' } | Measure-Object).Count) -ge 4)
 }
 
 function IsManagedInstancePublicEndpoint([String] $Server) {
     return [bool]((IsManagedInstance $Server) -and ($Server -match '.public.'))
+}
+
+function SendAnonymousUsageData {
+    try {
+        #Despite computername and username will be used to calculate a hash string, this will keep you anonymous but allow us to identify multiple runs from the same user
+        $StringBuilderHash = [System.Text.StringBuilder]::new()
+        
+        $text = $env:computername + $env:username
+        if ([string]::IsNullOrEmpty($text)) {
+            $text = $Host.InstanceId
+        }
+        
+        [System.Security.Cryptography.HashAlgorithm]::Create("MD5").ComputeHash([System.Text.Encoding]::UTF8.GetBytes($text)) | ForEach-Object {
+            [Void]$StringBuilderHash.Append($_.ToString("x2"))
+        }
+
+        $body = New-Object PSObject `
+        | Add-Member -PassThru NoteProperty name 'Microsoft.ApplicationInsights.Event' `
+        | Add-Member -PassThru NoteProperty time $([System.dateTime]::UtcNow.ToString('o')) `
+        | Add-Member -PassThru NoteProperty iKey "a75c333b-14cb-4906-aab1-036b31f0ce8a" `
+        | Add-Member -PassThru NoteProperty tags (New-Object PSObject | Add-Member -PassThru NoteProperty 'ai.user.id' $StringBuilderHash.ToString()) `
+        | Add-Member -PassThru NoteProperty data (New-Object PSObject `
+            | Add-Member -PassThru NoteProperty baseType 'EventData' `
+            | Add-Member -PassThru NoteProperty baseData (New-Object PSObject `
+                | Add-Member -PassThru NoteProperty ver 2 `
+                | Add-Member -PassThru NoteProperty name '1.4'));
+
+        $body = $body | ConvertTo-JSON -depth 5;
+        Invoke-WebRequest -Uri 'https://dc.services.visualstudio.com/v2/track' -Method 'POST' -UseBasicParsing -body $body > $null
+    }
+    catch {
+        Write-Output 'Error sending anonymous usage data:'
+        Write-Output $_.Exception.Message
+    }
+}
+
+function PrintLocalNetworkConfiguration() {
+    if (![System.Net.NetworkInformation.NetworkInterface]::GetIsNetworkAvailable()) {
+        Write-Output "There's no network connection available!"
+        throw
+    }
+
+    $computerProperties = [System.Net.NetworkInformation.IPGlobalProperties]::GetIPGlobalProperties()
+    $networkInterfaces = [System.Net.NetworkInformation.NetworkInterface]::GetAllNetworkInterfaces()
+
+    Write-Output 'Interface information for '$computerProperties.HostName'.'$networkInterfaces.DomainName
+
+    foreach ($networkInterface in $networkInterfaces) {
+        if ($networkInterface.NetworkInterfaceType -eq 'Loopback') {
+            continue
+        }
+
+        $properties = $networkInterface.GetIPProperties()
+
+        Write-Output ' Interface name: ' $networkInterface.Name
+        Write-Output ' Interface description: ' $networkInterface.Description
+        Write-Output ' Interface type: ' $networkInterface.NetworkInterfaceType
+        Write-Output ' Operational status: ' $networkInterface.OperationalStatus
+
+        Write-Output ' Unicast address list:'
+        Write-Output $('  ' + [String]::Join([Environment]::NewLine + '  ', [System.Linq.Enumerable]::Select($properties.UnicastAddresses, [Func[System.Net.NetworkInformation.UnicastIPAddressInformation, IPAddress]] { $args[0].Address })))
+
+        Write-Output ' DNS server address list:'
+        Write-Output $('  ' + [String]::Join([Environment]::NewLine + '  ', $properties.DnsAddresses))
+
+        Write-Output
+    }
+}
+
+function PrintDNSResults($dnsResult, [string] $dnsSource) {
+    if ($dnsResult) {
+        Write-Output ' Found DNS record in' $dnsSource '(IP Address:'$dnsResult.IPAddress')'
+    }
+    else {
+        Write-Output ' Could not find DNS record in' $dnsSource
+    }
+}
+
+function ValidateDNS([String] $Server) {
+    Try {
+        Write-Output 'Validating DNS record for' $Server
+
+        $DNSfromHosts = Resolve-DnsName -Name $Server -CacheOnly -ErrorAction SilentlyContinue
+        PrintDNSResults $DNSfromHosts 'hosts file'
+
+        $DNSfromCache = Resolve-DnsName -Name $Server -NoHostsFile -CacheOnly -ErrorAction SilentlyContinue
+        PrintDNSResults $DNSfromCache 'cache'
+
+        $DNSfromCustomerServer = Resolve-DnsName -Name $Server -DnsOnly -ErrorAction SilentlyContinue
+        PrintDNSResults $DNSfromCustomerServer 'DNS server'
+
+        $DNSfromAzureDNS = Resolve-DnsName -Name $Server -DnsOnly -Server 208.67.222.222 -ErrorAction SilentlyContinue
+        PrintDNSResults $DNSfromAzureDNS 'Open DNS'
+    }
+    Catch {
+        Write-Output "Error at ValidateDNS"
+        Write-Output $_.Exception.Message
+    }
 }
 
 if ([string]::IsNullOrEmpty($env:TEMP)) {
@@ -53,7 +213,7 @@ try {
     Write-Output '******************************************'
     Write-Output '      Azure SQL Connectivity Checker      '
     Write-Output '******************************************'
-    Write-Output 'WARNING: Reduced version of Azure SQL Connectivity Checker is running due to environment nature/limitations.'
+    Write-Output "WARNING: Reduced version of Azure SQL Connectivity Checker is running due to current environment's nature/limitations."
     Write-Output 'WARNING: This version does not create any output files, please copy the output directly from the console.'
     
     if (!$Server -or $Server.Length -eq 0) {
@@ -69,6 +229,13 @@ try {
             -and !$Server.EndsWith('.sql.azuresynapse.net')) {
         $Server = $Server + '.database.windows.net'
     }
+
+    if ($SendAnonymousUsageData) {
+        SendAnonymousUsageData
+    }
+
+    PrintLocalNetworkConfiguration
+    ValidateDNS $Server
     
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls11 -bor [Net.SecurityProtocolType]::Tls
     $path = $env:TEMP + "/TDSClient.dll"

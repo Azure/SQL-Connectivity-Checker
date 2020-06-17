@@ -595,7 +595,7 @@ function SendAnonymousUsageData {
         $StringBuilderHash = [System.Text.StringBuilder]::new()
         
         $text = $env:computername + $env:username
-        if ([string]::IsNullOrEmpty($test)) {
+        if ([string]::IsNullOrEmpty($text)) {
             $text = $Host.InstanceId
         }
         
