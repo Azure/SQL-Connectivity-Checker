@@ -16,7 +16,7 @@ using namespace System.Diagnostics
 # Parameter region for when script is run directly
 # Supports Single, Elastic Pools and Managed Instance (please provide FQDN, MI public endpoint is supported)
 # Supports Azure Synapse / Azure SQL Data Warehouse (*.sql.azuresynapse.net / *.database.windows.net)
-# Supports Public Cloud (*.database.windows.net), Azure China (*.database.chinacloudapi.cn) and Azure Germany (*.database.cloudapi.de)
+# Supports Public Cloud (*.database.windows.net), Azure China (*.database.chinacloudapi.cn), Azure Germany (*.database.cloudapi.de) and Azure Government (*.database.usgovcloudapi.net)
 $Server = '.database.windows.net' # or any other supported FQDN
 $Database = ''  # Set the name of the database you wish to test, 'master' will be used by default if nothing is set
 $User = ''  # Set the login username you wish to use, 'AzSQLConnCheckerUser' will be used by default if nothing is set
@@ -133,6 +133,12 @@ $SQLDBGateways = @(
     New-Object PSObject -Property @{Region = "West Europe"; Gateways = ("191.237.232.75", "40.68.37.158", "104.40.168.105"); Affected20191014 = $true; TRs = ('tr7', 'tr8', 'tr9'); Cluster = 'westeurope1-a.worker.database.windows.net'; }
     New-Object PSObject -Property @{Region = "West US"; Gateways = ("23.99.34.75", "104.42.238.205", "13.86.216.196"); Affected20191014 = $true; TRs = ('tr1', 'tr2', 'tr3'); Cluster = 'westus1-a.worker.database.windows.net'; }
     New-Object PSObject -Property @{Region = "West US 2"; Gateways = ("13.66.226.202"); Affected20191014 = $false; TRs = ('tr1', 'tr2', 'tr3'); Cluster = 'westus2-a.worker.database.windows.net'; }
+    New-Object PSObject -Property @{Region = "US DoD East"; Gateways = ("52.181.160.27"); TRs = ('tr3', 'tr4', 'tr5'); Cluster = 'usdodeast1-a.worker.database.usgovcloudapi.net'; }
+    New-Object PSObject -Property @{Region = "US DoD Central"; Gateways = ("52.182.88.34"); TRs = ('tr1', 'tr4', 'tr7'); Cluster = 'usdodcentral1-a.worker.database.usgovcloudapi.net'; }
+    New-Object PSObject -Property @{Region = "US Gov Iowa"; Gateways = ("13.72.189.52"); TRs = ('tr1'); Cluster = 'usgovcentral1-a.worker.database.usgovcloudapi.net'; }
+    New-Object PSObject -Property @{Region = "US Gov Texas"; Gateways = ("52.238.116.32"); TRs = ('tr1', 'tr2', 'tr29'); Cluster = 'usgovsouthcentral1-a.worker.database.usgovcloudapi.net'; }
+    New-Object PSObject -Property @{Region = "US Gov Arizona"; Gateways = ("52.244.48.33"); TRs = ('tr1', 'tr4', 'tr13'); Cluster = 'usgovsouthwest1-a.worker.database.usgovcloudapi.net'; }
+    New-Object PSObject -Property @{Region = "US Gov Virginia"; Gateways = ("13.72.48.140"); TRs = ('tr1', 'tr3', 'tr5'); Cluster = 'usgoveast1-a.worker.database.usgovcloudapi.net'; }
 )
 
 $TRPorts = @('11000', '11001', '11003', '11005', '11006')
@@ -610,6 +616,7 @@ try {
         if (!$Server.EndsWith('.database.windows.net') `
                 -and !$Server.EndsWith('.database.cloudapi.de') `
                 -and !$Server.EndsWith('.database.chinacloudapi.cn') `
+                -and !$Server.EndsWith('.database.usgovcloudapi.net') `
                 -and !$Server.EndsWith('.sql.azuresynapse.net')) {
             $Server = $Server + '.database.windows.net'
         }
