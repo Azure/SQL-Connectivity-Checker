@@ -34,7 +34,7 @@ namespace TDSClient.TDS.Client
         /// <param name="traceID">Trace ID</param>
         /// <param name="activityID">Activity ID</param>
         /// <param name="activitySequence">Activity Sequence</param>
-        public TDSClientTraceID(byte[] traceID, byte[] activityID, ulong activitySequence)
+        public TDSClientTraceID(byte[] traceID, byte[] activityID, uint activitySequence)
         {
             this.TraceID = traceID;
             this.ActivityID = activityID;
@@ -54,7 +54,7 @@ namespace TDSClient.TDS.Client
         /// <summary>
         /// Gets or sets the TDS Client Application Activity Sequence
         /// </summary>
-        public ulong ActivitySequence { get; set; }
+        public uint ActivitySequence { get; set; }
 
         /// <summary>
         /// Determines whether the specified object is equal to the current object.
@@ -85,9 +85,9 @@ namespace TDSClient.TDS.Client
         /// <param name="stream">MemoryStream in which IPackageable is packet into.</param>
         public void Pack(MemoryStream stream)
         {
-            BigEndianUtilities.WriteByteArray(stream, this.TraceID);
-            BigEndianUtilities.WriteByteArray(stream, this.ActivityID);
-            BigEndianUtilities.WriteULong(stream, this.ActivitySequence);
+            stream.Write(this.TraceID, 0, this.TraceID.Length);
+            stream.Write(this.ActivityID, 0, this.ActivityID.Length);
+            LittleEndianUtilities.WriteUInt(stream, this.ActivitySequence);
         }
 
         /// <summary>
@@ -97,9 +97,9 @@ namespace TDSClient.TDS.Client
         /// <returns>Returns true if successful.</returns>
         public bool Unpack(MemoryStream stream)
         {
-            this.TraceID = BigEndianUtilities.ReadByteArray(stream, 16);
-            this.ActivityID = BigEndianUtilities.ReadByteArray(stream, 16);
-            this.ActivitySequence = BigEndianUtilities.ReadULong(stream);
+            stream.Read(this.TraceID, 0, 16);
+            stream.Read(this.ActivityID, 0, 16);
+            this.ActivitySequence = LittleEndianUtilities.ReadUInt(stream);
             
             return true;
         }

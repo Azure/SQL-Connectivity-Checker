@@ -7,6 +7,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TDSClient", "TDSClient\TDSC
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TDSClient.UnitTests", "TDSClient.UnitTests\TDSClient.UnitTests.csproj", "{7D3E4489-90B3-45D9-8317-771E2674988F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TDSClientLiveTest", "TDSClientLiveTest\TDSClientLiveTest.csproj", "{9DD3A454-670F-4165-813E-324670E01538}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{7D3E4489-90B3-45D9-8317-771E2674988F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7D3E4489-90B3-45D9-8317-771E2674988F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7D3E4489-90B3-45D9-8317-771E2674988F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9DD3A454-670F-4165-813E-324670E01538}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9DD3A454-670F-4165-813E-324670E01538}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9DD3A454-670F-4165-813E-324670E01538}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9DD3A454-670F-4165-813E-324670E01538}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

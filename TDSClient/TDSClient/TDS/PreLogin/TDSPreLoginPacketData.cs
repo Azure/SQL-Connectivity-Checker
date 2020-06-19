@@ -196,7 +196,7 @@ namespace TDSClient.TDS.PreLogin
                         {
                             this.TraceID = (TDSClientTraceID)data;
 
-                            LoggingUtilities.WriteLogVerboseOnly($" Adding PreLogin option {type}.");
+                            LoggingUtilities.WriteLogVerboseOnly($" Adding PreLogin option {type} [ConnectionID: {new Guid(this.TraceID.TraceID).ToString().ToUpper()} ActivityID: {new Guid(this.TraceID.ActivityID).ToString().ToUpper()} ActivitySequence: {this.TraceID.ActivitySequence}].");
                         }
                         else
                         {
@@ -361,6 +361,11 @@ namespace TDSClient.TDS.PreLogin
 
             foreach (var option in this.Options)
             {
+                if (option.Length == 0)
+                {
+                    continue;
+                }
+
                 switch (option.Type)
                 {
                     case TDSPreLoginOptionTokenType.Encryption:

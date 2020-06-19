@@ -31,13 +31,21 @@ $parameters = @{
 }
 
 $ProgressPreference = "SilentlyContinue";
+
 if ([string]::IsNullOrEmpty($parameters.RepositoryBranch)) {
     $branch = 'master'
 } else {
     $branch = $parameters.RepositoryBranch
 }
+
+if ("AzureKudu" -eq $env:DOTNET_CLI_TELEMETRY_PROFILE) {
+    $scriptFile = '/ReducedSQLConnectivityChecker.ps1'
+} else {
+    $scriptFile = '/AzureSQLConnectivityChecker.ps1'
+}
+
 $scriptUrlBase = 'raw.githubusercontent.com/Azure/SQL-Connectivity-Checker/' + $branch
-Invoke-Command -ScriptBlock ([Scriptblock]::Create((Invoke-WebRequest ($scriptUrlBase+'/AzureSQLConnectivityChecker.ps1') -UseBasicParsing).Content)) -ArgumentList $parameters
+Invoke-Command -ScriptBlock ([Scriptblock]::Create((Invoke-WebRequest ($scriptUrlBase + $scriptFile) -UseBasicParsing).Content)) -ArgumentList $parameters
 #end
 ```
 4. Set the parameters on the script, you need to set server name. Database name, user and password are optional but desirable.

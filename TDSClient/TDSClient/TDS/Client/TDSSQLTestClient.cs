@@ -119,6 +119,7 @@ namespace TDSClient.TDS.Client
             var tdsMessageBody = new TDSPreLoginPacketData(this.Version);
 
             tdsMessageBody.AddOption(TDSPreLoginOptionTokenType.Encryption, TDSEncryptionOption.EncryptOff);
+            tdsMessageBody.AddOption(TDSPreLoginOptionTokenType.TraceID, new TDSClientTraceID(Guid.NewGuid().ToByteArray(), Guid.NewGuid().ToByteArray(), 0));
             tdsMessageBody.Terminate();
 
             this.TdsCommunicator.SendTDSMessage(tdsMessageBody);
