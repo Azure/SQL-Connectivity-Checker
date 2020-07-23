@@ -9,6 +9,8 @@ namespace TDSClient.TDS.Comms
     using System;
     using System.IO;
     using TDSClient.TDS.Header;
+    using TDSClient.TDS.Utilities;
+    using System.Text;
 
     /// <summary>
     /// Stream used to pass TDS messages.
@@ -133,6 +135,7 @@ namespace TDSClient.TDS.Comms
                     do
                     {
                         curPos += this.InnerStream.Read(headerBuffer, curPos, 8 - curPos);
+                        //LoggingUtilities.WriteLog(Encoding.UTF8.GetString(headerBuffer, 0, 8));
 
                         if (curPos == 0)
                         {

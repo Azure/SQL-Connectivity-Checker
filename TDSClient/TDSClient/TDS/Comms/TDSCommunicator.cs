@@ -12,6 +12,7 @@ namespace TDSClient.TDS.Comms
     using System.Net.Sockets;
     using System.Security.Authentication;
     using System.Security.Cryptography.X509Certificates;
+    using TDSClient.TDS.Client;
     using TDSClient.TDS.Header;
     using TDSClient.TDS.Interfaces;
     using TDSClient.TDS.Login7;
@@ -40,6 +41,11 @@ namespace TDSClient.TDS.Comms
         private readonly ushort packetSize;
 
         /// <summary>
+        /// TrustServerCertificate 
+        /// </summary>
+        private static Boolean TrustServerCertificate;
+
+        /// <summary>
         /// Current TDS Communicator State
         /// </summary>
         private TDSCommunicatorState communicatorState;
@@ -49,11 +55,12 @@ namespace TDSClient.TDS.Comms
         /// </summary>
         /// <param name="stream">NetworkStream used for communication</param>
         /// <param name="packetSize">TDS packet size</param>
-        public TDSCommunicator(Stream stream, ushort packetSize)
+        public TDSCommunicator(Stream stream, ushort packetSize, Boolean TrustServerCertificate)
         {
             this.packetSize = packetSize;
             this.innerTdsStream = new TDSStream(stream, new TimeSpan(0, 0, 30), packetSize);
             this.innerStream = this.innerTdsStream;
+            TDSCommunicator.TrustServerCertificate = TrustServerCertificate;
         }
 
         /// <summary>
@@ -66,15 +73,26 @@ namespace TDSClient.TDS.Comms
         /// <returns>Returns true if no errors occurred.</returns>
         public static bool ValidateServerCertificate(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
-            if (sslPolicyErrors == SslPolicyErrors.None)
+            if(TrustServerCertificate == false)
+            {
+                if (sslPolicyErrors == SslPolicyErrors.None)
+                {
+                    return true;
+                }
+
+                LoggingUtilities.WriteLog($"Certificate error: {sslPolicyErrors}");
+
+                return false;
+            }
+            else
             {
                 return true;
             }
-
-            LoggingUtilities.WriteLog($"Certificate error: {sslPolicyErrors}");
-
-            return false;
+            
         }
+
+
+  
 
         /// <summary>
         /// Enable Transport Layer Security over TDS
@@ -85,9 +103,11 @@ namespace TDSClient.TDS.Comms
         {
             var tempStream0 = new TDSTemporaryStream(this.innerTdsStream);
             var tempStream1 = new SslStream(tempStream0, true, ValidateServerCertificate);
+            //var tempStream1 = new SslStream(tempStream0, true);
 
+    
             tempStream1.AuthenticateAsClient(server, new X509CertificateCollection(), encryptionProtocol, true);
-
+            
             tempStream0.InnerStream = this.innerTdsStream.InnerStream;
             this.innerTdsStream.InnerStream = tempStream1;
 
@@ -121,15 +141,24 @@ namespace TDSClient.TDS.Comms
             }
         }
 
+       
         /// <summary>
         /// Receive TDS Message from the server.
         /// </summary>
         /// <returns>Returns received TDS Message.</returns>
         public ITDSPacketData ReceiveTDSMessage()
         {
+            if(TDSSQLTestClient.flag == TDSEncryptionOption.EncryptOff && this.communicatorState == TDSCommunicatorState.Initial)
+            {
+                this.communicatorState = TDSCommunicatorState.SentLogin7RecordWithCompleteAuthToken;
+            }
+            TDSSQLTestClient.flag = TDSEncryptionOption.EncryptOn;
             byte[] resultBuffer = null;
             var curOffset = 0;
-
+            if(this.communicatorState == TDSCommunicatorState.SentLogin7RecordWithCompleteAuthToken)
+            {
+                
+            }
             do
             {
                 Array.Resize(ref resultBuffer, curOffset + this.packetSize);
