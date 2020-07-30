@@ -12,7 +12,7 @@ namespace TDSClientLiveTest
         public static string Password = "admin";
         public static string Database = "master";
         public static bool TrustServerCertificate = true;
-        public static TDSEncryptionOption EncryptionOption = TDSEncryptionOption.EncryptOn;
+        public static string EncryptionOption = "EncryptOff";
         
         static void Main(string[] args)
         {

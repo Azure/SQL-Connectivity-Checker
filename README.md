@@ -18,14 +18,16 @@ $parameters = @{
     # Supports Single, Elastic Pools and Managed Instance (please provide FQDN, MI public endpoint is supported)
     # Supports Azure Synapse / Azure SQL Data Warehouse (*.sql.azuresynapse.net / *.database.windows.net)
     # Supports Public Cloud (*.database.windows.net), Azure China (*.database.chinacloudapi.cn), Azure Germany (*.database.cloudapi.de) and Azure Government (*.database.usgovcloudapi.net)
-    Server = '.database.windows.net' # or any other supported FQDN
-    Database = ''  # Set the name of the database you wish to test, 'master' will be used by default if nothing is set
-    User = ''  # Set the login username you wish to use, 'AzSQLConnCheckerUser' will be used by default if nothing is set
-    Password = ''  # Set the login password you wish to use, 'AzSQLConnCheckerPassword' will be used by default if nothing is set
+    Server = 'localhost' # or any other supported FQDN
+    Database = 'master'  # Set the name of the database you wish to test, 'master' will be used by default if nothing is set
+    User = 'admin'  # Set the login username you wish to use, 'AzSQLConnCheckerUser' will be used by default if nothing is set
+    Password = 'admin'  # Set the login password you wish to use, 'AzSQLConnCheckerPassword' will be used by default if nothing is set
+	TrustServerCertificate = '' #Boolean value, 'true' will be used by default if nothing is set
+	EncryptionOption = '' # TDS Encryption option sent by the client, can be: 'EncryptOn', 'EncryptOff', 'EncryptNotSup', 'EncryptReq', 'EncryptClientCertOff', 'EncryptClientCertOn', 'EncryptClientCertReq', 'EncryptOn' will be used by default if nothing is set
 
     ## Optional parameters (default values will be used if omitted)
     SendAnonymousUsageData = $true  # Set as $true (default) or $false
-    RunAdvancedConnectivityPolicyTests = $true  # Set as $true (default) or $false, this will load the library from Microsoft's GitHub repository needed for running advanced connectivity tests
+    RunAdvancedConnectivityPolicyTests = $false  # Set as $true (default) or $false, this will load the library from Microsoft's GitHub repository needed for running advanced connectivity tests
     CollectNetworkTrace = $true  # Set as $true (default) or $false
     #EncryptionProtocol = '' # Supported values: 'Tls 1.0', 'Tls 1.1', 'Tls 1.2'; Without this parameter operating system will choose the best protocol to use
 }

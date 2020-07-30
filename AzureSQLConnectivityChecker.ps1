@@ -57,6 +57,14 @@ if ($null -ne $parameters) {
     if ($null -ne $parameters['RepositoryBranch']) {
         $RepositoryBranch = $parameters['RepositoryBranch']
     }
+	if($null -ne $parameters['TrustServerCertificate']){
+		$TrustServerCertificate = $parameters['TrustServerCertificate']
+	}
+	write-host $TrustServerCertificate
+	if($null -ne $parameters['EncryptionOption']){
+		$EncryptionOption = $parameters['EncryptionOption']
+	}
+	write-host $EncryptionOption
 }
 
 $Server = $Server.Trim()
@@ -64,6 +72,8 @@ $Server = $Server.Replace('tcp:', '')
 $Server = $Server.Replace(',1433', '')
 $Server = $Server.Replace(',3342', '')
 $Server = $Server.Replace(';', '')
+
+$flag = $false
 
 if ($null -eq $User -or '' -eq $User) {
     $User = 'AzSQLConnCheckerUser'
@@ -224,7 +234,50 @@ function PrintDNSResults($dnsResult, [string] $dnsSource) {
     }
 }
 
-function ValidateDNS([String] $Server) {
+function ValidateDnsHelper([string] $Server1){
+	$flag = ValidateDNS $Server
+	if($flag -eq $false){
+		$flag = ValidateDNS ($Server1 + '.database.windows.net')
+		if($flag -eq $true){
+			$Server1 = ($Server + '.database.windows.net')
+		}
+	}
+	if($flag -eq $false){
+		$flag = ValidateDNS $Server1 + '.database.cloudapi.de'
+		if($flag -eq $true){
+			$Server1 = ($Server + '.database.cloudapi.de')
+		}
+	}
+	if($flag -eq $false){
+		$flag = ValidateDNS ($Server1 + '.database.chinacloudapi.cn')
+		if($flag -eq $true){
+			$Server1 = ($Server + '.database.chinacloudapi.cn')
+		}
+	}
+	if($flag -eq $false){
+		$flag = ValidateDNS ($Server1 + '.database.usgovcloudapi.net')
+		if($flag -eq $true){
+			$Server1 = ($Server + '.database.usgovcloudapi.net')
+		}
+	}
+	if($flag -eq $false){
+		$flag = ValidateDNS ($Server1 + '.sql.azuresynapse.net')
+		if($flag -eq $true){
+			$Server1 = ($Server + '.sql.azuresynapse.net')
+		}
+	}
+	if($flag -eq $true){
+		$Server = $Server1
+		Write-Host $Server
+		return [bool]($flag), $Server1
+	}else{
+		Write-Host "Error at ValidateDNS" -Foreground Red
+		Write-Host "Server cant be Validated" -Foreground Red
+		$host.exit()
+	}
+}
+
+function ValidateDNS([string] $Server) {
     Try {
         Write-Host 'Validating DNS record for' $Server -ForegroundColor Green
 
@@ -239,11 +292,21 @@ function ValidateDNS([String] $Server) {
 
         $DNSfromAzureDNS = Resolve-DnsName -Name $Server -DnsOnly -Server 208.67.222.222 -ErrorAction SilentlyContinue
         PrintDNSResults $DNSfromAzureDNS 'Open DNS'
+
+		return [bool]($DNSfromAzureDNS -or $DNSfromCache -or $DNSfromCustomerServer -or $DNSfromHosts)
     }
     Catch {
         Write-Host "Error at ValidateDNS" -Foreground Red
         Write-Host $_.Exception.Message -ForegroundColor Red
     }
+}
+
+function CheckIfIpAddress([string] $Server){
+	if($Server -match "\b(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b"){
+	  return $true
+    }else{
+		return $false
+	}
 }
 
 function IsManagedInstance([String] $Server) {
@@ -476,7 +539,7 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
     }
 
     $gateway = $SQLDBGateways | Where-Object { $_.Gateways -eq $resolvedAddress }
-    if (!$gateway) {
+    if (!$gateway -and !($resolvedAddress -eq '127.0.0.1') -and !($resolvedAddress -eq '::1')) {
         Write-Host ' ERROR:' $resolvedAddress 'is not a valid gateway address' -ForegroundColor Red
         Write-Host ' Please review your DNS configuration, it should resolve to a valid gateway address' -ForegroundColor Red
         Write-Host ' See the valid gateway addresses at https://docs.microsoft.com/en-us/azure/sql-database/sql-database-connectivity-architecture#azure-sql-database-gateway-ip-addresses' -ForegroundColor Red
@@ -574,6 +637,8 @@ function RunConnectivityPolicyTests($port) {
         RepositoryBranch   = $RepositoryBranch
         Local              = $Local
         LocalPath          = $LocalPath
+		TrustServerCertificate = $TrustServerCertificate
+		EncryptionOption = $EncryptionOption
     }
 
     if (Test-Path "$env:TEMP\AzureSQLConnectivityChecker\") {
@@ -584,6 +649,7 @@ function RunConnectivityPolicyTests($port) {
 
     if ($Local) {
         Copy-Item -Path $($LocalPath + './AdvancedConnectivityPolicyTests.ps1') -Destination "$env:TEMP\AzureSQLConnectivityChecker\AdvancedConnectivityPolicyTests.ps1"
+	
     }
     else {
         Invoke-WebRequest -Uri $('https://raw.githubusercontent.com/Azure/SQL-Connectivity-Checker/' + $RepositoryBranch + '/AdvancedConnectivityPolicyTests.ps1') -OutFile "$env:TEMP\AzureSQLConnectivityChecker\AdvancedConnectivityPolicyTests.ps1" -UseBasicParsing
@@ -694,13 +760,13 @@ try {
             throw
         }
 
-        if (!$Server.EndsWith('.database.windows.net') `
-                -and !$Server.EndsWith('.database.cloudapi.de') `
-                -and !$Server.EndsWith('.database.chinacloudapi.cn') `
-                -and !$Server.EndsWith('.database.usgovcloudapi.net') `
-                -and !$Server.EndsWith('.sql.azuresynapse.net')) {
-            $Server = $Server + '.database.windows.net'
-        }
+        #if (!$Server.EndsWith('.database.windows.net') `
+        #        -and !$Server.EndsWith('.database.cloudapi.de') `
+        #        -and !$Server.EndsWith('.database.chinacloudapi.cn') `
+        #        -and !$Server.EndsWith('.database.usgovcloudapi.net') `
+        #        -and !$Server.EndsWith('.sql.azuresynapse.net')) {
+        #    $Server = $Server + '.database.windows.net'
+        #}
 
         #Print local network configuration
         PrintLocalNetworkConfiguration
@@ -718,20 +784,33 @@ try {
             }
         }
 
-        ValidateDNS $Server
+		$checkIP = CheckIfIpAddress $Server
 
-        try {
-            $dnsResult = [System.Net.DNS]::GetHostEntry($Server)
+		if($checkIP -eq $false){
+			$return = ValidateDnsHelper $Server
+			$Server = $return[1]
+			$success = $return[0]
+		
+
+			try {
+			    $dnsResult = [System.Net.DNS]::GetHostEntry($Server)
+			}
+
+			catch {
+		    Write-Host ' ERROR: Name resolution of' $Server 'failed' -ForegroundColor Red
+			   Write-Host ' Please make sure the server name FQDN is correct and that your machine can resolve it.' -ForegroundColor Red
+			   Write-Host ' Failure to resolve domain name for your logical server is almost always the result of specifying an invalid/misspelled server name,' -ForegroundColor Red
+			   Write-Host ' or a client-side networking issue that you will need to pursue with your local network administrator.' -ForegroundColor Red
+			   Write-Error '' -ErrorAction Stop
         }
-        catch {
-            Write-Host ' ERROR: Name resolution of' $Server 'failed' -ForegroundColor Red
-            Write-Host ' Please make sure the server name FQDN is correct and that your machine can resolve it.' -ForegroundColor Red
-            Write-Host ' Failure to resolve domain name for your logical server is almost always the result of specifying an invalid/misspelled server name,' -ForegroundColor Red
-            Write-Host ' or a client-side networking issue that you will need to pursue with your local network administrator.' -ForegroundColor Red
-            Write-Error '' -ErrorAction Stop
-        }
-        $resolvedAddress = $dnsResult.AddressList[0].IPAddressToString
-        $dbPort = 1433
+			$resolvedAddress = $dnsResult.AddressList[0].IPAddressToString
+			$dbPort = 1433
+		}else{
+			$resolvedAddress = $Server
+			$dbPort = 1433
+		}
+
+		write-host $resolvedAddress
 
         #Run connectivity tests
         Write-Host

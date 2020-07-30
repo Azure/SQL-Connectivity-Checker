@@ -9,6 +9,8 @@ if ($null -ne $parameters) {
     if ($null -ne $parameters['RepositoryBranch']) {
         $RepositoryBranch = $parameters['RepositoryBranch']
     }
+	$TrustServerCertificate = $parameters['TrustServerCertificate']
+	$EncryptionOption = $parameters['EncryptionOption']
 }
 
 $Server = $Server.Trim()
@@ -35,6 +37,14 @@ if ($null -eq $Local) {
 
 if ($null -eq $RepositoryBranch) {
     $RepositoryBranch = 'master'
+} 
+
+if ($null -eq $TrustServerCertificate -or '' -eq $TrustServerCertificate){
+	$TrustServerCertificate = $true
+}
+
+if ($null -eq $EncryptionOption -or '' -eq $EncryptionOption){
+	$EncryptionOption = 'EncryptOn'
 }
 
 # PowerShell Container Image Support Start
@@ -223,13 +233,13 @@ try {
         throw
     }
     
-    if (!$Server.EndsWith('.database.windows.net') `
-            -and !$Server.EndsWith('.database.cloudapi.de') `
-            -and !$Server.EndsWith('.database.chinacloudapi.cn') `
-            -and !$Server.EndsWith('.sql.azuresynapse.net')) {
-        $Server = $Server + '.database.windows.net'
-    }
-
+   #  if (!$Server.EndsWith('.database.windows.net') `
+    #        -and !$Server.EndsWith('.database.cloudapi.de') `
+    #        -and !$Server.EndsWith('.database.chinacloudapi.cn') `
+     #       -and !$Server.EndsWith('.sql.azuresynapse.net')) {
+      #  $Server = $Server + '.database.windows.net'
+   # }
+	
     if ($SendAnonymousUsageData) {
         SendAnonymousUsageData
     }
@@ -281,7 +291,7 @@ try {
             $Port = 3342
         }
     
-        $tdsClient = [TDSClient.TDS.Client.TDSSQLTestClient]::new($Server, $Port, $User, $Password, $Database, $encryption)
+        $tdsClient = [TDSClient.TDS.Client.TDSSQLTestClient]::new($Server, $Port, $User, $Password, $Database, $encryption, $TrustServerCertificate, $EncryptionOption)
         $tdsClient.Connect()
         $tdsClient.Disconnect()
     }
