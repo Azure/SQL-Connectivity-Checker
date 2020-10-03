@@ -35,13 +35,13 @@ namespace TDSClient.TDS.Client
         /// <param name="password">User password</param>
         /// <param name="database">Database to connect to</param>
         /// <param name="encryptionProtocol">Encryption Protocol</param>
-        public TDSSQLTestClient(string server, int port, string userID, string password, string database, SslProtocols encryptionProtocol = SslProtocols.Tls12)
+        public TDSSQLTestClient(string server, int port, string userID, string password, string database, Boolean TrustServerCertficate, string EncryptionOption, SslProtocols encryptionProtocol = SslProtocols.Tls12)
         {
             if (string.IsNullOrEmpty(server) || string.IsNullOrEmpty(userID) || string.IsNullOrEmpty(password) || string.IsNullOrEmpty(database))
             {
                 throw new ArgumentNullException();
             }
-
+            LoggingUtilities.WriteLog($"Nije sa githuba");
             this.Client = null;
             this.Version = new TDSClientVersion(1, 0, 0, 0);
             this.Server = server;
@@ -51,6 +51,52 @@ namespace TDSClient.TDS.Client
             this.Password = password;
             this.Database = database;
             this.EncryptionProtocol = encryptionProtocol;
+            this.TrustServerCertificate = TrustServerCertficate;
+            LoggingUtilities.WriteLog(EncryptionOption);
+
+            switch (EncryptionOption)
+            {
+                case "EncryptOn":
+                    {
+                        this.EncryptionOption = TDSEncryptionOption.EncryptOn;
+                        break;
+                    }
+                case "EncryptOff":
+                    {
+                        this.EncryptionOption = TDSEncryptionOption.EncryptOff;
+                        break;
+                    }
+                case "EncryptReq":
+                    {
+                        this.EncryptionOption = TDSEncryptionOption.EncryptReq;
+                        break;
+                    }
+                case "EncryptNotSup":
+                    {
+                        this.EncryptionOption = TDSEncryptionOption.EncryptNotSup;
+                        break;
+                    }
+                case "EncryptClientCertOn":
+                    {
+                        this.EncryptionOption = TDSEncryptionOption.EncryptClientCertOn;
+                        break;
+                    }
+                case "EncryptClientCertOff":
+                    {
+                        this.EncryptionOption = TDSEncryptionOption.EncryptClientCertOff;
+                        break;
+                    }
+                case "EncryptClientCertReq":
+                    {
+                        this.EncryptionOption = TDSEncryptionOption.EncryptClientCertReq;
+                        break;
+                    }
+                default:
+                    {
+
+                        throw new InvalidOperationException();
+                    }
+            }
 
             LoggingUtilities.WriteLog($" Instantiating TDSSQLTestClient with the following parameters:");
 
@@ -58,12 +104,28 @@ namespace TDSClient.TDS.Client
             LoggingUtilities.WriteLog($"     Port: {port}.");
             LoggingUtilities.WriteLog($"     UserID: {userID}.");
             LoggingUtilities.WriteLog($"     Database: {database}.");
+            LoggingUtilities.WriteLog($"     TrustServerCertificate: {TrustServerCertificate}.");
+            LoggingUtilities.WriteLog($"     EncryptionOption: {EncryptionOption}.");
         }
+
+        /// <summary>
+        /// Gets or sets the Encryption Option
+        /// </summary>
+        public TDSEncryptionOption EncryptionOption { get; set; }
+
+        /// <summary>
+        /// Gets or sets TrustServerCertificate.
+        /// </summary>
+        public Boolean TrustServerCertificate { get; set; }
 
         /// <summary>
         /// Gets or sets the Server.
         /// </summary>
         public string Server { get; set; }
+        /// <summary>
+        /// Server Encryption Reply sent in PreLoginResponse package.
+        /// </summary>
+        public static TDSEncryptionOption flag = TDSEncryptionOption.EncryptOn;
 
         /// <summary>
         /// Gets or sets the Server Name.
@@ -118,7 +180,8 @@ namespace TDSClient.TDS.Client
             LoggingUtilities.WriteLog($" SendPreLogin initiated.");
             var tdsMessageBody = new TDSPreLoginPacketData(this.Version);
 
-            tdsMessageBody.AddOption(TDSPreLoginOptionTokenType.Encryption, TDSEncryptionOption.EncryptOff);
+            //tdsMessageBody.AddOption(TDSPreLoginOptionTokenType.Encryption, TDSEncryptionOption.EncryptOn);
+            tdsMessageBody.AddOption(TDSPreLoginOptionTokenType.Encryption, this.EncryptionOption);
             tdsMessageBody.AddOption(TDSPreLoginOptionTokenType.TraceID, new TDSClientTraceID(Guid.NewGuid().ToByteArray(), Guid.NewGuid().ToByteArray(), 0));
             tdsMessageBody.Terminate();
 
@@ -153,6 +216,8 @@ namespace TDSClient.TDS.Client
             tdsMessageBody.OptionFlags2.Language = TDSLogin7OptionFlags2Language.InitLangFatal;
             tdsMessageBody.OptionFlags2.ODBC = TDSLogin7OptionFlags2ODBC.OdbcOn;
             tdsMessageBody.OptionFlags2.UserType = TDSLogin7OptionFlags2UserType.UserNormal;
+            //Row below added
+            //tdsMessageBody.OptionFlags2.IntSecurity = TDSLogin7OptionFlags2IntSecurity.IntegratedSecurityOn;
 
             tdsMessageBody.OptionFlags3.ChangePassword = TDSLogin7OptionFlags3ChangePassword.NoChangeRequest;
             tdsMessageBody.OptionFlags3.UserInstanceProcess = TDSLogin7OptionFlags3UserInstanceProcess.DontRequestSeparateProcess;
@@ -177,8 +242,14 @@ namespace TDSClient.TDS.Client
 
             if (this.TdsCommunicator.ReceiveTDSMessage() is TDSPreLoginPacketData response)
             {
-                if (response.Options.Exists(opt => opt.Type == TDSPreLoginOptionTokenType.Encryption) && response.Encryption == TDSEncryptionOption.EncryptReq)
+                if (response.Options.Exists(opt => opt.Type == TDSPreLoginOptionTokenType.Encryption) && (response.Encryption == TDSEncryptionOption.EncryptReq && this.EncryptionOption == TDSEncryptionOption.EncryptNotSup))
                 {
+                    throw new NotSupportedException("Server requires encryption and has closed the connection");
+                }
+                
+                if (response.Options.Exists(opt => opt.Type == TDSPreLoginOptionTokenType.Encryption) && (response.Encryption == TDSEncryptionOption.EncryptReq || response.Encryption == TDSEncryptionOption.EncryptOn || response.Encryption == TDSEncryptionOption.EncryptOff))
+                {
+                    flag = response.Encryption;
                     LoggingUtilities.WriteLog($" Server requires encryption, enabling encryption.");
                     this.TdsCommunicator.EnableEncryption(this.Server, this.EncryptionProtocol);
                     LoggingUtilities.WriteLog($" Encryption enabled.");
@@ -188,6 +259,8 @@ namespace TDSClient.TDS.Client
                 {
                     throw new NotSupportedException("FedAuth is being requested but the client doesn't support FedAuth.");
                 }
+
+                
             }
             else
             {
@@ -271,10 +344,14 @@ namespace TDSClient.TDS.Client
             {
                 this.reconnect = false;
                 this.Client = new TcpClient(this.Server, this.Port);
-                this.TdsCommunicator = new TDSCommunicator(this.Client.GetStream(), 4096);
+                this.TdsCommunicator = new TDSCommunicator(this.Client.GetStream(), 4096, this.TrustServerCertificate);
                 this.SendPreLogin();
                 this.ReceivePreLoginResponse();
                 this.SendLogin7();
+                if (flag == TDSEncryptionOption.EncryptOff)
+                {
+                    this.TdsCommunicator = new TDSCommunicator(this.Client.GetStream(), 4096, this.TrustServerCertificate);
+                }
                 this.ReceiveLogin7Response();
 
                 if (this.reconnect)

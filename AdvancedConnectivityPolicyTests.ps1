@@ -137,6 +137,9 @@ $EncryptionProtocol = $parameters['EncryptionProtocol']
 $RepositoryBranch = $parameters['RepositoryBranch']
 $Local = $parameters['Local']
 $LocalPath = $parameters['LocalPath']
+$TrustServerCertificate = $parameters['TrustServerCertificate']
+$EncryptionOption = $parameters['EncryptionOption']
+
 
 
 if ([string]::IsNullOrEmpty($env:TEMP)) {
@@ -153,6 +156,7 @@ try {
     else {
         $path = $env:TEMP +  "/AzureSQLConnectivityChecker/TDSClient.dll"
         Invoke-WebRequest -Uri $('https://github.com/Azure/SQL-Connectivity-Checker/raw/' + $RepositoryBranch + '/netstandard2.0/TDSClient.dll') -OutFile $path -UseBasicParsing
+		
     }
 
     $path = $env:TEMP + "/AzureSQLConnectivityChecker/TDSClient.dll"
@@ -185,7 +189,7 @@ try {
                 $encryption = [System.Security.Authentication.SslProtocols]::Tls12 -bor [System.Security.Authentication.SslProtocols]::Tls11 -bor [System.Security.Authentication.SslProtocols]::Default
             }
         }
-        $tdsClient = [TDSClient.TDS.Client.TDSSQLTestClient]::new($Server, $Port, $User, $Password, $Database, $encryption)
+        $tdsClient = [TDSClient.TDS.Client.TDSSQLTestClient]::new($Server, $Port, $User, $Password, $Database, $TrustServerCertificate, $EncryptionOption, $encryption)
         $tdsClient.Connect()
         $tdsClient.Disconnect()
     }
