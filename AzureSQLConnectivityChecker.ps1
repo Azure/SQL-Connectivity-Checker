@@ -90,7 +90,8 @@ if ($PSVersionTable.Platform -eq 'Unix') {
     if ((id -u) -eq 0) {
         $CustomerRunningInElevatedMode = $true
     }
-} else {
+}
+else {
     $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
     if ($currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
         $CustomerRunningInElevatedMode = $true
@@ -166,7 +167,7 @@ if (!$(Get-Command 'Test-NetConnection' -errorAction SilentlyContinue)) {
         );
         process {
             $client = [TcpClient]::new()
-            
+
             try {
                 $client.Connect($HostName, $Port)
                 $result = @{TcpTestSucceeded = $true; InterfaceAlias = 'Unsupported' }
@@ -260,6 +261,10 @@ function IsSqlOnDemand([String] $Server) {
 
 function IsManagedInstancePublicEndpoint([String] $Server) {
     return [bool]((IsManagedInstance $Server) -and ($Server -match '.public.'))
+}
+
+function HasPrivateLink([String] $Server) {
+    [bool]((((Resolve-DnsName $Server) | Where-Object { $_.Name -Match ".privatelink." } | Measure-Object).Count) -gt 0)
 }
 
 function SanitizeString([String] $param) {
@@ -479,76 +484,86 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
         Write-Host 'Detected as SQL DB/DW Server' -ForegroundColor Yellow
     }
 
+    $hasPrivateLink = HasPrivateLink $Server
     $gateway = $SQLDBGateways | Where-Object { $_.Gateways -eq $resolvedAddress }
+
     if (!$gateway) {
-        Write-Host ' ERROR:' $resolvedAddress 'is not a valid gateway address' -ForegroundColor Red
-        Write-Host ' Please review your DNS configuration, it should resolve to a valid gateway address' -ForegroundColor Red
-        Write-Host ' See the valid gateway addresses at https://docs.microsoft.com/en-us/azure/sql-database/sql-database-connectivity-architecture#azure-sql-database-gateway-ip-addresses' -ForegroundColor Red
-        Write-Error '' -ErrorAction Stop
-    }
-    Write-Host ' The server' $Server 'is running on ' -ForegroundColor White -NoNewline
-    Write-Host $gateway.Region -ForegroundColor Yellow
-
-    Write-Host
-    Write-Host 'Gateway connectivity tests:' -ForegroundColor Green
-    foreach ($gatewayAddress in $gateway.Gateways) {
-        Write-Host ' Testing (gateway) connectivity to' $gatewayAddress':'1433 -ForegroundColor White -NoNewline
-        $testResult = Test-NetConnection $gatewayAddress -Port 1433 -WarningAction SilentlyContinue
-
-        if ($testResult.TcpTestSucceeded) {
-            Write-Host ' -> TCP test succeed' -ForegroundColor Green
-
-            PrintAverageConnectionTime $gatewayAddress 1433
+        if ($hasPrivateLink) {
+            Write-Host ' This connection may be using Private Link, skipping Gateway connectivity tests' -ForegroundColor Yellow
         }
         else {
-            Write-Host ' -> TCP test FAILED' -ForegroundColor Red
-            Write-Host ' Please make sure you fix the connectivity from this machine to' $gatewayAddress':1433 to avoid issues!' -ForegroundColor Red
-            Write-Host $networkingIssueMessage -ForegroundColor Yellow
-            Write-Host
-            Write-Host ' IP routes for interface:' $testResult.InterfaceAlias
-            Get-NetAdapter $testResult.InterfaceAlias | Get-NetRoute
-            tracert -h 10 $Server
+            Write-Host ' ERROR:' $resolvedAddress 'is not a valid gateway address' -ForegroundColor Red
+            Write-Host ' Please review your DNS configuration, it should resolve to a valid gateway address' -ForegroundColor Red
+            Write-Host ' See the valid gateway addresses at https://docs.microsoft.com/en-us/azure/sql-database/sql-database-connectivity-architecture#azure-sql-database-gateway-ip-addresses' -ForegroundColor Red
+            Write-Error '' -ErrorAction Stop
         }
     }
+    else {
+        Write-Host ' The server' $Server 'is running on ' -ForegroundColor White -NoNewline
+        Write-Host $gateway.Region -ForegroundColor Yellow
 
-    if ($gateway.TRs -and $gateway.Cluster -and $gateway.Cluster.Length -gt 0 ) {
         Write-Host
-        Write-Host 'Redirect Policy related tests:' -ForegroundColor Green
-        $redirectSucceeded = 0
-        $redirectTests = 0
-        foreach ($tr in $gateway.TRs | Where-Object { $_ -ne '' }) {
-            foreach ($port in $TRPorts) {
-                $addr = [string]::Format("{0}.{1}", $tr, $gateway.Cluster)
-                Write-Host ' Tested (redirect) connectivity to' $addr':'$port -ForegroundColor White -NoNewline
-                $testRedirectResults = Test-NetConnection $addr -Port $port -WarningAction SilentlyContinue
-                if ($testRedirectResults.TcpTestSucceeded) {
-                    $redirectTests += 1
-                    $redirectSucceeded += 1
-                    Write-Host ' -> TCP test succeeded' -ForegroundColor Green
+        Write-Host 'Gateway connectivity tests:' -ForegroundColor Green
+        foreach ($gatewayAddress in $gateway.Gateways) {
+            Write-Host ' Testing (gateway) connectivity to' $gatewayAddress':'1433 -ForegroundColor White -NoNewline
+            $testResult = Test-NetConnection $gatewayAddress -Port 1433 -WarningAction SilentlyContinue
+
+            if ($testResult.TcpTestSucceeded) {
+                Write-Host ' -> TCP test succeed' -ForegroundColor Green
+
+                PrintAverageConnectionTime $gatewayAddress 1433
+            }
+            else {
+                Write-Host ' -> TCP test FAILED' -ForegroundColor Red
+                Write-Host ' Please make sure you fix the connectivity from this machine to' $gatewayAddress':1433 to avoid issues!' -ForegroundColor Red
+                Write-Host $networkingIssueMessage -ForegroundColor Yellow
+                Write-Host
+                Write-Host ' IP routes for interface:' $testResult.InterfaceAlias
+                Get-NetAdapter $testResult.InterfaceAlias | Get-NetRoute
+                tracert -h 10 $Server
+            }
+        }
+
+
+        if ($gateway.TRs -and $gateway.Cluster -and $gateway.Cluster.Length -gt 0 ) {
+            Write-Host
+            Write-Host 'Redirect Policy related tests:' -ForegroundColor Green
+            $redirectSucceeded = 0
+            $redirectTests = 0
+            foreach ($tr in $gateway.TRs | Where-Object { $_ -ne '' }) {
+                foreach ($port in $TRPorts) {
+                    $addr = [string]::Format("{0}.{1}", $tr, $gateway.Cluster)
+                    Write-Host ' Tested (redirect) connectivity to' $addr':'$port -ForegroundColor White -NoNewline
+                    $testRedirectResults = Test-NetConnection $addr -Port $port -WarningAction SilentlyContinue
+                    if ($testRedirectResults.TcpTestSucceeded) {
+                        $redirectTests += 1
+                        $redirectSucceeded += 1
+                        Write-Host ' -> TCP test succeeded' -ForegroundColor Green
+                    }
+                    else {
+                        $redirectTests += 1
+                        Write-Host ' -> TCP test FAILED' -ForegroundColor Red
+                    }
+                }
+            }
+            Write-Host ' Tested (redirect) connectivity' $redirectTests 'times and' $redirectSucceeded 'of them succeeded' -ForegroundColor Yellow
+            if ($redirectTests -gt 0) {
+                Write-Host ' Please note this was just some tests to check connectivity using the 11000-11999 port range, not your database' -ForegroundColor Yellow
+                if (IsSqlOnDemand $Server) {
+                    Write-Host ' Some tests may even fail and not be a problem since ports tested here are static and SQL on-demand is a dynamic serverless environment.' -ForegroundColor Yellow
                 }
                 else {
-                    $redirectTests += 1
-                    Write-Host ' -> TCP test FAILED' -ForegroundColor Red
+                    Write-Host ' Some tests may even fail and not be a problem since ports tested here are static and SQL DB is a dynamic environment.' -ForegroundColor Yellow
+                }
+                if ($redirectSucceeded / $redirectTests -ge 0.5 ) {
+                    Write-Host ' Based on the result it is likely the Redirect Policy will work from this machine' -ForegroundColor Green
+                }
+                else {
+                    Write-Host ' Based on the result the Redirect Policy MAY NOT work from this machine, this can be expected for connections from outside Azure' -ForegroundColor Red
                 }
             }
+            Write-Host ' Please check more about Azure SQL Connectivity Architecture at https://docs.microsoft.com/en-us/azure/sql-database/sql-database-connectivity-architecture' -ForegroundColor Yellow
         }
-        Write-Host ' Tested (redirect) connectivity' $redirectTests 'times and' $redirectSucceeded 'of them succeeded' -ForegroundColor Yellow
-        if ($redirectTests -gt 0) {
-            Write-Host ' Please note this was just some tests to check connectivity using the 11000-11999 port range, not your database' -ForegroundColor Yellow
-            if (IsSqlOnDemand $Server) {
-                Write-Host ' Some tests may even fail and not be a problem since ports tested here are static and SQL on-demand is a dynamic serverless environment.' -ForegroundColor Yellow
-            }
-            else {
-                Write-Host ' Some tests may even fail and not be a problem since ports tested here are static and SQL DB is a dynamic environment.' -ForegroundColor Yellow
-            }
-            if ($redirectSucceeded / $redirectTests -ge 0.5 ) {
-                Write-Host ' Based on the result it is likely the Redirect Policy will work from this machine' -ForegroundColor Green
-            }
-            else {
-                Write-Host ' Based on the result the Redirect Policy MAY NOT work from this machine, this can be expected for connections from outside Azure' -ForegroundColor Red
-            }
-        }
-        Write-Host ' Please check more about Azure SQL Connectivity Architecture at https://docs.microsoft.com/en-us/azure/sql-database/sql-database-connectivity-architecture' -ForegroundColor Yellow
     }
 }
 
@@ -603,12 +618,12 @@ function SendAnonymousUsageData {
     try {
         #Despite computername and username will be used to calculate a hash string, this will keep you anonymous but allow us to identify multiple runs from the same user
         $StringBuilderHash = [System.Text.StringBuilder]::new()
-        
+
         $text = $env:computername + $env:username
         if ([string]::IsNullOrEmpty($text)) {
             $text = $Host.InstanceId
         }
-        
+
         [System.Security.Cryptography.HashAlgorithm]::Create("MD5").ComputeHash([System.Text.Encoding]::UTF8.GetBytes($text)) | ForEach-Object {
             [Void]$StringBuilderHash.Append($_.ToString("x2"))
         }
@@ -622,7 +637,7 @@ function SendAnonymousUsageData {
             | Add-Member -PassThru NoteProperty baseType 'EventData' `
             | Add-Member -PassThru NoteProperty baseData (New-Object PSObject `
                 | Add-Member -PassThru NoteProperty ver 2 `
-                | Add-Member -PassThru NoteProperty name '1.6'));
+                | Add-Member -PassThru NoteProperty name '1.7'));
 
         $body = $body | ConvertTo-JSON -depth 5;
         Invoke-WebRequest -Uri 'https://dc.services.visualstudio.com/v2/track' -Method 'POST' -UseBasicParsing -body $body > $null
@@ -672,7 +687,7 @@ try {
 
     try {
         Write-Host '******************************************' -ForegroundColor Green
-        Write-Host '  Azure SQL Connectivity Checker v1.6  ' -ForegroundColor Green
+        Write-Host '  Azure SQL Connectivity Checker v1.7  ' -ForegroundColor Green
         Write-Host '******************************************' -ForegroundColor Green
         Write-Host
         Write-Host 'Parameters' -ForegroundColor Yellow
@@ -867,7 +882,8 @@ finally {
 
         if ($PSVersionTable.Platform -eq 'Unix') {
             Get-ChildItem
-        } else {
+        }
+        else {
             Invoke-Item (Get-Location).Path
         }
     }
