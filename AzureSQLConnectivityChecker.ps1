@@ -153,9 +153,11 @@ $SQLDBGateways = @(
 )
 
 $TRPorts = @('11000', '11001', '11003', '11005', '11006')
-
-$networkingIssueMessage = ' This issue indicates a problem with the networking configuration. If this is related with on-premises resources, the networking team from customer side should be engaged. If this is between Azure resources, Azure Networking team should be engaged.'
-
+$networkingIssueMessage = ' This issue indicates a problem with the networking configuration. 
+ If connection attempts are from resources outside Azure, please contact your networking team.
+ If connection attempts are between Azure resources, Azure Networking support team should be engaged.'
+$summaryLog = New-Object -TypeName "System.Text.StringBuilder"
+$summaryRecommendedAction = New-Object -TypeName "System.Text.StringBuilder"
 
 # PowerShell Container Image Support Start
 
@@ -222,7 +224,9 @@ if (!$(Get-Command 'netsh' -errorAction SilentlyContinue) -and $CollectNetworkTr
 
 function PrintDNSResults($dnsResult, [string] $dnsSource) {
     if ($dnsResult) {
-        Write-Host ' Found DNS record in' $dnsSource '(IP Address:'$dnsResult.IPAddress')'
+        $msg = ' Found DNS record in ' + $dnsSource + ' (IP Address:'+ $dnsResult.IPAddress+ ')'
+        Write-Host $msg 
+        [void]$script:summaryLog.AppendLine($msg)
     }
     else {
         Write-Host ' Could not find DNS record in' $dnsSource
@@ -379,20 +383,36 @@ function CheckAffected20191014($gateway) {
 
 function RunSqlMIPublicEndpointConnectivityTests($resolvedAddress) {
     Try {
-        Write-Host 'Detected as Managed Instance using Public Endpoint' -ForegroundColor Yellow
+        $msg = 'Detected as Managed Instance using Public Endpoint'
+        Write-Host $msg -ForegroundColor Yellow
+        [void]$script:summaryLog.AppendLine($msg)
 
         Write-Host 'Public Endpoint connectivity test:' -ForegroundColor Green
         $testResult = Test-NetConnection $resolvedAddress -Port 3342 -WarningAction SilentlyContinue
 
         if ($testResult.TcpTestSucceeded) {
             Write-Host ' -> TCP test succeed' -ForegroundColor Green
-
             PrintAverageConnectionTime $resolvedAddress 3342
+            $msg = ' Gateway connectivity to ' + $resolvedAddress + ':3342 succeed'
+            [void]$script:summaryLog.AppendLine($msg)
         }
         else {
             Write-Host ' -> TCP test FAILED' -ForegroundColor Red
-            Write-Host ' Please make sure you fix the connectivity from this machine to' $resolvedAddress':3342' -ForegroundColor Red
+            $msg = ' Gateway connectivity to ' + $resolvedAddress + ':3342 FAILED'
+            Write-Host $msg -Foreground Red
+            [void]$script:summaryLog.AppendLine($msg)
+
+            $msg = ' Please make sure you fix the connectivity from this machine to ' + $resolvedAddress + ':3342 (SQL MI Public Endpoint)'
+            Write-Host $msg -Foreground Red
+            [void]$script:summaryRecommendedAction.AppendLine($msg)
+            $msg = ' See more about connectivity using Public Endpoint at https://docs.microsoft.com/en-us/azure/azure-sql/managed-instance/public-endpoint-configure'
+            Write-Host $msg -Foreground Red
+            [void]$script:summaryRecommendedAction.AppendLine($msg)
+            
             Write-Host $networkingIssueMessage -ForegroundColor Yellow
+            [void]$script:summaryRecommendedAction.AppendLine($networkingIssueMessage)
+
+            TrackWarningAnonymously 'SQLMI|PublicEndPoint|GatewayTestFailed'
         }
     }
     Catch {
@@ -505,13 +525,14 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
         Write-Host
         Write-Host 'Gateway connectivity tests:' -ForegroundColor Green
         foreach ($gatewayAddress in $gateway.Gateways) {
-            Write-Host ' Testing (gateway) connectivity to' $gatewayAddress':'1433 -ForegroundColor White -NoNewline
+            Write-Host ' Testing (gateway) connectivity to' $gatewayAddress':1433' -ForegroundColor White -NoNewline
             $testResult = Test-NetConnection $gatewayAddress -Port 1433 -WarningAction SilentlyContinue
 
             if ($testResult.TcpTestSucceeded) {
                 Write-Host ' -> TCP test succeed' -ForegroundColor Green
-
                 PrintAverageConnectionTime $gatewayAddress 1433
+                $msg = ' Gateway connectivity to ' + $gatewayAddress + ':1433 succeed'
+                [void]$script:summaryLog.AppendLine($msg)
             }
             else {
                 Write-Host ' -> TCP test FAILED' -ForegroundColor Red
@@ -521,9 +542,17 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
                 Write-Host ' IP routes for interface:' $testResult.InterfaceAlias
                 Get-NetAdapter $testResult.InterfaceAlias | Get-NetRoute
                 tracert -h 10 $Server
+
+                $msg = ' Gateway connectivity to' + $gatewayAddress + ':1433 FAILED'
+                Write-Host $msg -Foreground Red
+                [void]$script:summaryLog.AppendLine($msg)
+                [void]$script:summaryRecommendedAction.AppendLine($msg)
+
+                $msg = ' Please make sure you fix the connectivity from this machine to ' + $gatewayAddress + ':1433 to avoid issues!'
+                Write-Host $msg -Foreground Red
+                [void]$script:summaryRecommendedAction.AppendLine($msg)
             }
         }
-
 
         if ($gateway.TRs -and $gateway.Cluster -and $gateway.Cluster.Length -gt 0 ) {
             Write-Host
@@ -648,6 +677,33 @@ function SendAnonymousUsageData {
     }
 }
 
+function TrackWarningAnonymously ([String] $warningCode) {
+    Try {
+        #Despite computername and username will be used to calculate a hash string, this will keep you anonymous but allow us to identify multiple runs from the same user
+        $StringBuilderHash = New-Object System.Text.StringBuilder
+        [System.Security.Cryptography.HashAlgorithm]::Create("MD5").ComputeHash([System.Text.Encoding]::UTF8.GetBytes($env:computername + $env:username)) | ForEach-Object {
+            [Void]$StringBuilderHash.Append($_.ToString("x2"))
+        }
+
+        $body = New-Object PSObject `
+        | Add-Member -PassThru NoteProperty name 'Microsoft.ApplicationInsights.Event' `
+        | Add-Member -PassThru NoteProperty time $([System.dateTime]::UtcNow.ToString('o')) `
+        | Add-Member -PassThru NoteProperty iKey "a75c333b-14cb-4906-aab1-036b31f0ce8a" `
+        | Add-Member -PassThru NoteProperty tags (New-Object PSObject | Add-Member -PassThru NoteProperty 'ai.user.id' $StringBuilderHash.ToString()) `
+        | Add-Member -PassThru NoteProperty data (New-Object PSObject `
+            | Add-Member -PassThru NoteProperty baseType 'EventData' `
+            | Add-Member -PassThru NoteProperty baseData (New-Object PSObject `
+                | Add-Member -PassThru NoteProperty ver 2 `
+                | Add-Member -PassThru NoteProperty name $warningCode));
+        $body = $body | ConvertTo-JSON -depth 5;
+        Invoke-WebRequest -Uri 'https://dc.services.visualstudio.com/v2/track' -Method 'POST' -UseBasicParsing -body $body > $null
+    }
+    Catch {
+        Write-Host TrackWarningAnonymously exception:
+        Write-Host $_.Exception.Message -ForegroundColor Red
+    }
+}
+
 $ProgressPreference = "SilentlyContinue";
 
 if ([string]::IsNullOrEmpty($env:TEMP)) {
@@ -743,10 +799,16 @@ try {
             $dnsResult = [System.Net.DNS]::GetHostEntry($Server)
         }
         catch {
-            Write-Host ' ERROR: Name resolution of' $Server 'failed' -ForegroundColor Red
-            Write-Host ' Please make sure the server name FQDN is correct and that your machine can resolve it.' -ForegroundColor Red
-            Write-Host ' Failure to resolve domain name for your logical server is almost always the result of specifying an invalid/misspelled server name,' -ForegroundColor Red
-            Write-Host ' or a client-side networking issue that you will need to pursue with your local network administrator.' -ForegroundColor Red
+            $msg = ' ERROR: Name resolution (DNS) of ' + $Server + ' failed'
+            Write-Host $msg -Foreground Red
+            [void]$summaryLog.AppendLine($msg)
+
+            $msg = ' Please make sure the server name FQDN is correct and that your machine can resolve it.
+ Failure to resolve domain name for your logical server is almost always the result of specifying an invalid/misspelled server name,
+ or a client-side networking issue that you will need to pursue with your local network administrator.'
+            Write-Host $msg -Foreground Red
+            [void]$summaryRecommendedAction.AppendLine($msg)
+
             Write-Error '' -ErrorAction Stop
         }
         $resolvedAddress = $dnsResult.AddressList[0].IPAddressToString
@@ -819,32 +881,65 @@ try {
         Write-Host
         Write-Host 'Test endpoints for AAD Password and Integrated Authentication:' -ForegroundColor Green
         Write-Host ' Tested connectivity to login.windows.net:443' -ForegroundColor White -NoNewline
-        $testResults = Test-NetConnection 'login.windows.net' -Port 443 -WarningAction SilentlyContinue
-        if ($testResults.TcpTestSucceeded) {
+        $tcpClient = New-Object System.Net.Sockets.TcpClient
+        $portOpen = $tcpClient.ConnectAsync("login.windows.net", 443).Wait(10000)
+        if ($portOpen) {
             Write-Host ' -> TCP test succeeded' -ForegroundColor Green
+            $msg = ' Connectivity to login.windows.net:443 succeed (used for AAD Password and Integrated Authentication)'
+            [void]$script:summaryLog.AppendLine($msg)
         }
         else {
             Write-Host ' -> TCP test FAILED' -ForegroundColor Red
+            $msg = ' Connectivity to login.windows.net:443 FAILED (used for AAD Password and AAD Integrated Authentication)'
+            Write-Host $msg -Foreground Red
+            [void]$script:summaryLog.AppendLine($msg)
+
+            $msg = ' If you are using AAD Password or AAD Integrated Authentication please make sure you fix the connectivity from this machine to login.windows.net:443'
+            Write-Host $msg -Foreground Red
+            [void]$script:summaryRecommendedAction.AppendLine()
+            [void]$script:summaryRecommendedAction.AppendLine($msg)
         }
 
         Write-Host
         Write-Host 'Test endpoints for Universal with MFA authentication:' -ForegroundColor Green
         Write-Host ' Tested connectivity to login.microsoftonline.com:443' -ForegroundColor White -NoNewline
-        $testResults = Test-NetConnection 'login.microsoftonline.com' -Port 443 -WarningAction SilentlyContinue
-        if ($testResults.TcpTestSucceeded) {
+        $tcpClient = New-Object System.Net.Sockets.TcpClient
+        $portOpen = $tcpClient.ConnectAsync("login.microsoftonline.com", 443).Wait(10000)
+        if ($portOpen) {
             Write-Host ' -> TCP test succeeded' -ForegroundColor Green
+            $msg = ' Connectivity to login.microsoftonline.com:443 succeed (used for AAD Universal with MFA authentication)'
+            [void]$script:summaryLog.AppendLine($msg)
         }
         else {
             Write-Host ' -> TCP test FAILED' -ForegroundColor Red
+            $msg = ' Connectivity to login.microsoftonline.com:443 FAILED (used for AAD Universal with MFA authentication)'
+            Write-Host $msg -Foreground Red
+            [void]$script:summaryLog.AppendLine($msg)
+
+            $msg = ' If you are using AAD Universal with MFA authentication please make sure you fix the connectivity from this machine to login.microsoftonline.com:443'
+            Write-Host $msg -Foreground Red
+            [void]$script:summaryRecommendedAction.AppendLine()
+            [void]$script:summaryRecommendedAction.AppendLine($msg)
         }
 
         Write-Host ' Tested connectivity to secure.aadcdn.microsoftonline-p.com:443' -ForegroundColor White -NoNewline
-        $testResults = Test-NetConnection 'secure.aadcdn.microsoftonline-p.com' -Port 443 -WarningAction SilentlyContinue
-        if ($testResults.TcpTestSucceeded) {
+        $tcpClient = New-Object System.Net.Sockets.TcpClient
+        $portOpen = $tcpClient.ConnectAsync("secure.aadcdn.microsoftonline-p.com", 443).Wait(10000)
+        if ($portOpen) {
             Write-Host ' -> TCP test succeeded' -ForegroundColor Green
+            $msg = ' Connectivity to secure.aadcdn.microsoftonline-p.com:443 succeed (used for AAD Universal with MFA authentication)'
+            [void]$script:summaryLog.AppendLine($msg)
         }
         else {
             Write-Host ' -> TCP test FAILED' -ForegroundColor Red
+            $msg = ' Connectivity to secure.aadcdn.microsoftonline-p.com:443 FAILED (used for AAD Universal with MFA authentication)'
+            Write-Host $msg -Foreground Red
+            [void]$script:summaryLog.AppendLine($msg)
+
+            $msg = ' If you are using AAD Universal with MFA authentication please make sure you fix the connectivity from this machine to secure.aadcdn.microsoftonline-p.com:443'
+            Write-Host $msg -Foreground Red
+            [void]$script:summaryRecommendedAction.AppendLine()
+            [void]$script:summaryRecommendedAction.AppendLine($msg)
         }
 
         Write-Host
@@ -886,5 +981,18 @@ finally {
         else {
             Invoke-Item (Get-Location).Path
         }
+    }
+
+    Write-Host
+    Write-Host '######################################################' -ForegroundColor Green
+    Write-Host
+    Write-Host 'SUMMARY:' -ForegroundColor Yellow
+    Write-Host $summaryLog.ToString() -ForegroundColor Yellow
+    Write-Host 'RECOMMENDED ACTION(S):' -ForegroundColor Yellow
+    if($summaryRecommendedAction.Length -eq 0){
+    Write-Host 'Based on test results, there are no recommended actions.' -ForegroundColor Green
+    }
+    else    {
+    Write-Host $summaryRecommendedAction.ToString() -ForegroundColor Yellow
     }
 }
