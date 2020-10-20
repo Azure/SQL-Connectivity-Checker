@@ -153,9 +153,57 @@ $SQLDBGateways = @(
 )
 
 $TRPorts = @('11000', '11001', '11003', '11005', '11006')
+$summaryLog = New-Object -TypeName "System.Text.StringBuilder"
+$summaryRecommendedAction = New-Object -TypeName "System.Text.StringBuilder"
 
-$networkingIssueMessage = ' This issue indicates a problem with the networking configuration. If this is related with on-premises resources, the networking team from customer side should be engaged. If this is between Azure resources, Azure Networking team should be engaged.'
+# Error Messages
 
+$SQLDB_InvalidGatewayIPAddress = ' Please make sure the server name FQDN is correct and that your machine can resolve it to a valid gateway IP address (DNS configuration).
+ Failure to resolve domain name for your logical server is almost always the result of specifying an invalid/misspelled server name,
+ or a client-side networking issue that you will need to pursue with your local network administrator.
+ See the valid gateway addresses at https://docs.microsoft.com/azure/azure-sql/database/connectivity-architecture#gateway-ip-addresses'
+
+$SQLDB_GatewayTestFailed = ' Failure to reach the Gateway is usually a client-side networking issue that you will need to pursue with your local network administrator.
+ See more about connectivity architecture at https://docs.microsoft.com/azure/azure-sql/database/connectivity-architecture'
+
+$SQLDB_Redirect = " Servers in SQL Database and Azure Synapse support Redirect, Proxy or Default for the server's connection policy setting:
+
+ Default: This is the connection policy in effect on all servers after creation unless you explicitly alter the connection policy to either Proxy or Redirect.
+  The default policy is Redirect for all client connections originating inside of Azure (for example, from an Azure Virtual Machine)
+  and Proxy for all client connections originating outside (for example, connections from your local workstation).
+
+ Redirect (recommended): Clients establish connections directly to the node hosting the database, leading to reduced latency and improved throughput.
+  For connections to use this mode, clients need to:
+  - Allow outbound communication from the client to all Azure SQL IP addresses in the region on ports in the range of 11000-11999.
+  - Allow outbound communication from the client to Azure SQL Database gateway IP addresses on port 1433.
+
+ Proxy: In this mode, all connections are proxied via the Azure SQL Database gateways, leading to increased latency and reduced throughput.
+  For connections to use this mode, clients need to allow outbound communication from the client to Azure SQL Database gateway IP addresses on port 1433.
+
+ If you are using Proxy, the Redirect Policy related tests would not be a problem.
+ If you are using Redirect, failure to reach ports in the range of 11000-11999 is usually a client-side networking issue that you will need to pursue with your local network administrator.
+ Please check more about connection policies at https://docs.microsoft.com/en-us/azure/azure-sql/database/connectivity-architecture#connection-policy"
+
+$SQLMI_GatewayTestFailed = ' Failure to reach the Gateway is usually a client-side networking issue that you will need to pursue with your local network administrator.
+ See more about connectivity architecture at https://docs.microsoft.com/azure/azure-sql/managed-instance/connectivity-architecture-overview'
+
+$SQLMI_PublicEndPoint_GatewayTestFailed = ' This usually indicates a client-side networking issue that you will need to pursue with your local network administrator.
+ See more about connectivity using Public Endpoint at https://docs.microsoft.com/en-us/azure/azure-sql/managed-instance/public-endpoint-configure'
+
+$AAD_login_windows_net = ' If you are using AAD Password or AAD Integrated Authentication please make sure you fix the connectivity from this machine to login.windows.net:443
+ This usually indicates a client-side networking issue that you will need to pursue with your local network administrator.'
+
+$AAD_login_microsoftonline_com = ' If you are using AAD Universal with MFA authentication please make sure you fix the connectivity from this machine to login.microsoftonline.com:443
+ This usually indicates a client-side networking issue that you will need to pursue with your local network administrator.'
+
+$AAD_secure_aadcdn_microsoftonline_p_com = ' If you are using AAD Universal with MFA authentication please make sure you fix the connectivity from this machine to secure.aadcdn.microsoftonline-p.com:443
+ This usually indicates a client-side networking issue that you will need to pursue with your local network administrator.'
+
+$error18456RecommendedSolution = ' This error indicates that the login request was rejected, the most common reasons are:
+ - Incorrect or empty password: Please ensure that you have provided the correct password.
+ - Database does not exist: Please ensure that the connection string has the correct database name.
+ - Insufficient permissions: The user does not have CONNECT permissions to the database. Please ensure that the user is granted the necessary permissions to login.
+ - Connections rejected due to DoSGuard protection: DoSGuard actively tracks failed logins from IP addresses. If there are multiple failed logins from a specific IP address within a period of time, the IP address is blocked from accessing any resources in the service for a pre-defined time period even if the password and other permissions are correct.'
 
 # PowerShell Container Image Support Start
 
@@ -217,12 +265,13 @@ if (!$(Get-Command 'netsh' -errorAction SilentlyContinue) -and $CollectNetworkTr
     $CollectNetworkTrace = $false
 }
 
-
 # PowerShell Container Image Support End
 
 function PrintDNSResults($dnsResult, [string] $dnsSource) {
     if ($dnsResult) {
-        Write-Host ' Found DNS record in' $dnsSource '(IP Address:'$dnsResult.IPAddress')'
+        $msg = ' Found DNS record in ' + $dnsSource + ' (IP Address:' + $dnsResult.IPAddress + ')'
+        Write-Host $msg
+        [void]$script:summaryLog.AppendLine($msg)
     }
     else {
         Write-Host ' Could not find DNS record in' $dnsSource
@@ -287,6 +336,7 @@ function FilterTranscript() {
 
 function TestConnectionToDatabase($Server, $gatewayPort, $Database, $User, $Password) {
     Write-Host
+    [void]$script:summaryLog.AppendLine()
     Write-Host ([string]::Format("Testing connecting to {0} database:", $Database)) -ForegroundColor Green
     Try {
         $masterDbConnection = [System.Data.SqlClient.SQLConnection]::new()
@@ -300,22 +350,46 @@ function TestConnectionToDatabase($Server, $gatewayPort, $Database, $User, $Pass
         if ($_.Exception.Number -eq 18456) {
             if ($User -eq 'AzSQLConnCheckerUser') {
                 if ($Database -eq 'master') {
-                    Write-Host ([string]::Format(" Dummy login attempt reached '{0}' database, login failed as expected.", $Database))
+                    $msg = [string]::Format(" Dummy login attempt reached '{0}' database, login failed as expected.", $Database)
+                    Write-Host ($msg)
+                    [void]$script:summaryLog.AppendLine($msg)
                 }
                 else {
-                    Write-Host ([string]::Format(" Dummy login attempt on '{0}' database resulted in login failure.", $Database))
-                    Write-Host ' This was either expected due to dummy credentials being used, or database does not exist, which also results in login failed.'
+                    $msg = [string]::Format(" Dummy login attempt on '{0}' database resulted in login failure.", $Database)
+                    Write-Host ($msg)
+                    [void]$script:summaryLog.AppendLine($msg)
+
+                    $msg = ' This was either expected due to dummy credentials being used, or database does not exist, which also results in login failed.'
+                    Write-Host ($msg)
+                    [void]$script:summaryLog.AppendLine($msg)
                 }
             }
             else {
-                Write-Host ([string]::Format(" Login attempt reached '{0}' database but login failed for user '{1}'", $Database, $User)) -ForegroundColor Yellow
+                [void]$script:summaryRecommendedAction.AppendLine()
+                $msg = [string]::Format(" Login against database {0} failed for user '{1}'", $Database, $User)
+                Write-Host ($msg) -ForegroundColor Red
+                [void]$script:summaryLog.AppendLine($msg)
+                [void]$script:summaryRecommendedAction.AppendLine($msg)
+
+                $msg = $error18456RecommendedSolution
+                Write-Host ($msg) -ForegroundColor Red
+                [void]$script:summaryRecommendedAction.AppendLine($msg)
+                TrackWarningAnonymously 'FailedLogin18456UserCreds'
             }
         }
         else {
             Write-Host ' Error: '$_.Exception.Number 'State:'$_.Exception.State ':' $_.Exception.Message -ForegroundColor Yellow
+
             if ($_.Exception.Number -eq 40532 -and $gatewayPort -eq 3342) {
-                Write-Host ' You seem to be trying to connect to MI with Public Endpoint disabled' -ForegroundColor Red
-                Write-Host ' Learn how to configure public endpoint at https://docs.microsoft.com/en-us/azure/sql-database/sql-database-managed-instance-public-endpoint-configure' -ForegroundColor Red
+
+                $msg = ' You seem to be trying to connect to MI using Public Endpoint but Public Endpoint may be disabled'
+                Write-Host ($msg) -ForegroundColor Red
+                [void]$script:summaryLog.AppendLine($msg)
+                [void]$script:summaryRecommendedAction.AppendLine($msg)
+
+                $msg = ' Learn how to configure public endpoint at https://docs.microsoft.com/en-us/azure/sql-database/sql-database-managed-instance-public-endpoint-configure'
+                Write-Host ($msg) -ForegroundColor Red
+                [void]$script:summaryRecommendedAction.AppendLine($msg)
             }
         }
         return $false
@@ -379,20 +453,34 @@ function CheckAffected20191014($gateway) {
 
 function RunSqlMIPublicEndpointConnectivityTests($resolvedAddress) {
     Try {
-        Write-Host 'Detected as Managed Instance using Public Endpoint' -ForegroundColor Yellow
+        $msg = 'Detected as Managed Instance using Public Endpoint'
+        Write-Host $msg -ForegroundColor Yellow
+        [void]$script:summaryLog.AppendLine($msg)
 
         Write-Host 'Public Endpoint connectivity test:' -ForegroundColor Green
         $testResult = Test-NetConnection $resolvedAddress -Port 3342 -WarningAction SilentlyContinue
 
         if ($testResult.TcpTestSucceeded) {
             Write-Host ' -> TCP test succeed' -ForegroundColor Green
-
             PrintAverageConnectionTime $resolvedAddress 3342
+            $msg = ' Gateway connectivity to ' + $resolvedAddress + ':3342 succeed'
+            [void]$script:summaryLog.AppendLine($msg)
         }
         else {
             Write-Host ' -> TCP test FAILED' -ForegroundColor Red
-            Write-Host ' Please make sure you fix the connectivity from this machine to' $resolvedAddress':3342' -ForegroundColor Red
-            Write-Host $networkingIssueMessage -ForegroundColor Yellow
+            $msg = ' Gateway connectivity to ' + $resolvedAddress + ':3342 FAILED'
+            Write-Host $msg -Foreground Red
+            [void]$script:summaryLog.AppendLine($msg)
+
+            $msg = ' Please make sure you fix the connectivity from this machine to ' + $resolvedAddress + ':3342 (SQL MI Public Endpoint)'
+            Write-Host $msg -Foreground Red
+            [void]$script:summaryRecommendedAction.AppendLine($msg)
+
+            $msg = $SQLMI_PublicEndPoint_GatewayTestFailed
+            Write-Host $msg -Foreground Red
+            [void]$script:summaryRecommendedAction.AppendLine($msg)
+
+            TrackWarningAnonymously 'SQLMI|PublicEndPoint|GatewayTestFailed'
         }
     }
     Catch {
@@ -415,9 +503,6 @@ function RunSqlMIVNetConnectivityTests($resolvedAddress) {
         }
         else {
             Write-Host ' -> TCP test FAILED' -ForegroundColor Red
-            Write-Host ' Please make sure you fix the connectivity from this machine to' $resolvedAddress':1433' -ForegroundColor Red
-            Write-Host ' See more about connectivity architecture at https://docs.microsoft.com/en-us/azure/sql-database/sql-database-managed-instance-connectivity-architecture' -ForegroundColor Red
-            Write-Host $networkingIssueMessage -ForegroundColor Yellow
             Write-Host
             Write-Host ' Trying to get IP routes for interface:' $testResult.InterfaceAlias
             Get-NetAdapter $testResult.InterfaceAlias -ErrorAction SilentlyContinue -ErrorVariable ProcessError | Get-NetRoute
@@ -425,6 +510,23 @@ function RunSqlMIVNetConnectivityTests($resolvedAddress) {
                 Write-Host '  Could not to get IP routes for this interface'
             }
             Write-Host
+
+            $msg = ' Gateway connectivity to ' + $resolvedAddress + ':1433 FAILED'
+            Write-Host $msg -Foreground Red
+            [void]$script:summaryLog.AppendLine()
+            [void]$script:summaryLog.AppendLine($msg)
+            [void]$script:summaryRecommendedAction.AppendLine()
+            [void]$script:summaryRecommendedAction.AppendLine($msg)
+
+            $msg = ' Please fix the connectivity from this machine to ' + $resolvedAddress + ':1433'
+            Write-Host $msg -Foreground Red
+            [void]$script:summaryRecommendedAction.AppendLine($msg)
+
+            $msg = $SQLMI_GatewayTestFailed
+            Write-Host $msg -Foreground Red
+            [void]$script:summaryRecommendedAction.AppendLine($msg)
+
+            TrackWarningAnonymously 'SQLMI|GatewayTestFailed'
             return $false
         }
     }
@@ -490,11 +592,19 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
     if (!$gateway) {
         if ($hasPrivateLink) {
             Write-Host ' This connection may be using Private Link, skipping Gateway connectivity tests' -ForegroundColor Yellow
+            TrackWarningAnonymously 'SQLDB|PrivateEndpoint'
         }
         else {
-            Write-Host ' ERROR:' $resolvedAddress 'is not a valid gateway address' -ForegroundColor Red
-            Write-Host ' Please review your DNS configuration, it should resolve to a valid gateway address' -ForegroundColor Red
-            Write-Host ' See the valid gateway addresses at https://docs.microsoft.com/en-us/azure/sql-database/sql-database-connectivity-architecture#azure-sql-database-gateway-ip-addresses' -ForegroundColor Red
+            $msg = ' ERROR:' + $resolvedAddress + ' is not a valid gateway address'
+            Write-Host $msg -Foreground Red
+            [void]$script:summaryLog.AppendLine($msg)
+            [void]$script:summaryRecommendedAction.AppendLine($msg)
+
+            $msg = $SQLDB_InvalidGatewayIPAddress
+            Write-Host $msg -Foreground Red
+            [void]$script:summaryRecommendedAction.AppendLine($msg)
+
+            TrackWarningAnonymously 'SQLDB|InvalidGatewayIPAddress'
             Write-Error '' -ErrorAction Stop
         }
     }
@@ -503,27 +613,42 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
         Write-Host $gateway.Region -ForegroundColor Yellow
 
         Write-Host
+        [void]$script:summaryLog.AppendLine()
         Write-Host 'Gateway connectivity tests:' -ForegroundColor Green
         foreach ($gatewayAddress in $gateway.Gateways) {
-            Write-Host ' Testing (gateway) connectivity to' $gatewayAddress':'1433 -ForegroundColor White -NoNewline
+            Write-Host ' Testing (gateway) connectivity to' $gatewayAddress':1433' -ForegroundColor White -NoNewline
             $testResult = Test-NetConnection $gatewayAddress -Port 1433 -WarningAction SilentlyContinue
 
             if ($testResult.TcpTestSucceeded) {
                 Write-Host ' -> TCP test succeed' -ForegroundColor Green
-
                 PrintAverageConnectionTime $gatewayAddress 1433
+                $msg = ' Gateway connectivity to ' + $gatewayAddress + ':1433 succeed'
+                [void]$script:summaryLog.AppendLine($msg)
             }
             else {
                 Write-Host ' -> TCP test FAILED' -ForegroundColor Red
-                Write-Host ' Please make sure you fix the connectivity from this machine to' $gatewayAddress':1433 to avoid issues!' -ForegroundColor Red
-                Write-Host $networkingIssueMessage -ForegroundColor Yellow
                 Write-Host
                 Write-Host ' IP routes for interface:' $testResult.InterfaceAlias
                 Get-NetAdapter $testResult.InterfaceAlias | Get-NetRoute
                 tracert -h 10 $Server
+
+                $msg = ' Gateway connectivity to ' + $gatewayAddress + ':1433 FAILED'
+                Write-Host $msg -Foreground Red
+                [void]$script:summaryLog.AppendLine($msg)
+                [void]$script:summaryRecommendedAction.AppendLine()
+                [void]$script:summaryRecommendedAction.AppendLine($msg)
+
+                $msg = ' Please make sure you fix the connectivity from this machine to ' + $gatewayAddress + ':1433 to avoid issues!'
+                Write-Host $msg -Foreground Red
+                [void]$script:summaryRecommendedAction.AppendLine($msg)
+
+                $msg = $SQLDB_GatewayTestFailed
+                Write-Host $msg -Foreground Red
+                [void]$script:summaryRecommendedAction.AppendLine($msg)
+
+                TrackWarningAnonymously 'SQLDB|GatewayTestFailed'
             }
         }
-
 
         if ($gateway.TRs -and $gateway.Cluster -and $gateway.Cluster.Length -gt 0 ) {
             Write-Host
@@ -534,8 +659,10 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
                 foreach ($port in $TRPorts) {
                     $addr = [string]::Format("{0}.{1}", $tr, $gateway.Cluster)
                     Write-Host ' Tested (redirect) connectivity to' $addr':'$port -ForegroundColor White -NoNewline
-                    $testRedirectResults = Test-NetConnection $addr -Port $port -WarningAction SilentlyContinue
-                    if ($testRedirectResults.TcpTestSucceeded) {
+
+                    $tcpClient = New-Object System.Net.Sockets.TcpClient
+                    $portOpen = $tcpClient.ConnectAsync($addr, $port).Wait(6000)
+                    if ($portOpen) {
                         $redirectTests += 1
                         $redirectSucceeded += 1
                         Write-Host ' -> TCP test succeeded' -ForegroundColor Green
@@ -546,23 +673,51 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
                     }
                 }
             }
-            Write-Host ' Tested (redirect) connectivity' $redirectTests 'times and' $redirectSucceeded 'of them succeeded' -ForegroundColor Yellow
+
             if ($redirectTests -gt 0) {
-                Write-Host ' Please note this was just some tests to check connectivity using the 11000-11999 port range, not your database' -ForegroundColor Yellow
+                $redirectTestsResultMessage = [System.Text.StringBuilder]::new()
+                [void]$redirectTestsResultMessage.AppendLine()
+                $redirectTestsResultMessage.ToString()
+
+                [void]$redirectTestsResultMessage.AppendLine(' Tested (redirect) connectivity ' + $redirectTests + ' times and ' + $redirectSucceeded + ' of them succeeded')
+                [void]$redirectTestsResultMessage.AppendLine(' Please note this was just some tests to check connectivity using the 11000-11999 port range, not your database')
+
                 if (IsSqlOnDemand $Server) {
-                    Write-Host ' Some tests may even fail and not be a problem since ports tested here are static and SQL on-demand is a dynamic serverless environment.' -ForegroundColor Yellow
+                    [void]$redirectTestsResultMessage.Append(' Some tests may even fail and not be a problem since ports tested here are static and SQL on-demand is a dynamic serverless environment.')
                 }
                 else {
-                    Write-Host ' Some tests may even fail and not be a problem since ports tested here are static and SQL DB is a dynamic environment.' -ForegroundColor Yellow
+                    [void]$redirectTestsResultMessage.Append(' Some tests may even fail and not be a problem since ports tested here are static and SQL DB is a dynamic environment.')
                 }
+                $msg = $redirectTestsResultMessage.ToString()
+                Write-Host $msg -Foreground Yellow
+                [void]$script:summaryLog.AppendLine($msg)
+
                 if ($redirectSucceeded / $redirectTests -ge 0.5 ) {
-                    Write-Host ' Based on the result it is likely the Redirect Policy will work from this machine' -ForegroundColor Green
+                    $msg = ' Based on the result it is likely the Redirect Policy will work from this machine'
+                    Write-Host $msg -Foreground Green
+                    [void]$script:summaryLog.AppendLine($msg)
                 }
                 else {
-                    Write-Host ' Based on the result the Redirect Policy MAY NOT work from this machine, this can be expected for connections from outside Azure' -ForegroundColor Red
+
+                    if ($redirectSucceeded / $redirectTests -eq 0.0 ) {
+                        $msg = ' Based on the result the Redirect Policy will NOT work from this machine'
+                        Write-Host $msg -Foreground Red
+                        [void]$script:summaryLog.AppendLine($msg)
+                        TrackWarningAnonymously 'SQLDB|Redirect|AllTestsFailed'
+                    }
+                    else {
+                        $msg = ' Based on the result the Redirect Policy MAY NOT work from this machine, this can be expected for connections from outside Azure'
+                        Write-Host $msg -Foreground Red
+                        [void]$script:summaryLog.AppendLine($msg)
+                        TrackWarningAnonymously 'SQLDB|Redirect|'+$redirectSucceeded+'/'+$redirectTests
+                    }
+
+                    [void]$script:summaryRecommendedAction.AppendLine($msg)
+                    $msg = $SQLDB_Redirect
+                    Write-Host $msg -Foreground Red
+                    [void]$script:summaryRecommendedAction.AppendLine($msg)
                 }
             }
-            Write-Host ' Please check more about Azure SQL Connectivity Architecture at https://docs.microsoft.com/en-us/azure/sql-database/sql-database-connectivity-architecture' -ForegroundColor Yellow
         }
     }
 }
@@ -637,7 +792,7 @@ function SendAnonymousUsageData {
             | Add-Member -PassThru NoteProperty baseType 'EventData' `
             | Add-Member -PassThru NoteProperty baseData (New-Object PSObject `
                 | Add-Member -PassThru NoteProperty ver 2 `
-                | Add-Member -PassThru NoteProperty name '1.7'));
+                | Add-Member -PassThru NoteProperty name '1.8'));
 
         $body = $body | ConvertTo-JSON -depth 5;
         Invoke-WebRequest -Uri 'https://dc.services.visualstudio.com/v2/track' -Method 'POST' -UseBasicParsing -body $body > $null
@@ -645,6 +800,33 @@ function SendAnonymousUsageData {
     catch {
         Write-Host 'Error sending anonymous usage data:'
         Write-Host $_.Exception.Message
+    }
+}
+
+function TrackWarningAnonymously ([String] $warningCode) {
+    Try {
+        #Despite computername and username will be used to calculate a hash string, this will keep you anonymous but allow us to identify multiple runs from the same user
+        $StringBuilderHash = New-Object System.Text.StringBuilder
+        [System.Security.Cryptography.HashAlgorithm]::Create("MD5").ComputeHash([System.Text.Encoding]::UTF8.GetBytes($env:computername + $env:username)) | ForEach-Object {
+            [Void]$StringBuilderHash.Append($_.ToString("x2"))
+        }
+
+        $body = New-Object PSObject `
+        | Add-Member -PassThru NoteProperty name 'Microsoft.ApplicationInsights.Event' `
+        | Add-Member -PassThru NoteProperty time $([System.dateTime]::UtcNow.ToString('o')) `
+        | Add-Member -PassThru NoteProperty iKey "a75c333b-14cb-4906-aab1-036b31f0ce8a" `
+        | Add-Member -PassThru NoteProperty tags (New-Object PSObject | Add-Member -PassThru NoteProperty 'ai.user.id' $StringBuilderHash.ToString()) `
+        | Add-Member -PassThru NoteProperty data (New-Object PSObject `
+            | Add-Member -PassThru NoteProperty baseType 'EventData' `
+            | Add-Member -PassThru NoteProperty baseData (New-Object PSObject `
+                | Add-Member -PassThru NoteProperty ver 2 `
+                | Add-Member -PassThru NoteProperty name $warningCode));
+        $body = $body | ConvertTo-JSON -depth 5;
+        Invoke-WebRequest -Uri 'https://dc.services.visualstudio.com/v2/track' -Method 'POST' -UseBasicParsing -body $body > $null
+    }
+    Catch {
+        Write-Host TrackWarningAnonymously exception:
+        Write-Host $_.Exception.Message -ForegroundColor Red
     }
 }
 
@@ -687,7 +869,7 @@ try {
 
     try {
         Write-Host '******************************************' -ForegroundColor Green
-        Write-Host '  Azure SQL Connectivity Checker v1.7  ' -ForegroundColor Green
+        Write-Host '  Azure SQL Connectivity Checker v1.8  ' -ForegroundColor Green
         Write-Host '******************************************' -ForegroundColor Green
         Write-Host
         Write-Host 'Parameters' -ForegroundColor Yellow
@@ -743,10 +925,16 @@ try {
             $dnsResult = [System.Net.DNS]::GetHostEntry($Server)
         }
         catch {
-            Write-Host ' ERROR: Name resolution of' $Server 'failed' -ForegroundColor Red
-            Write-Host ' Please make sure the server name FQDN is correct and that your machine can resolve it.' -ForegroundColor Red
-            Write-Host ' Failure to resolve domain name for your logical server is almost always the result of specifying an invalid/misspelled server name,' -ForegroundColor Red
-            Write-Host ' or a client-side networking issue that you will need to pursue with your local network administrator.' -ForegroundColor Red
+            $msg = ' ERROR: Name resolution (DNS) of ' + $Server + ' failed'
+            Write-Host $msg -Foreground Red
+            [void]$summaryLog.AppendLine($msg)
+
+            $msg = ' Please make sure the server name FQDN is correct and that your machine can resolve it.
+ Failure to resolve domain name for your logical server is almost always the result of specifying an invalid/misspelled server name,
+ or a client-side networking issue that you will need to pursue with your local network administrator.'
+            Write-Host $msg -Foreground Red
+            [void]$summaryRecommendedAction.AppendLine($msg)
+
             Write-Error '' -ErrorAction Stop
         }
         $resolvedAddress = $dnsResult.AddressList[0].IPAddressToString
@@ -817,34 +1005,71 @@ try {
         }
 
         Write-Host
+        [void]$script:summaryLog.AppendLine()
         Write-Host 'Test endpoints for AAD Password and Integrated Authentication:' -ForegroundColor Green
         Write-Host ' Tested connectivity to login.windows.net:443' -ForegroundColor White -NoNewline
-        $testResults = Test-NetConnection 'login.windows.net' -Port 443 -WarningAction SilentlyContinue
-        if ($testResults.TcpTestSucceeded) {
+        $tcpClient = New-Object System.Net.Sockets.TcpClient
+        $portOpen = $tcpClient.ConnectAsync("login.windows.net", 443).Wait(10000)
+        if ($portOpen) {
             Write-Host ' -> TCP test succeeded' -ForegroundColor Green
+            $msg = ' Connectivity to login.windows.net:443 succeed (used for AAD Password and Integrated Authentication)'
+            [void]$script:summaryLog.AppendLine($msg)
         }
         else {
             Write-Host ' -> TCP test FAILED' -ForegroundColor Red
+            $msg = ' Connectivity to login.windows.net:443 FAILED (used for AAD Password and AAD Integrated Authentication)'
+            Write-Host $msg -Foreground Red
+            [void]$script:summaryLog.AppendLine($msg)
+
+            $msg = $AAD_login_windows_net
+            Write-Host $msg -Foreground Red
+            [void]$script:summaryRecommendedAction.AppendLine()
+            [void]$script:summaryRecommendedAction.AppendLine($msg)
+            TrackWarningAnonymously 'AAD|login.windows.net'
         }
 
         Write-Host
         Write-Host 'Test endpoints for Universal with MFA authentication:' -ForegroundColor Green
         Write-Host ' Tested connectivity to login.microsoftonline.com:443' -ForegroundColor White -NoNewline
-        $testResults = Test-NetConnection 'login.microsoftonline.com' -Port 443 -WarningAction SilentlyContinue
-        if ($testResults.TcpTestSucceeded) {
+        $tcpClient = New-Object System.Net.Sockets.TcpClient
+        $portOpen = $tcpClient.ConnectAsync("login.microsoftonline.com", 443).Wait(10000)
+        if ($portOpen) {
             Write-Host ' -> TCP test succeeded' -ForegroundColor Green
+            $msg = ' Connectivity to login.microsoftonline.com:443 succeed (used for AAD Universal with MFA authentication)'
+            [void]$script:summaryLog.AppendLine($msg)
         }
         else {
             Write-Host ' -> TCP test FAILED' -ForegroundColor Red
+            $msg = ' Connectivity to login.microsoftonline.com:443 FAILED (used for AAD Universal with MFA authentication)'
+            Write-Host $msg -Foreground Red
+            [void]$script:summaryLog.AppendLine($msg)
+
+            $msg = $AAD_login_microsoftonline_com
+            Write-Host $msg -Foreground Red
+            [void]$script:summaryRecommendedAction.AppendLine()
+            [void]$script:summaryRecommendedAction.AppendLine($msg)
+            TrackWarningAnonymously 'AAD|login.microsoftonline.com'
         }
 
         Write-Host ' Tested connectivity to secure.aadcdn.microsoftonline-p.com:443' -ForegroundColor White -NoNewline
-        $testResults = Test-NetConnection 'secure.aadcdn.microsoftonline-p.com' -Port 443 -WarningAction SilentlyContinue
-        if ($testResults.TcpTestSucceeded) {
+        $tcpClient = New-Object System.Net.Sockets.TcpClient
+        $portOpen = $tcpClient.ConnectAsync("secure.aadcdn.microsoftonline-p.com", 443).Wait(10000)
+        if ($portOpen) {
             Write-Host ' -> TCP test succeeded' -ForegroundColor Green
+            $msg = ' Connectivity to secure.aadcdn.microsoftonline-p.com:443 succeed (used for AAD Universal with MFA authentication)'
+            [void]$script:summaryLog.AppendLine($msg)
         }
         else {
             Write-Host ' -> TCP test FAILED' -ForegroundColor Red
+            $msg = ' Connectivity to secure.aadcdn.microsoftonline-p.com:443 FAILED (used for AAD Universal with MFA authentication)'
+            Write-Host $msg -Foreground Red
+            [void]$script:summaryLog.AppendLine($msg)
+
+            $msg = $AAD_secure_aadcdn_microsoftonline_p_com
+            Write-Host $msg -Foreground Red
+            [void]$script:summaryRecommendedAction.AppendLine()
+            [void]$script:summaryRecommendedAction.AppendLine($msg)
+            TrackWarningAnonymously 'AAD|secure.aadcdn.microsoftonline-p.com'
         }
 
         Write-Host
@@ -886,5 +1111,18 @@ finally {
         else {
             Invoke-Item (Get-Location).Path
         }
+    }
+
+    Write-Host
+    Write-Host '######################################################' -ForegroundColor Green
+    Write-Host
+    Write-Host 'SUMMARY:' -ForegroundColor Yellow
+    Write-Host $summaryLog.ToString() -ForegroundColor Yellow
+    Write-Host 'RECOMMENDED ACTION(S):' -ForegroundColor Yellow
+    if ($summaryRecommendedAction.Length -eq 0) {
+        Write-Host 'Based on test results, there are no recommended actions.' -ForegroundColor Green
+    }
+    else {
+        Write-Host $summaryRecommendedAction.ToString() -ForegroundColor Yellow
     }
 }
