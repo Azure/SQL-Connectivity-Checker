@@ -397,7 +397,7 @@ function TestConnectionToDatabase($Server, $gatewayPort, $Database, $User, $Pass
                 TrackWarningAnonymously 'SQLMI|PublicEndpoint|Error40532'
             }
             else {
-                TrackWarningAnonymously 'TestConnectionToDatabase|Error: '$_.Exception.Number 'State:'$_.Exception.State
+                TrackWarningAnonymously ('TestConnectionToDatabase|Error:' + $_.Exception.Number + 'State:' + $_.Exception.State)
             }
         }
         return $false
@@ -707,7 +707,7 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
                 Write-Host $msg -Foreground Yellow
                 [void]$script:summaryLog.AppendLine($msg)
 
-                TrackWarningAnonymously 'SQLDB|Redirect|' + $gateway.Region + '|' +$redirectSucceeded + '/' + $redirectTests
+                TrackWarningAnonymously ('SQLDB|Redirect|' + $gateway.Region + '|' +$redirectSucceeded + '/' + $redirectTests)
 
                 if ($redirectSucceeded / $redirectTests -ge 0.5 ) {
                     $msg = ' Based on the result it is likely the Redirect Policy will work from this machine'
@@ -726,7 +726,7 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
                         $msg = ' Based on the result the Redirect Policy MAY NOT work from this machine, this can be expected for connections from outside Azure'
                         Write-Host $msg -Foreground Red
                         [void]$script:summaryLog.AppendLine($msg)
-                        TrackWarningAnonymously 'SQLDB|Redirect|MoreThanHalfFailed|' + $redirectSucceeded + '/' + $redirectTests
+                        TrackWarningAnonymously ('SQLDB|Redirect|MoreThanHalfFailed|' + $redirectSucceeded + '/' + $redirectTests)
                     }
 
                     [void]$script:summaryRecommendedAction.AppendLine($msg)
@@ -842,7 +842,7 @@ function TrackWarningAnonymously ([String] $warningCode) {
         Invoke-WebRequest -Uri 'https://dc.services.visualstudio.com/v2/track' -Method 'POST' -UseBasicParsing -body $body > $null
     }
     Catch {
-        Write-Host TrackWarningAnonymously exception:
+        Write-Host 'TrackWarningAnonymously exception:'
         Write-Host $_.Exception.Message -ForegroundColor Red
     }
 }
