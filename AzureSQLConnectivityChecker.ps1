@@ -157,6 +157,9 @@ $summaryLog = New-Object -TypeName "System.Text.StringBuilder"
 $summaryRecommendedAction = New-Object -TypeName "System.Text.StringBuilder"
 
 # Error Messages
+$DNSResolutionFailed = ' Please make sure the server name FQDN is correct and that your machine can resolve it.
+ Failure to resolve domain name for your logical server is almost always the result of specifying an invalid/misspelled server name,
+ or a client-side networking issue that you will need to pursue with your local network administrator.'
 
 $SQLDB_InvalidGatewayIPAddress = ' Please make sure the server name FQDN is correct and that your machine can resolve it to a valid gateway IP address (DNS configuration).
  Failure to resolve domain name for your logical server is almost always the result of specifying an invalid/misspelled server name,
@@ -297,6 +300,7 @@ function ValidateDNS([String] $Server) {
     Catch {
         Write-Host "Error at ValidateDNS" -Foreground Red
         Write-Host $_.Exception.Message -ForegroundColor Red
+        TrackWarningAnonymously 'Error at ValidateDNS'
     }
 }
 
@@ -390,12 +394,17 @@ function TestConnectionToDatabase($Server, $gatewayPort, $Database, $User, $Pass
                 $msg = ' Learn how to configure public endpoint at https://docs.microsoft.com/en-us/azure/sql-database/sql-database-managed-instance-public-endpoint-configure'
                 Write-Host ($msg) -ForegroundColor Red
                 [void]$script:summaryRecommendedAction.AppendLine($msg)
+                TrackWarningAnonymously 'SQLMI|PublicEndpoint|Error40532'
+            }
+            else {
+                TrackWarningAnonymously 'TestConnectionToDatabase|Error: '$_.Exception.Number 'State:'$_.Exception.State
             }
         }
         return $false
     }
     Catch {
         Write-Host $_.Exception.Message -ForegroundColor Yellow
+        TrackWarningAnonymously 'TestConnectionToDatabase|Exception'
         return $false
     }
 }
@@ -456,6 +465,7 @@ function RunSqlMIPublicEndpointConnectivityTests($resolvedAddress) {
         $msg = 'Detected as Managed Instance using Public Endpoint'
         Write-Host $msg -ForegroundColor Yellow
         [void]$script:summaryLog.AppendLine($msg)
+        TrackWarningAnonymously 'SQLMI|PublicEndpoint'
 
         Write-Host 'Public Endpoint connectivity test:' -ForegroundColor Green
         $testResult = Test-NetConnection $resolvedAddress -Port 3342 -WarningAction SilentlyContinue
@@ -486,12 +496,14 @@ function RunSqlMIPublicEndpointConnectivityTests($resolvedAddress) {
     Catch {
         Write-Host "Error at RunSqlMIPublicEndpointConnectivityTests" -Foreground Red
         Write-Host $_.Exception.Message -ForegroundColor Red
+        TrackWarningAnonymously 'RunSqlMIPublicEndpointConnectivityTests|Exception'
     }
 }
 
 function RunSqlMIVNetConnectivityTests($resolvedAddress) {
     Try {
         Write-Host 'Detected as Managed Instance' -ForegroundColor Yellow
+        TrackWarningAnonymously 'SQLMI|PrivateEndpoint'
         Write-Host
         Write-Host 'Gateway connectivity tests:' -ForegroundColor Green
         $testResult = Test-NetConnection $resolvedAddress -Port 1433 -WarningAction SilentlyContinue
@@ -533,6 +545,7 @@ function RunSqlMIVNetConnectivityTests($resolvedAddress) {
     Catch {
         Write-Host "Error at RunSqlMIVNetConnectivityTests" -Foreground Red
         Write-Host $_.Exception.Message -ForegroundColor Red
+        TrackWarningAnonymously 'RunSqlMIVNetConnectivityTests|Exception'
         return $false
     }
 }
@@ -581,9 +594,11 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
 
     if (IsSqlOnDemand $Server) {
         Write-Host 'Detected as SQL on-demand endpoint' -ForegroundColor Yellow
+        TrackWarningAnonymously 'SQL on-demand'
     }
     else {
         Write-Host 'Detected as SQL DB/DW Server' -ForegroundColor Yellow
+        TrackWarningAnonymously 'SQL DB/DW'
     }
 
     $hasPrivateLink = HasPrivateLink $Server
@@ -692,6 +707,8 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
                 Write-Host $msg -Foreground Yellow
                 [void]$script:summaryLog.AppendLine($msg)
 
+                TrackWarningAnonymously 'SQLDB|Redirect|' + $gateway.Region + '|' +$redirectSucceeded + '/' + $redirectTests
+
                 if ($redirectSucceeded / $redirectTests -ge 0.5 ) {
                     $msg = ' Based on the result it is likely the Redirect Policy will work from this machine'
                     Write-Host $msg -Foreground Green
@@ -709,7 +726,7 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
                         $msg = ' Based on the result the Redirect Policy MAY NOT work from this machine, this can be expected for connections from outside Azure'
                         Write-Host $msg -Foreground Red
                         [void]$script:summaryLog.AppendLine($msg)
-                        TrackWarningAnonymously 'SQLDB|Redirect|'+$redirectSucceeded+'/'+$redirectTests
+                        TrackWarningAnonymously 'SQLDB|Redirect|MoreThanHalfFailed|' + $redirectSucceeded + '/' + $redirectTests
                     }
 
                     [void]$script:summaryRecommendedAction.AppendLine($msg)
@@ -792,7 +809,7 @@ function SendAnonymousUsageData {
             | Add-Member -PassThru NoteProperty baseType 'EventData' `
             | Add-Member -PassThru NoteProperty baseData (New-Object PSObject `
                 | Add-Member -PassThru NoteProperty ver 2 `
-                | Add-Member -PassThru NoteProperty name '1.8'));
+                | Add-Member -PassThru NoteProperty name '1.9'));
 
         $body = $body | ConvertTo-JSON -depth 5;
         Invoke-WebRequest -Uri 'https://dc.services.visualstudio.com/v2/track' -Method 'POST' -UseBasicParsing -body $body > $null
@@ -869,7 +886,7 @@ try {
 
     try {
         Write-Host '******************************************' -ForegroundColor Green
-        Write-Host '  Azure SQL Connectivity Checker v1.8  ' -ForegroundColor Green
+        Write-Host '  Azure SQL Connectivity Checker v1.9  ' -ForegroundColor Green
         Write-Host '******************************************' -ForegroundColor Green
         Write-Host
         Write-Host 'Parameters' -ForegroundColor Yellow
@@ -929,12 +946,10 @@ try {
             Write-Host $msg -Foreground Red
             [void]$summaryLog.AppendLine($msg)
 
-            $msg = ' Please make sure the server name FQDN is correct and that your machine can resolve it.
- Failure to resolve domain name for your logical server is almost always the result of specifying an invalid/misspelled server name,
- or a client-side networking issue that you will need to pursue with your local network administrator.'
+            $msg = $DNSResolutionFailed
             Write-Host $msg -Foreground Red
             [void]$summaryRecommendedAction.AppendLine($msg)
-
+            TrackWarningAnonymously 'DNSResolutionFailed'
             Write-Error '' -ErrorAction Stop
         }
         $resolvedAddress = $dnsResult.AddressList[0].IPAddressToString
@@ -984,11 +999,23 @@ try {
                 $masterDbResultDataTable.Load($masterDbResult)
 
                 if ($masterDbResultDataTable.Rows[0].C -eq 0) {
-                    Write-Host ' ERROR:' $Database 'was not found in sys.databases!' -ForegroundColor Red
-                    Write-Host ' Please confirm the database name is correct and/or look at the operation logs to see if the database has been dropped by another user.' -ForegroundColor Red
+                    $msg = ' ERROR: ' + $Database + ' was not found in sys.databases!'
+                    Write-Host $msg -Foreground Red
+                    [void]$summaryLog.AppendLine()
+                    [void]$summaryLog.AppendLine($msg)
+                    [void]$summaryRecommendedAction.AppendLine()
+                    [void]$summaryRecommendedAction.AppendLine($msg)
+
+                    $msg = ' Please confirm the database name is correct and/or look at the operation logs to see if the database has been dropped by another user.'
+                    Write-Host $msg -Foreground Red
+                    [void]$summaryRecommendedAction.AppendLine($msg)
+                    TrackWarningAnonymously 'DatabaseNotFoundInMasterSysDatabases'
                 }
                 else {
-                    Write-Host ' ' $Database was found in sys.databases of master database -ForegroundColor Green
+                    $msg = ' ' + $Database + ' was found in sys.databases of master database'
+                    Write-Host $msg -Foreground Green
+                    [void]$summaryLog.AppendLine()
+                    [void]$summaryLog.AppendLine($msg)
 
                     #Test database from parameter
                     if ($customDatabaseNameWasSet) {
@@ -1121,6 +1148,7 @@ finally {
     Write-Host 'RECOMMENDED ACTION(S):' -ForegroundColor Yellow
     if ($summaryRecommendedAction.Length -eq 0) {
         Write-Host 'Based on test results, there are no recommended actions.' -ForegroundColor Green
+        TrackWarningAnonymously 'NoRecommendedActions' 
     }
     else {
         Write-Host $summaryRecommendedAction.ToString() -ForegroundColor Yellow
