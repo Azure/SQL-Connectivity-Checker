@@ -271,36 +271,65 @@ if (!$(Get-Command 'netsh' -errorAction SilentlyContinue) -and $CollectNetworkTr
 # PowerShell Container Image Support End
 
 function PrintDNSResults($dnsResult, [string] $dnsSource) {
-    if ($dnsResult) {
-        $msg = ' Found DNS record in ' + $dnsSource + ' (IP Address:' + $dnsResult.IPAddress + ')'
-        Write-Host $msg
-        [void]$script:summaryLog.AppendLine($msg)
+    Try {
+        if ($dnsResult) {
+            $msg = ' Found DNS record in ' + $dnsSource + ' (IP Address:' + $dnsResult.IPAddress + ')'
+            Write-Host $msg
+            [void]$script:summaryLog.AppendLine($msg)
+        }
+        else {
+            Write-Host ' Could not find DNS record in' $dnsSource
+        }
     }
-    else {
-        Write-Host ' Could not find DNS record in' $dnsSource
+    Catch {
+        $msg = "Error at PrintDNSResults for " + $dnsSource
+        Write-Host $msg -Foreground Red
+        Write-Host $_.Exception.Message -ForegroundColor Red
+        TrackWarningAnonymously $msg
     }
 }
 
 function ValidateDNS([String] $Server) {
-    Try {
-        Write-Host 'Validating DNS record for' $Server -ForegroundColor Green
+    Write-Host 'Validating DNS record for' $Server -ForegroundColor Green
 
+    Try {
         $DNSfromHosts = Resolve-DnsName -Name $Server -CacheOnly -ErrorAction SilentlyContinue
         PrintDNSResults $DNSfromHosts 'hosts file'
+    }
+    Catch {
+        Write-Host "Error at ValidateDNS from hosts file" -Foreground Red
+        Write-Host $_.Exception.Message -ForegroundColor Red
+        TrackWarningAnonymously 'Error at ValidateDNS from hosts file'
+    }
 
+    Try {
         $DNSfromCache = Resolve-DnsName -Name $Server -NoHostsFile -CacheOnly -ErrorAction SilentlyContinue
         PrintDNSResults $DNSfromCache 'cache'
+    }
+    Catch {
+        Write-Host "Error at ValidateDNS from cache" -Foreground Red
+        Write-Host $_.Exception.Message -ForegroundColor Red
+        TrackWarningAnonymously 'Error at ValidateDNS from cache'
+    }
 
+    Try {
         $DNSfromCustomerServer = Resolve-DnsName -Name $Server -DnsOnly -ErrorAction SilentlyContinue
         PrintDNSResults $DNSfromCustomerServer 'DNS server'
+    }
+    Catch {
+        Write-Host "Error at ValidateDNS from DNS server" -Foreground Red
+        Write-Host $_.Exception.Message -ForegroundColor Red
+        TrackWarningAnonymously 'Error at ValidateDNS from DNS server'
+    }
 
+    Try {
         $DNSfromAzureDNS = Resolve-DnsName -Name $Server -DnsOnly -Server 208.67.222.222 -ErrorAction SilentlyContinue
         PrintDNSResults $DNSfromAzureDNS 'Open DNS'
     }
     Catch {
-        Write-Host "Error at ValidateDNS" -Foreground Red
+        Write-Host "Error at ValidateDNS from Open DNS" -Foreground Red
         Write-Host $_.Exception.Message -ForegroundColor Red
-        TrackWarningAnonymously 'Error at ValidateDNS'
+        TrackWarningAnonymously 'Error at ValidateDNS from Open DNS'
     }
 }
 
