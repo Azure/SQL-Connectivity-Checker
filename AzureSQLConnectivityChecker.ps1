@@ -434,7 +434,7 @@ function TestConnectionToDatabase($Server, $gatewayPort, $Database, $User, $Pass
                     $msg = ' Connection to database ' + $Database + ' failed (error ' + $ex.Number + ', state ' + $ex.State + '): ' + $ex.Message
                     Write-Host ($msg) -ForegroundColor Red
                     [void]$summaryLog.AppendLine($msg)
-                    TrackWarningAnonymously ('TestConnectionToDatabase|Error:' + $_.Exception.Number + 'State:' + $_.Exception.State)
+                    TrackWarningAnonymously ('TestConnectionToDatabase|Error:' + $ex.Number + 'State:' + $ex.State)
                 }
             }
             40615 {
@@ -443,13 +443,13 @@ function TestConnectionToDatabase($Server, $gatewayPort, $Database, $User, $Pass
                 [void]$summaryLog.AppendLine($msg)
                 [void]$summaryRecommendedAction.AppendLine()
                 [void]$summaryRecommendedAction.AppendLine($msg)
-                TrackWarningAnonymously ('TestConnectionToDatabase|Error:' + $_.Exception.Number + 'State:' + $_.Exception.State)
+                TrackWarningAnonymously ('TestConnectionToDatabase|Error:' + $ex.Number + 'State:' + $ex.State)
             }
             default {
                 $msg = ' Connection to database ' + $Database + ' failed (error ' + $ex.Number + ', state ' + $ex.State + '): ' + $ex.Message
                 Write-Host ($msg) -ForegroundColor Red
                 [void]$summaryLog.AppendLine($msg)
-                TrackWarningAnonymously ('TestConnectionToDatabase|Error:' + $_.Exception.Number + 'State:' + $_.Exception.State)
+                TrackWarningAnonymously ('TestConnectionToDatabase|Error:' + $ex.Number + 'State:' + $ex.State)
             }
         }
         return $false
