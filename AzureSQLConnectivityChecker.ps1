@@ -161,6 +161,12 @@ $DNSResolutionFailed = ' Please make sure the server name FQDN is correct and th
  Failure to resolve domain name for your logical server is almost always the result of specifying an invalid/misspelled server name,
  or a client-side networking issue that you will need to pursue with your local network administrator.'
 
+ $DNSResolutionFailedSQLMIPublicEndpoint = ' Please make sure the server name FQDN is correct and that your machine can resolve it.
+ You seem to be trying to connect using Public Endpoint, this error can be caused if the Public Endpoint is Disabled.
+ See how to enable public endpoint for your managed instance at https://aka.ms/mimanage-publicendpoint
+ If public endpoint is enabled, failure to resolve domain name for your logical server is almost always the result of specifying an invalid/misspelled server name,
+ or a client-side networking issue that you will need to pursue with your local network administrator.'
+
 $SQLDB_InvalidGatewayIPAddress = ' Please make sure the server name FQDN is correct and that your machine can resolve it to a valid gateway IP address (DNS configuration).
  Failure to resolve domain name for your logical server is almost always the result of specifying an invalid/misspelled server name,
  or a client-side networking issue that you will need to pursue with your local network administrator.
@@ -860,7 +866,7 @@ function SendAnonymousUsageData {
             | Add-Member -PassThru NoteProperty baseType 'EventData' `
             | Add-Member -PassThru NoteProperty baseData (New-Object PSObject `
                 | Add-Member -PassThru NoteProperty ver 2 `
-                | Add-Member -PassThru NoteProperty name '1.10'));
+                | Add-Member -PassThru NoteProperty name '1.11'));
 
         $body = $body | ConvertTo-JSON -depth 5;
         Invoke-WebRequest -Uri 'https://dc.services.visualstudio.com/v2/track' -Method 'POST' -UseBasicParsing -body $body > $null
@@ -937,7 +943,7 @@ try {
 
     try {
         Write-Host '******************************************' -ForegroundColor Green
-        Write-Host '  Azure SQL Connectivity Checker v1.10  ' -ForegroundColor Green
+        Write-Host '  Azure SQL Connectivity Checker v1.11  ' -ForegroundColor Green
         Write-Host '******************************************' -ForegroundColor Green
         Write-Host
         Write-Host 'Parameters' -ForegroundColor Yellow
@@ -997,10 +1003,18 @@ try {
             Write-Host $msg -Foreground Red
             [void]$summaryLog.AppendLine($msg)
 
-            $msg = $DNSResolutionFailed
-            Write-Host $msg -Foreground Red
-            [void]$summaryRecommendedAction.AppendLine($msg)
-            TrackWarningAnonymously 'DNSResolutionFailed'
+            if (IsManagedInstancePublicEndpoint $Server) {
+                $msg = $DNSResolutionFailedSQLMIPublicEndpoint
+                Write-Host $msg -Foreground Red
+                [void]$summaryRecommendedAction.AppendLine($msg)
+                TrackWarningAnonymously 'DNSResolutionFailedSQLMIPublicEndpoint'
+            }
+            else {
+                $msg = $DNSResolutionFailed
+                Write-Host $msg -Foreground Red
+                [void]$summaryRecommendedAction.AppendLine($msg)
+                TrackWarningAnonymously 'DNSResolutionFailed'
+            }
             Write-Error '' -ErrorAction Stop
         }
         $resolvedAddress = $dnsResult.AddressList[0].IPAddressToString
