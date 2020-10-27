@@ -30,6 +30,7 @@ $SendAnonymousUsageData = $true  # Set as $true (default) or $false
 $RunAdvancedConnectivityPolicyTests = $true  # Set as $true (default) or $false#Set as $true (default) or $false, this will download library needed for running advanced connectivity policy tests
 $CollectNetworkTrace = $true  # Set as $true (default) or $false
 #EncryptionProtocol = ''  # Supported values: 'Tls 1.0', 'Tls 1.1', 'Tls 1.2'; Without this parameter operating system will choose the best protocol to use
+$Local = $true
 
 # Parameter region when Invoke-Command -ScriptBlock is used
 $parameters = $args[0]
@@ -819,50 +820,61 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
 }
 
 function RunConnectivityPolicyTests($port) {
-    Write-Host
-    Write-Host 'Advanced connectivity policy tests:' -ForegroundColor Green
+    try {
+        Write-Host
+        Write-Host 'Advanced connectivity policy tests:' -ForegroundColor Green
 
-    # Check removed
-    #if (!$CustomerRunningInElevatedMode) {
-    #    Write-Host ' Powershell must be run as an administrator to run advanced connectivity policy tests!' -ForegroundColor Yellow
-    #    return
-    #}
+        if ($(Get-ExecutionPolicy) -eq 'Restricted') {
+            $msg = ' Advanced connectivity policy tests cannot be run because of current execution policy (Restricted)!
+ Please use Set-ExecutionPolicy to allow scripts to run on this system!'
+            Write-Host $msg -Foreground Yellow
+            [void]$summaryLog.AppendLine()
+            [void]$summaryLog.AppendLine($msg)
+            [void]$summaryRecommendedAction.AppendLine()
+            [void]$summaryRecommendedAction.AppendLine($msg)
 
-    if ($(Get-ExecutionPolicy) -eq 'Restricted') {
-        Write-Host ' Advanced connectivity policy tests cannot be run because of current execution policy (Restricted)!' -ForegroundColor Yellow
-        Write-Host ' Please use Set-ExecutionPolicy to allow scripts to run on this system!' -ForegroundColor Yellow
-        return
-    }
+            TrackWarningAnonymously 'Advanced|RestrictedExecutionPolicy'
+            return
+        }
 
-    $jobParameters = @{
-        Server             = $Server
-        Database           = $Database
-        Port               = $port
-        User               = $User
-        Password           = $Password
-        EncryptionProtocol = $EncryptionProtocol
-        RepositoryBranch   = $RepositoryBranch
-        Local              = $Local
-        LocalPath          = $LocalPath
-    }
+        $jobParameters = @{
+            Server             = $Server
+            Database           = $Database
+            Port               = $port
+            User               = $User
+            Password           = $Password
+            EncryptionProtocol = $EncryptionProtocol
+            RepositoryBranch   = $RepositoryBranch
+            Local              = $Local
+            LocalPath          = $LocalPath
+        }
 
-    if (Test-Path "$env:TEMP\AzureSQLConnectivityChecker\") {
+        if (Test-Path "$env:TEMP\AzureSQLConnectivityChecker\") {
+            Remove-Item $env:TEMP\AzureSQLConnectivityChecker -Recurse -Force
+        }
+
+        New-Item "$env:TEMP\AzureSQLConnectivityChecker\" -ItemType directory | Out-Null
+
+        if ($Local) {
+            Copy-Item -Path $($LocalPath + './AdvancedConnectivityPolicyTests.ps1') -Destination "$env:TEMP\AzureSQLConnectivityChecker\AdvancedConnectivityPolicyTests.ps1"
+        }
+        else {
+            Invoke-WebRequest -Uri $('https://raw.githubusercontent.com/Azure/SQL-Connectivity-Checker/' + $RepositoryBranch + '/AdvancedConnectivityPolicyTests.ps1') -OutFile "$env:TEMP\AzureSQLConnectivityChecker\AdvancedConnectivityPolicyTests.ps1" -UseBasicParsing
+        }
+
+        $job = Start-Job -ArgumentList $jobParameters -FilePath "$env:TEMP\AzureSQLConnectivityChecker\AdvancedConnectivityPolicyTests.ps1"
+        Wait-Job $job | Out-Null
+        Receive-Job -Job $job
         Remove-Item $env:TEMP\AzureSQLConnectivityChecker -Recurse -Force
+        TrackWarningAnonymously 'Advanced|Invoked'
     }
-
-    New-Item "$env:TEMP\AzureSQLConnectivityChecker\" -ItemType directory | Out-Null
-
-    if ($Local) {
-        Copy-Item -Path $($LocalPath + './AdvancedConnectivityPolicyTests.ps1') -Destination "$env:TEMP\AzureSQLConnectivityChecker\AdvancedConnectivityPolicyTests.ps1"
+    catch {
+        $msg = ' ERROR running Advanced Connectivity Tests: ' + $_.Exception.Message
+        Write-Host $msg -Foreground Red
+        [void]$summaryLog.AppendLine()
+        [void]$summaryLog.AppendLine($msg)
+        TrackWarningAnonymously 'ERROR running Advanced Connectivity Test'
     }
-    else {
-        Invoke-WebRequest -Uri $('https://raw.githubusercontent.com/Azure/SQL-Connectivity-Checker/' + $RepositoryBranch + '/AdvancedConnectivityPolicyTests.ps1') -OutFile "$env:TEMP\AzureSQLConnectivityChecker\AdvancedConnectivityPolicyTests.ps1" -UseBasicParsing
-    }
-
-    $job = Start-Job -ArgumentList $jobParameters -FilePath "$env:TEMP\AzureSQLConnectivityChecker\AdvancedConnectivityPolicyTests.ps1"
-    Wait-Job $job | Out-Null
-    Receive-Job -Job $job
-    Remove-Item $env:TEMP\AzureSQLConnectivityChecker -Recurse -Force
 }
 
 function SendAnonymousUsageData {
@@ -1184,16 +1196,8 @@ try {
         }
 
         #Advanced Connectivity Tests
-        try {
-            if ($RunAdvancedConnectivityPolicyTests) {
-                RunConnectivityPolicyTests $dbPort
-            }
-        }
-        catch {
-            $msg = ' ERROR running Advanced Connectivity Tests: ' + $_.Exception.Message
-            Write-Host $msg -Foreground Red
-            [void]$summaryLog.AppendLine($msg)
-            TrackWarningAnonymously 'ERROR running Advanced Connectivity Test'
+        if ($RunAdvancedConnectivityPolicyTests) {
+            RunConnectivityPolicyTests $dbPort
         }
 
         Write-Host
