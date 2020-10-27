@@ -161,7 +161,7 @@ $DNSResolutionFailed = ' Please make sure the server name FQDN is correct and th
  Failure to resolve domain name for your logical server is almost always the result of specifying an invalid/misspelled server name,
  or a client-side networking issue that you will need to pursue with your local network administrator.'
 
- $DNSResolutionFailedSQLMIPublicEndpoint = ' Please make sure the server name FQDN is correct and that your machine can resolve it.
+$DNSResolutionFailedSQLMIPublicEndpoint = ' Please make sure the server name FQDN is correct and that your machine can resolve it.
  You seem to be trying to connect using Public Endpoint, this error can be caused if the Public Endpoint is Disabled.
  See how to enable public endpoint for your managed instance at https://aka.ms/mimanage-publicendpoint
  If public endpoint is enabled, failure to resolve domain name for your logical server is almost always the result of specifying an invalid/misspelled server name,
@@ -213,6 +213,9 @@ $error18456RecommendedSolution = ' This error indicates that the login request w
  - Database does not exist: Please ensure that the connection string has the correct database name.
  - Insufficient permissions: The user does not have CONNECT permissions to the database. Please ensure that the user is granted the necessary permissions to login.
  - Connections rejected due to DoSGuard protection: DoSGuard actively tracks failed logins from IP addresses. If there are multiple failed logins from a specific IP address within a period of time, the IP address is blocked from accessing any resources in the service for a pre-defined time period even if the password and other permissions are correct.'
+
+$ServerNameNotSpecified = ' The parameter $Server was not specified, please set the parameters on the script, you need to set server name. Database name, user and password are optional but desirable.
+ You can see more details about how to use this tool at https://github.com/Azure/SQL-Connectivity-Checker'
 
 # PowerShell Container Image Support Start
 
@@ -434,6 +437,9 @@ function TestConnectionToDatabase($Server, $gatewayPort, $Database, $User, $Pass
                     $msg = ' Connection to database ' + $Database + ' failed (error ' + $ex.Number + ', state ' + $ex.State + '): ' + $ex.Message
                     Write-Host ($msg) -ForegroundColor Red
                     [void]$summaryLog.AppendLine($msg)
+                    [void]$summaryRecommendedAction.AppendLine()
+                    [void]$summaryRecommendedAction.AppendLine($msg)
+                    [void]$summaryRecommendedAction.AppendLine(' Please follow-up on this error.')
                     TrackWarningAnonymously ('TestConnectionToDatabase|Error:' + $ex.Number + 'State:' + $ex.State)
                 }
             }
@@ -443,12 +449,28 @@ function TestConnectionToDatabase($Server, $gatewayPort, $Database, $User, $Pass
                 [void]$summaryLog.AppendLine($msg)
                 [void]$summaryRecommendedAction.AppendLine()
                 [void]$summaryRecommendedAction.AppendLine($msg)
+                [void]$summaryRecommendedAction.AppendLine(' Please follow-up on this error.')
                 TrackWarningAnonymously ('TestConnectionToDatabase|Error:' + $ex.Number + 'State:' + $ex.State)
+            }
+            47073 {
+                $msg = ' Connection to database ' + $Database + ' was denied since Deny Public Network Access is set to Yes.
+ When Deny Public Network Access setting is set to Yes, only connections via private endpoints are allowed.
+ When this setting is set to No (default), clients can connect using either public endpoints (IP-based firewall rules, VNET-based firewall rules) or private endpoints (using Private Link).
+ See more at https://docs.microsoft.com/azure/azure-sql/database/connectivity-settings#deny-public-network-access'
+                Write-Host ($msg) -ForegroundColor Red
+                [void]$summaryLog.AppendLine($msg)
+                [void]$summaryRecommendedAction.AppendLine()
+                [void]$summaryRecommendedAction.AppendLine($msg)
+                [void]$summaryRecommendedAction.AppendLine(' Please follow-up on this error.')
+                TrackWarningAnonymously ('TestConnectionToDatabase|47073')
             }
             default {
                 $msg = ' Connection to database ' + $Database + ' failed (error ' + $ex.Number + ', state ' + $ex.State + '): ' + $ex.Message
                 Write-Host ($msg) -ForegroundColor Red
                 [void]$summaryLog.AppendLine($msg)
+                [void]$summaryRecommendedAction.AppendLine()
+                [void]$summaryRecommendedAction.AppendLine($msg)
+                [void]$summaryRecommendedAction.AppendLine(' Please follow-up on this error.')
                 TrackWarningAnonymously ('TestConnectionToDatabase|Error:' + $ex.Number + 'State:' + $ex.State)
             }
         }
@@ -866,7 +888,7 @@ function SendAnonymousUsageData {
             | Add-Member -PassThru NoteProperty baseType 'EventData' `
             | Add-Member -PassThru NoteProperty baseData (New-Object PSObject `
                 | Add-Member -PassThru NoteProperty ver 2 `
-                | Add-Member -PassThru NoteProperty name '1.11'));
+                | Add-Member -PassThru NoteProperty name '1.12'));
 
         $body = $body | ConvertTo-JSON -depth 5;
         Invoke-WebRequest -Uri 'https://dc.services.visualstudio.com/v2/track' -Method 'POST' -UseBasicParsing -body $body > $null
@@ -943,7 +965,7 @@ try {
 
     try {
         Write-Host '******************************************' -ForegroundColor Green
-        Write-Host '  Azure SQL Connectivity Checker v1.11  ' -ForegroundColor Green
+        Write-Host '  Azure SQL Connectivity Checker v1.12  ' -ForegroundColor Green
         Write-Host '******************************************' -ForegroundColor Green
         Write-Host
         Write-Host 'Parameters' -ForegroundColor Yellow
@@ -962,11 +984,13 @@ try {
         }
         Write-Host
 
-        if (!$Server -or $Server.Length -eq 0) {
-            Write-Host 'The $Server parameter is empty' -ForegroundColor Red -BackgroundColor Yellow
-            Write-Host 'Please see more details about how to use this tool at https://github.com/Azure/SQL-Connectivity-Checker' -ForegroundColor Red -BackgroundColor Yellow
-            Write-Host
-            throw
+        if (!$Server -or $Server.Length -eq 0 -or $Server -eq '.database.windows.net') {
+            $msg = $ServerNameNotSpecified
+            Write-Host $msg -Foreground Red
+            [void]$summaryLog.AppendLine($msg)
+            [void]$summaryRecommendedAction.AppendLine($msg)
+            TrackWarningAnonymously 'ServerNameNotSpecified'
+            Write-Error '' -ErrorAction Stop
         }
 
         if (!$Server.EndsWith('.database.windows.net') `
@@ -1035,11 +1059,6 @@ try {
         }
         else {
             RunSqlDBConnectivityTests $resolvedAddress
-        }
-
-        #Test connection policy
-        if ($RunAdvancedConnectivityPolicyTests) {
-            RunConnectivityPolicyTests $dbPort
         }
 
         $customDatabaseNameWasSet = $Database -and $Database.Length -gt 0 -and $Database -ne 'master'
@@ -1162,6 +1181,19 @@ try {
             [void]$summaryRecommendedAction.AppendLine()
             [void]$summaryRecommendedAction.AppendLine($msg)
             TrackWarningAnonymously 'AAD|secure.aadcdn.microsoftonline-p.com'
+        }
+
+        #Advanced Connectivity Tests
+        try {
+            if ($RunAdvancedConnectivityPolicyTests) {
+                RunConnectivityPolicyTests $dbPort
+            }
+        }
+        catch {
+            $msg = ' ERROR running Advanced Connectivity Tests: ' + $_.Exception.Message
+            Write-Host $msg -Foreground Red
+            [void]$summaryLog.AppendLine($msg)
+            TrackWarningAnonymously 'ERROR running Advanced Connectivity Test'
         }
 
         Write-Host
