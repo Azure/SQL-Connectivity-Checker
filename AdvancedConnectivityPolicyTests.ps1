@@ -14,7 +14,7 @@ if (!$(Get-Command 'Test-NetConnection' -errorAction SilentlyContinue)) {
         );
         process {
             $client = [TcpClient]::new()
-            
+
             try {
                 $client.Connect($HostName, $Port)
                 $result = @{TcpTestSucceeded = $true; InterfaceAlias = 'Unsupported' }
@@ -24,7 +24,6 @@ if (!$(Get-Command 'Test-NetConnection' -errorAction SilentlyContinue)) {
             }
 
             $client.Dispose()
-
             return $result
         }
     }
@@ -92,7 +91,10 @@ function PrintAverageConnectionTime($addressList, $port) {
             $avg = $sum / $numSuccessful
         }
 
-        Write-Host '  IP Address:'$ipAddress'  Port:'$port'  Successful connections:'$numSuccessful'  Failed connections:'$numFailed'  Average response time:'$avg' ms '
+        Write-Host '  IP Address:'$ipAddress'  Port:'$port
+        Write-Host '  Successful connections:'$numSuccessful
+        Write-Host '  Failed connections:'$numFailed
+        Write-Host '  Average response time:'$avg' ms'
     }
 }
 
@@ -127,6 +129,33 @@ function ValidateDNS([String] $Server) {
     }
 }
 
+function TrackWarningAnonymously ([String] $warningCode) {
+    Try {
+        #Despite computername and username will be used to calculate a hash string, this will keep you anonymous but allow us to identify multiple runs from the same user
+        $StringBuilderHash = New-Object System.Text.StringBuilder
+        [System.Security.Cryptography.HashAlgorithm]::Create("MD5").ComputeHash([System.Text.Encoding]::UTF8.GetBytes($env:computername + $env:username)) | ForEach-Object {
+            [Void]$StringBuilderHash.Append($_.ToString("x2"))
+        }
+
+        $body = New-Object PSObject `
+        | Add-Member -PassThru NoteProperty name 'Microsoft.ApplicationInsights.Event' `
+        | Add-Member -PassThru NoteProperty time $([System.dateTime]::UtcNow.ToString('o')) `
+        | Add-Member -PassThru NoteProperty iKey "a75c333b-14cb-4906-aab1-036b31f0ce8a" `
+        | Add-Member -PassThru NoteProperty tags (New-Object PSObject | Add-Member -PassThru NoteProperty 'ai.user.id' $StringBuilderHash.ToString()) `
+        | Add-Member -PassThru NoteProperty data (New-Object PSObject `
+            | Add-Member -PassThru NoteProperty baseType 'EventData' `
+            | Add-Member -PassThru NoteProperty baseData (New-Object PSObject `
+                | Add-Member -PassThru NoteProperty ver 2 `
+                | Add-Member -PassThru NoteProperty name $warningCode));
+        $body = $body | ConvertTo-JSON -depth 5;
+        Invoke-WebRequest -Uri 'https://dc.services.visualstudio.com/v2/track' -Method 'POST' -UseBasicParsing -body $body > $null
+    }
+    Catch {
+        Write-Host 'TrackWarningAnonymously exception:'
+        Write-Host $_.Exception.Message -ForegroundColor Red
+    }
+}
+
 $parameters = $args[0]
 $Server = $parameters['Server']
 $Port = $parameters['Port']
@@ -138,20 +167,19 @@ $RepositoryBranch = $parameters['RepositoryBranch']
 $Local = $parameters['Local']
 $LocalPath = $parameters['LocalPath']
 
-
 if ([string]::IsNullOrEmpty($env:TEMP)) {
     $env:TEMP = '/tmp';
 }
 
 try {
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls11 -bor [Net.SecurityProtocolType]::Tls
-    
+
     if ($Local) {
-        $path = $env:TEMP +  "/AzureSQLConnectivityChecker/TDSClient.dll"
+        $path = $env:TEMP + "/AzureSQLConnectivityChecker/TDSClient.dll"
         Copy-Item -Path $($LocalPath + '/netstandard2.0/TDSClient.dll') -Destination $path
     }
     else {
-        $path = $env:TEMP +  "/AzureSQLConnectivityChecker/TDSClient.dll"
+        $path = $env:TEMP + "/AzureSQLConnectivityChecker/TDSClient.dll"
         Invoke-WebRequest -Uri $('https://github.com/Azure/SQL-Connectivity-Checker/raw/' + $RepositoryBranch + '/netstandard2.0/TDSClient.dll') -OutFile $path -UseBasicParsing
     }
 
@@ -188,9 +216,11 @@ try {
         $tdsClient = [TDSClient.TDS.Client.TDSSQLTestClient]::new($Server, $Port, $User, $Password, $Database, $encryption)
         $tdsClient.Connect()
         $tdsClient.Disconnect()
+        TrackWarningAnonymously ('Advanced|TDSClient|ConnectAndDisconnect')
     }
     catch {
         [TDSClient.TDS.Utilities.LoggingUtilities]::WriteLog('Failure: ' + $_.Exception.InnerException.Message)
+        TrackWarningAnonymously ('Advanced|TDSClient|Exception|' + $_.Exception.InnerException.Message)
     }
     finally {
         $log.Close()
@@ -199,7 +229,6 @@ try {
 
     $path = $env:TEMP + '/AzureSQLConnectivityChecker/ConnectivityPolicyLog.txt'
     $result = $([System.IO.File]::ReadAllText($path))
-
     Write-Host $result
 
     $match = [Regex]::Match($result, "Routing to: (.*)\.")
@@ -209,26 +238,35 @@ try {
         $port = $array[1]
 
         Write-Host 'Redirect connectivity policy has been detected, running additional tests:' -ForegroundColor Green
+        TrackWarningAnonymously 'Advanced|Redirect|Detected'
+
         ValidateDNS $server
 
         try {
-            $dnsResult = [System.Net.DNS]::GetHostEntry($Server)
+            $dnsResult = [System.Net.DNS]::GetHostEntry($server)
         }
         catch {
-            Write-Host ' ERROR: Name resolution of' $Server 'failed' -ForegroundColor Red
-            throw
+            $msg = ' ERROR: Name resolution (DNS) of ' + $server + ' failed'
+            Write-Host $msg -Foreground Red
+
+            $Advanced_DNSResolutionFailed = ' Please make sure the name ' + $server + ' can be resolved (DNS)
+ Failure to resolve specific domain names is usually a client-side networking issue that you will need to pursue with your local network administrator.'
+            Write-Host $Advanced_DNSResolutionFailed -Foreground Red
+            TrackWarningAnonymously 'Advanced|Redirect|DNSResolutionFailedForRedirect'
+            return
         }
 
         $resolvedAddress = $dnsResult.AddressList[0].IPAddressToString
-
         Write-Host
         PrintAverageConnectionTime $resolvedAddress $port
     }
     else {
         Write-Host ' Proxy connection policy detected!' -ForegroundColor Green
+        TrackWarningAnonymously 'Advanced|Proxy|Detected'
     }
 }
 catch {
     Write-Host 'Running advanced connectivity policy tests failed!' -ForegroundColor Red
     Write-Host $_.Exception
+    TrackWarningAnonymously ('Advanced|Exception|' + $_.Exception.Message)
 }
