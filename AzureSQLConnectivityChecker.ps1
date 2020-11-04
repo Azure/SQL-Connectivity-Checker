@@ -59,12 +59,6 @@ if ($null -ne $parameters) {
     }
 }
 
-$Server = $Server.Trim()
-$Server = $Server.Replace('tcp:', '')
-$Server = $Server.Replace(',1433', '')
-$Server = $Server.Replace(',3342', '')
-$Server = $Server.Replace(';', '')
-
 if ($null -eq $User -or '' -eq $User) {
     $User = 'AzSQLConnCheckerUser'
 }
@@ -193,8 +187,13 @@ $SQLDB_Redirect = " Servers in SQL Database and Azure Synapse support Redirect, 
  If you are using Redirect, failure to reach ports in the range of 11000-11999 is usually a client-side networking issue that you will need to pursue with your local network administrator.
  Please check more about connection policies at https://docs.microsoft.com/en-us/azure/azure-sql/database/connectivity-architecture#connection-policy"
 
-$SQLMI_GatewayTestFailed = ' Failure to reach the Gateway is usually a client-side networking issue that you will need to pursue with your local network administrator.
- See more about connectivity architecture at https://docs.microsoft.com/azure/azure-sql/managed-instance/connectivity-architecture-overview'
+$SQLMI_GatewayTestFailed = ' You can connect to SQL Managed Instance via private endpoint if you are connecting from one of the following:
+ - machine inside the same virtual network
+ - machine in a peered virtual network
+ - machine that is network connected by VPN or Azure ExpressRoute
+
+ Failure to reach the Gateway is usually a client-side networking issue that you will need to pursue with your local network administrator.
+ See how to connect your application to Azure SQL Managed Instance at https://docs.microsoft.com/en-us/azure/azure-sql/managed-instance/connect-application-instance'
 
 $SQLMI_PublicEndPoint_GatewayTestFailed = ' This usually indicates a client-side networking issue that you will need to pursue with your local network administrator.
  See more about connectivity using Public Endpoint at https://docs.microsoft.com/en-us/azure/azure-sql/managed-instance/public-endpoint-configure'
@@ -386,11 +385,21 @@ function TestConnectionToDatabase($Server, $gatewayPort, $Database, $User, $Pass
             $Server, $gatewayPort, $Database, $User, $Password)
         $masterDbConnection.Open()
         Write-Host ([string]::Format(" The connection attempt succeeded", $Database))
+        [void]$summaryLog.AppendLine([string]::Format(" The connection attempt to {0} database succeeded", $Database))
         return $true
     }
     catch [System.Data.SqlClient.SqlException] {
         $ex = $_.Exception
         Switch ($_.Exception.Number) {
+            10060 {
+                $msg = ' Connection to database ' + $Database + ' failed (error ' + $ex.Number + ', state ' + $ex.State + '): ' + $ex.Message
+                Write-Host ($msg) -ForegroundColor Red
+                [void]$summaryLog.AppendLine($msg)
+                [void]$summaryRecommendedAction.AppendLine()
+                [void]$summaryRecommendedAction.AppendLine($msg)
+                [void]$summaryRecommendedAction.AppendLine(' Please follow-up on this error.')
+                TrackWarningAnonymously 'TestConnectionToDatabase|Error10060'
+            }
             18456 {
                 if ($User -eq 'AzSQLConnCheckerUser') {
                     if ($Database -eq 'master') {
@@ -539,7 +548,6 @@ function RunSqlMIPublicEndpointConnectivityTests($resolvedAddress) {
         $msg = 'Detected as Managed Instance using Public Endpoint'
         Write-Host $msg -ForegroundColor Yellow
         [void]$summaryLog.AppendLine($msg)
-        TrackWarningAnonymously 'SQLMI|PublicEndpoint'
 
         Write-Host 'Public Endpoint connectivity test:' -ForegroundColor Green
         $testResult = Test-NetConnection $resolvedAddress -Port 3342 -WarningAction SilentlyContinue
@@ -549,6 +557,8 @@ function RunSqlMIPublicEndpointConnectivityTests($resolvedAddress) {
             PrintAverageConnectionTime $resolvedAddress 3342
             $msg = ' Gateway connectivity to ' + $resolvedAddress + ':3342 succeed'
             [void]$summaryLog.AppendLine($msg)
+            TrackWarningAnonymously 'SQLMI|PublicEndpoint|GatewayTestSucceeded'
+            RunConnectionToDatabaseTestsAndAdvancedTests $Server '3342' $Database $User $Password
         }
         else {
             Write-Host ' -> TCP test FAILED' -ForegroundColor Red
@@ -564,7 +574,7 @@ function RunSqlMIPublicEndpointConnectivityTests($resolvedAddress) {
             Write-Host $msg -Foreground Red
             [void]$summaryRecommendedAction.AppendLine($msg)
 
-            TrackWarningAnonymously 'SQLMI|PublicEndPoint|GatewayTestFailed'
+            TrackWarningAnonymously 'SQLMI|PublicEndpoint|GatewayTestFailed'
         }
     }
     Catch {
@@ -576,8 +586,7 @@ function RunSqlMIPublicEndpointConnectivityTests($resolvedAddress) {
 
 function RunSqlMIVNetConnectivityTests($resolvedAddress) {
     Try {
-        Write-Host 'Detected as Managed Instance' -ForegroundColor Yellow
-        TrackWarningAnonymously 'SQLMI|PrivateEndpoint'
+        Write-Host 'Detected as Managed Instance' -ForegroundColor Yellow        
         Write-Host
         Write-Host 'Gateway connectivity tests:' -ForegroundColor Green
         $testResult = Test-NetConnection $resolvedAddress -Port 1433 -WarningAction SilentlyContinue
@@ -585,6 +594,8 @@ function RunSqlMIVNetConnectivityTests($resolvedAddress) {
         if ($testResult.TcpTestSucceeded) {
             Write-Host ' -> TCP test succeed' -ForegroundColor Green
             PrintAverageConnectionTime $resolvedAddress 1433
+            TrackWarningAnonymously 'SQLMI|PrivateEndpoint|GatewayTestSucceeded'
+            RunConnectionToDatabaseTestsAndAdvancedTests $Server '1433' $Database $User $Password
             return $true
         }
         else {
@@ -612,7 +623,7 @@ function RunSqlMIVNetConnectivityTests($resolvedAddress) {
             Write-Host $msg -Foreground Red
             [void]$summaryRecommendedAction.AppendLine($msg)
 
-            TrackWarningAnonymously 'SQLMI|GatewayTestFailed'
+            TrackWarningAnonymously 'SQLMI|PrivateEndpoint|GatewayTestFailed'
             return $false
         }
     }
@@ -707,13 +718,16 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
         Write-Host
         [void]$summaryLog.AppendLine()
         Write-Host 'Gateway connectivity tests:' -ForegroundColor Green
+        $hasGatewayTestSuccess = $false
         foreach ($gatewayAddress in $gateway.Gateways) {
             Write-Host
             Write-Host ' Testing (gateway) connectivity to' $gatewayAddress':1433' -ForegroundColor White -NoNewline
             $testResult = Test-NetConnection $gatewayAddress -Port 1433 -WarningAction SilentlyContinue
 
             if ($testResult.TcpTestSucceeded) {
+                $hasGatewayTestSuccess = $true
                 Write-Host ' -> TCP test succeed' -ForegroundColor Green
+                TrackWarningAnonymously 'SQLDB|GatewayTestSucceeded'
                 PrintAverageConnectionTime $gatewayAddress 1433
                 $msg = ' Gateway connectivity to ' + $gatewayAddress + ':1433 succeed'
                 [void]$summaryLog.AppendLine($msg)
@@ -740,7 +754,7 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
                 Write-Host $msg -Foreground Red
                 [void]$summaryRecommendedAction.AppendLine($msg)
 
-                TrackWarningAnonymously 'SQLDB|GatewayTestFailed'
+                TrackWarningAnonymously ('SQLDB|GatewayTestFailed|' + $gatewayAddress)
             }
         }
 
@@ -815,6 +829,10 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
                 }
             }
         }
+
+        if ($hasGatewayTestSuccess -eq $true) {
+            RunConnectionToDatabaseTestsAndAdvancedTests $Server '1433' $Database $User $Password
+        }
     }
 }
 
@@ -876,6 +894,75 @@ function RunConnectivityPolicyTests($port) {
     }
 }
 
+function RunConnectionToDatabaseTestsAndAdvancedTests($Server, $dbPort, $Database, $User, $Password) {
+    try {
+        $customDatabaseNameWasSet = $Database -and $Database.Length -gt 0 -and $Database -ne 'master'
+
+        #Test master database
+        $canConnectToMaster = TestConnectionToDatabase $Server $dbPort 'master' $User $Password
+
+        if ($customDatabaseNameWasSet) {
+            if ($canConnectToMaster) {
+                Write-Host ' Checking if' $Database 'exist in sys.databases:' -ForegroundColor White
+                $masterDbConnection = [System.Data.SqlClient.SQLConnection]::new()
+                $masterDbConnection.ConnectionString = [string]::Format("Server=tcp:{0},{1};Initial Catalog='master';Persist Security Info=False;User ID='{2}';Password='{3}';MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;Application Name=Azure-SQL-Connectivity-Checker;",
+                    $Server, $dbPort, $User, $Password)
+                $masterDbConnection.Open()
+
+                $masterDbCommand = New-Object System.Data.SQLClient.SQLCommand
+                $masterDbCommand.Connection = $masterDbConnection
+
+                $masterDbCommand.CommandText = "select count(*) C from sys.databases where name = '" + $Database + "'"
+                $masterDbResult = $masterDbCommand.ExecuteReader()
+                $masterDbResultDataTable = new-object 'System.Data.DataTable'
+                $masterDbResultDataTable.Load($masterDbResult)
+
+                if ($masterDbResultDataTable.Rows[0].C -eq 0) {
+                    $msg = ' ERROR: ' + $Database + ' was not found in sys.databases!'
+                    Write-Host $msg -Foreground Red
+                    [void]$summaryLog.AppendLine()
+                    [void]$summaryLog.AppendLine($msg)
+                    [void]$summaryRecommendedAction.AppendLine()
+                    [void]$summaryRecommendedAction.AppendLine($msg)
+
+                    $msg = ' Please confirm the database name is correct and/or look at the operation logs to see if the database has been dropped by another user.'
+                    Write-Host $msg -Foreground Red
+                    [void]$summaryRecommendedAction.AppendLine($msg)
+                    TrackWarningAnonymously 'DatabaseNotFoundInMasterSysDatabases'
+                }
+                else {
+                    $msg = '  ' + $Database + ' was found in sys.databases of master database'
+                    Write-Host $msg -Foreground Green
+                    [void]$summaryLog.AppendLine($msg)
+
+                    #Test database from parameter
+                    if ($customDatabaseNameWasSet) {
+                        TestConnectionToDatabase $Server $dbPort $Database $User $Password | Out-Null
+                    }
+                }
+            }
+            else {
+                #Test database from parameter anyway
+                if ($customDatabaseNameWasSet) {
+                    TestConnectionToDatabase $Server $dbPort $Database $User $Password | Out-Null
+                }
+            }
+        }
+
+        #Advanced Connectivity Tests
+        if ($RunAdvancedConnectivityPolicyTests) {
+            RunConnectivityPolicyTests $dbPort
+        }
+    }
+    catch {
+        $msg = ' ERROR at RunConnectionToDatabaseTestsAndAdvancedTests: ' + $_.Exception.Message
+        Write-Host $msg -Foreground Red
+        [void]$summaryLog.AppendLine()
+        [void]$summaryLog.AppendLine($msg)
+        TrackWarningAnonymously 'ERROR at RunConnectionToDatabaseTestsAndAdvancedTests'
+    }
+}
+
 function SendAnonymousUsageData {
     try {
         #Despite computername and username will be used to calculate a hash string, this will keep you anonymous but allow us to identify multiple runs from the same user
@@ -899,7 +986,7 @@ function SendAnonymousUsageData {
             | Add-Member -PassThru NoteProperty baseType 'EventData' `
             | Add-Member -PassThru NoteProperty baseData (New-Object PSObject `
                 | Add-Member -PassThru NoteProperty ver 2 `
-                | Add-Member -PassThru NoteProperty name '1.12'));
+                | Add-Member -PassThru NoteProperty name '1.13'));
 
         $body = $body | ConvertTo-JSON -depth 5;
         Invoke-WebRequest -Uri 'https://dc.services.visualstudio.com/v2/track' -Method 'POST' -UseBasicParsing -body $body > $null
@@ -976,11 +1063,12 @@ try {
 
     try {
         Write-Host '******************************************' -ForegroundColor Green
-        Write-Host '  Azure SQL Connectivity Checker v1.12  ' -ForegroundColor Green
+        Write-Host '  Azure SQL Connectivity Checker v1.13  ' -ForegroundColor Green
         Write-Host '******************************************' -ForegroundColor Green
         Write-Host
         Write-Host 'Parameters' -ForegroundColor Yellow
         Write-Host ' Server:' $Server -ForegroundColor Yellow
+
         if ($null -ne $Database) {
             Write-Host ' Database:' $Database -ForegroundColor Yellow
         }
@@ -994,6 +1082,46 @@ try {
             Write-Host ' EncryptionProtocol:' $EncryptionProtocol -ForegroundColor Yellow
         }
         Write-Host
+
+        $Server = $Server.Trim()
+        
+        if ( (IsManagedInstancePublicEndpoint $Server) -and !($Server -match ',3342')) {
+            $msg = ' You seem to be trying to connect using SQL MI Public Endpoint but port 3342 was not specified'
+            
+            Write-Host $msg -Foreground Red
+            [void]$summaryLog.AppendLine($msg)
+            [void]$summaryRecommendedAction.AppendLine($msg)
+
+            $msg = ' Note that the public endpoint host name comes in the format <mi_name>.public.<dns_zone>.database.windows.net and that the port used for the connection is 3342.
+ Please specify port 3342 by setting Server parameter like: <mi_name>.public.<dns_zone>.database.windows.net,3342'
+            Write-Host $msg -Foreground Red
+            [void]$summaryRecommendedAction.AppendLine($msg)
+            TrackWarningAnonymously 'ManagedInstancePublicEndpoint|WrongPort'
+            Write-Error '' -ErrorAction Stop
+        }
+
+        if ( (IsManagedInstance $Server) -and !(IsManagedInstancePublicEndpoint $Server) -and ($Server -match ',3342')) {
+            $msg = ' You seem to be trying to connect using SQLMI Private Endpoint but using Public Endpoint port number (3342)'
+            
+            Write-Host $msg -Foreground Red
+            [void]$summaryLog.AppendLine($msg)
+            [void]$summaryRecommendedAction.AppendLine($msg)
+
+            $msg = ' The private endpoint host name comes in the format <mi_name>.<dns_zone>.database.windows.net and the port used for the connection is 1433.
+ Please specify port 1433 by setting Server parameter like: <mi_name>.<dns_zone>.database.windows.net,1433 (or do not specify any port number).
+ In case you are trying to use Public Endpoint, note that:
+ - the public endpoint host name comes in the format <mi_name>.public.<dns_zone>.database.windows.net
+ - the port used for the connection is 3342.'
+            Write-Host $msg -Foreground Red
+            [void]$summaryRecommendedAction.AppendLine($msg)
+            TrackWarningAnonymously 'ManagedInstancePrivateEndpoint|WrongPort'
+            Write-Error '' -ErrorAction Stop
+        }
+
+        $Server = $Server.Replace('tcp:', '')
+        $Server = $Server.Replace(',1433', '')
+        $Server = $Server.Replace(',3342', '')
+        $Server = $Server.Replace(';', '')
 
         if (!$Server -or $Server.Length -eq 0 -or $Server -eq '.database.windows.net') {
             $msg = $ServerNameNotSpecified
@@ -1072,60 +1200,6 @@ try {
             RunSqlDBConnectivityTests $resolvedAddress
         }
 
-        $customDatabaseNameWasSet = $Database -and $Database.Length -gt 0 -and $Database -ne 'master'
-
-        #Test master database
-        $canConnectToMaster = TestConnectionToDatabase $Server $dbPort 'master' $User $Password
-
-        if ($customDatabaseNameWasSet) {
-            if ($canConnectToMaster) {
-                Write-Host ' Checking if' $Database 'exist in sys.databases:' -ForegroundColor White
-                $masterDbConnection = [System.Data.SqlClient.SQLConnection]::new()
-                $masterDbConnection.ConnectionString = [string]::Format("Server=tcp:{0},{1};Initial Catalog='master';Persist Security Info=False;User ID='{2}';Password='{3}';MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;Application Name=Azure-SQL-Connectivity-Checker;",
-                    $Server, $dbPort, $User, $Password)
-                $masterDbConnection.Open()
-
-                $masterDbCommand = New-Object System.Data.SQLClient.SQLCommand
-                $masterDbCommand.Connection = $masterDbConnection
-
-                $masterDbCommand.CommandText = "select count(*) C from sys.databases where name = '" + $Database + "'"
-                $masterDbResult = $masterDbCommand.ExecuteReader()
-                $masterDbResultDataTable = new-object 'System.Data.DataTable'
-                $masterDbResultDataTable.Load($masterDbResult)
-
-                if ($masterDbResultDataTable.Rows[0].C -eq 0) {
-                    $msg = ' ERROR: ' + $Database + ' was not found in sys.databases!'
-                    Write-Host $msg -Foreground Red
-                    [void]$summaryLog.AppendLine()
-                    [void]$summaryLog.AppendLine($msg)
-                    [void]$summaryRecommendedAction.AppendLine()
-                    [void]$summaryRecommendedAction.AppendLine($msg)
-
-                    $msg = ' Please confirm the database name is correct and/or look at the operation logs to see if the database has been dropped by another user.'
-                    Write-Host $msg -Foreground Red
-                    [void]$summaryRecommendedAction.AppendLine($msg)
-                    TrackWarningAnonymously 'DatabaseNotFoundInMasterSysDatabases'
-                }
-                else {
-                    $msg = ' ' + $Database + ' was found in sys.databases of master database'
-                    Write-Host $msg -Foreground Green
-                    [void]$summaryLog.AppendLine()
-                    [void]$summaryLog.AppendLine($msg)
-
-                    #Test database from parameter
-                    if ($customDatabaseNameWasSet) {
-                        TestConnectionToDatabase $Server $dbPort $Database $User $Password | Out-Null
-                    }
-                }
-            }
-            else {
-                #Test database from parameter anyway
-                if ($customDatabaseNameWasSet) {
-                    TestConnectionToDatabase $Server $dbPort $Database $User $Password | Out-Null
-                }
-            }
-        }
-
         Write-Host
         [void]$summaryLog.AppendLine()
         Write-Host 'Test endpoints for AAD Password and Integrated Authentication:' -ForegroundColor Green
@@ -1192,11 +1266,6 @@ try {
             [void]$summaryRecommendedAction.AppendLine()
             [void]$summaryRecommendedAction.AppendLine($msg)
             TrackWarningAnonymously 'AAD|secure.aadcdn.microsoftonline-p.com'
-        }
-
-        #Advanced Connectivity Tests
-        if ($RunAdvancedConnectivityPolicyTests) {
-            RunConnectivityPolicyTests $dbPort
         }
 
         Write-Host
