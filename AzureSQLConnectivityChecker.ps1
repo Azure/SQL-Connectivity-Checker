@@ -216,6 +216,23 @@ $error18456RecommendedSolution = ' This error indicates that the login request w
 $ServerNameNotSpecified = ' The parameter $Server was not specified, please set the parameters on the script, you need to set server name. Database name, user and password are optional but desirable.
  You can see more details about how to use this tool at https://github.com/Azure/SQL-Connectivity-Checker'
 
+$followUpMessage = ' If this is a database engine error code you may see more about it at https://docs.microsoft.com/sql/relational-databases/errors-events/database-engine-events-and-errors'
+
+$SQLMI_PrivateEndpoint_Error40532 = ' Error 40532 is usually related to one of the following scenarios:
+- The username (login) contains the "@" symbol (e.g., a login of the form "user@mydomain.com").
+  If the {servername} value shown in the error is "mydomain.com" then you are encountering this scenario.
+  See how to handle this at https://techcommunity.microsoft.com/t5/azure-database-support-blog/providing-the-server-name-explicitly-in-user-names-for-azure-sql/ba-p/368942
+- Using the IP that is resolved from your full server FQDN rather than the FQDN of your server itself. You need to use the FQDN.'
+
+$SQLDB_Error40532 = ' Error 40532 is usually related to one of the following scenarios:
+ - The username (login) contains the "@" symbol (e.g., a login of the form "user@mydomain.com").
+   If the {servername} value shown in the error is "mydomain.com" then you are encountering this scenario.
+   See how to handle this at https://techcommunity.microsoft.com/t5/azure-database-support-blog/providing-the-server-name-explicitly-in-user-names-for-azure-sql/ba-p/368942
+ - You use VNet firewall rules.
+   This occurs when a VNet firewall rule was set for one subnet and the user is trying to access from another subnet on the same VNet.
+   It is important to understand the configuration is per subnet inside a VNet and not the whole VNet.
+   Please ensure the same to fix the issue.'
+
 # PowerShell Container Image Support Start
 
 if (!$(Get-Command 'Test-NetConnection' -errorAction SilentlyContinue)) {
@@ -391,14 +408,23 @@ function TestConnectionToDatabase($Server, $gatewayPort, $Database, $User, $Pass
     catch [System.Data.SqlClient.SqlException] {
         $ex = $_.Exception
         Switch ($_.Exception.Number) {
+            916 {
+                $msg = ' Connection to database ' + $Database + ' failed, the login does not have sufficient permissions to connect to the named database.'
+                Write-Host ($msg) -ForegroundColor Red
+                [void]$summaryLog.AppendLine($msg)
+                [void]$summaryRecommendedAction.AppendLine()
+                [void]$summaryRecommendedAction.AppendLine($msg)
+                [void]$summaryRecommendedAction.AppendLine(' See more details and how to fix this error at https://docs.microsoft.com/sql/relational-databases/errors-events/mssqlserver-916-database-engine-error')
+                TrackWarningAnonymously ('TestConnectionToDatabase|Error916 State' + $ex.State)
+            }
             10060 {
                 $msg = ' Connection to database ' + $Database + ' failed (error ' + $ex.Number + ', state ' + $ex.State + '): ' + $ex.Message
                 Write-Host ($msg) -ForegroundColor Red
                 [void]$summaryLog.AppendLine($msg)
                 [void]$summaryRecommendedAction.AppendLine()
                 [void]$summaryRecommendedAction.AppendLine($msg)
-                [void]$summaryRecommendedAction.AppendLine(' Please follow-up on this error.')
-                TrackWarningAnonymously 'TestConnectionToDatabase|Error10060'
+                [void]$summaryRecommendedAction.AppendLine(' This usually indicates a client-side networking issue that you will need to pursue with your local network administrator.')
+                TrackWarningAnonymously ('TestConnectionToDatabase|Error10060 State' + $ex.State)
             }
             18456 {
                 if ($User -eq 'AzSQLConnCheckerUser') {
@@ -431,16 +457,27 @@ function TestConnectionToDatabase($Server, $gatewayPort, $Database, $User, $Pass
                 }
             }
             40532 {
-                if ($_.Exception.Number -eq 40532 -and $gatewayPort -eq 3342) {
-                    $msg = ' You seem to be trying to connect to MI using Public Endpoint but Public Endpoint may be disabled'
-                    Write-Host ($msg) -ForegroundColor Red
-                    [void]$summaryLog.AppendLine($msg)
-                    [void]$summaryRecommendedAction.AppendLine($msg)
+                if (IsManagedInstance $Server ) {
+                    if ($gatewayPort -eq 3342) {
+                        $msg = ' You seem to be trying to connect to MI using Public Endpoint but Public Endpoint may be disabled'
+                        Write-Host ($msg) -ForegroundColor Red
+                        [void]$summaryLog.AppendLine($msg)
+                        [void]$summaryRecommendedAction.AppendLine($msg)
 
-                    $msg = ' Learn how to configure public endpoint at https://docs.microsoft.com/en-us/azure/sql-database/sql-database-managed-instance-public-endpoint-configure'
-                    Write-Host ($msg) -ForegroundColor Red
-                    [void]$summaryRecommendedAction.AppendLine($msg)
-                    TrackWarningAnonymously 'SQLMI|PublicEndpoint|Error40532'
+                        $msg = ' Learn how to configure public endpoint at https://docs.microsoft.com/en-us/azure/sql-database/sql-database-managed-instance-public-endpoint-configure'
+                        Write-Host ($msg) -ForegroundColor Red
+                        [void]$summaryRecommendedAction.AppendLine($msg)
+                        TrackWarningAnonymously ('SQLMI|PublicEndpoint|Error40532 State' + $ex.State)
+                    }
+                    else {
+                        $msg = ' Connection to database ' + $Database + ' failed (error ' + $ex.Number + ', state ' + $ex.State + '): ' + $ex.Message
+                        Write-Host ($msg) -ForegroundColor Red
+                        [void]$summaryLog.AppendLine($msg)
+                        [void]$summaryRecommendedAction.AppendLine()
+                        [void]$summaryRecommendedAction.AppendLine($msg)
+                        [void]$summaryRecommendedAction.AppendLine($SQLMI_PrivateEndpoint_Error40532)
+                        TrackWarningAnonymously ('SQLMI|PrivateEndpoint|Error40532 State' + $ex.State)
+                    }
                 }
                 else {
                     $msg = ' Connection to database ' + $Database + ' failed (error ' + $ex.Number + ', state ' + $ex.State + '): ' + $ex.Message
@@ -448,8 +485,8 @@ function TestConnectionToDatabase($Server, $gatewayPort, $Database, $User, $Pass
                     [void]$summaryLog.AppendLine($msg)
                     [void]$summaryRecommendedAction.AppendLine()
                     [void]$summaryRecommendedAction.AppendLine($msg)
-                    [void]$summaryRecommendedAction.AppendLine(' Please follow-up on this error.')
-                    TrackWarningAnonymously ('TestConnectionToDatabase|Error:' + $ex.Number + 'State:' + $ex.State)
+                    [void]$summaryRecommendedAction.AppendLine($SQLDB_Error40532)
+                    TrackWarningAnonymously ('SQLDB|Error40532 State' + $ex.State)
                 }
             }
             40615 {
@@ -458,8 +495,7 @@ function TestConnectionToDatabase($Server, $gatewayPort, $Database, $User, $Pass
                 [void]$summaryLog.AppendLine($msg)
                 [void]$summaryRecommendedAction.AppendLine()
                 [void]$summaryRecommendedAction.AppendLine($msg)
-                [void]$summaryRecommendedAction.AppendLine(' Please follow-up on this error.')
-                TrackWarningAnonymously ('TestConnectionToDatabase|Error:' + $ex.Number + 'State:' + $ex.State)
+                TrackWarningAnonymously ('TestConnectionToDatabase|Error40615 State' + $ex.State)
             }
             47073 {
                 $msg = ' Connection to database ' + $Database + ' was denied since Deny Public Network Access is set to Yes.
@@ -470,8 +506,7 @@ function TestConnectionToDatabase($Server, $gatewayPort, $Database, $User, $Pass
                 [void]$summaryLog.AppendLine($msg)
                 [void]$summaryRecommendedAction.AppendLine()
                 [void]$summaryRecommendedAction.AppendLine($msg)
-                [void]$summaryRecommendedAction.AppendLine(' Please follow-up on this error.')
-                TrackWarningAnonymously ('TestConnectionToDatabase|47073')
+                TrackWarningAnonymously ('TestConnectionToDatabase|47073 State' + $ex.State)
             }
             default {
                 $msg = ' Connection to database ' + $Database + ' failed (error ' + $ex.Number + ', state ' + $ex.State + '): ' + $ex.Message
@@ -479,7 +514,7 @@ function TestConnectionToDatabase($Server, $gatewayPort, $Database, $User, $Pass
                 [void]$summaryLog.AppendLine($msg)
                 [void]$summaryRecommendedAction.AppendLine()
                 [void]$summaryRecommendedAction.AppendLine($msg)
-                [void]$summaryRecommendedAction.AppendLine(' Please follow-up on this error.')
+                [void]$summaryRecommendedAction.AppendLine($followUpMessage)
                 TrackWarningAnonymously ('TestConnectionToDatabase|Error:' + $ex.Number + 'State:' + $ex.State)
             }
         }
@@ -586,7 +621,7 @@ function RunSqlMIPublicEndpointConnectivityTests($resolvedAddress) {
 
 function RunSqlMIVNetConnectivityTests($resolvedAddress) {
     Try {
-        Write-Host 'Detected as Managed Instance' -ForegroundColor Yellow        
+        Write-Host 'Detected as Managed Instance' -ForegroundColor Yellow
         Write-Host
         Write-Host 'Gateway connectivity tests:' -ForegroundColor Green
         $testResult = Test-NetConnection $resolvedAddress -Port 1433 -WarningAction SilentlyContinue
@@ -986,7 +1021,7 @@ function SendAnonymousUsageData {
             | Add-Member -PassThru NoteProperty baseType 'EventData' `
             | Add-Member -PassThru NoteProperty baseData (New-Object PSObject `
                 | Add-Member -PassThru NoteProperty ver 2 `
-                | Add-Member -PassThru NoteProperty name '1.13'));
+                | Add-Member -PassThru NoteProperty name '1.14'));
 
         $body = $body | ConvertTo-JSON -depth 5;
         Invoke-WebRequest -Uri 'https://dc.services.visualstudio.com/v2/track' -Method 'POST' -UseBasicParsing -body $body > $null
@@ -1063,7 +1098,7 @@ try {
 
     try {
         Write-Host '******************************************' -ForegroundColor Green
-        Write-Host '  Azure SQL Connectivity Checker v1.13  ' -ForegroundColor Green
+        Write-Host '  Azure SQL Connectivity Checker v1.14  ' -ForegroundColor Green
         Write-Host '******************************************' -ForegroundColor Green
         Write-Host
         Write-Host 'Parameters' -ForegroundColor Yellow
@@ -1084,10 +1119,10 @@ try {
         Write-Host
 
         $Server = $Server.Trim()
-        
+
         if ( (IsManagedInstancePublicEndpoint $Server) -and !($Server -match ',3342')) {
             $msg = ' You seem to be trying to connect using SQL MI Public Endpoint but port 3342 was not specified'
-            
+
             Write-Host $msg -Foreground Red
             [void]$summaryLog.AppendLine($msg)
             [void]$summaryRecommendedAction.AppendLine($msg)
@@ -1102,7 +1137,7 @@ try {
 
         if ( (IsManagedInstance $Server) -and !(IsManagedInstancePublicEndpoint $Server) -and ($Server -match ',3342')) {
             $msg = ' You seem to be trying to connect using SQLMI Private Endpoint but using Public Endpoint port number (3342)'
-            
+
             Write-Host $msg -Foreground Red
             [void]$summaryLog.AppendLine($msg)
             [void]$summaryRecommendedAction.AppendLine($msg)
