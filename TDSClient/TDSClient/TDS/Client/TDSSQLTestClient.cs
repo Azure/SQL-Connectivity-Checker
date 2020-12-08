@@ -94,12 +94,12 @@ namespace TDSClient.TDS.Client
         /// Gets or sets the TDS Communicator.
         /// </summary>
         public TDSCommunicator TdsCommunicator { get; set; }
-        
+
         /// <summary>
         /// Gets or sets the TCP Client.
         /// </summary>
         public TcpClient Client { get; set; }
-        
+
         /// <summary>
         /// Gets or sets the TDS Client Version.
         /// </summary>
@@ -267,25 +267,32 @@ namespace TDSClient.TDS.Client
         public void Connect()
         {
             LoggingUtilities.WriteLog($" Connect initiated.");
-            do
+            try
             {
-                this.reconnect = false;
-                this.Client = new TcpClient(this.Server, this.Port);
-                this.TdsCommunicator = new TDSCommunicator(this.Client.GetStream(), 4096);
-                this.SendPreLogin();
-                this.ReceivePreLoginResponse();
-                this.SendLogin7();
-                this.ReceiveLogin7Response();
-
-                if (this.reconnect)
+                do
                 {
-                    this.Disconnect();
-                    LoggingUtilities.WriteLog($" Routing to: {this.Server}:{this.Port}.");
-                }
-            } 
-            while (this.reconnect);
+                    this.reconnect = false;
+                    this.Client = new TcpClient(this.Server, this.Port);
+                    this.TdsCommunicator = new TDSCommunicator(this.Client.GetStream(), 4096);
+                    this.SendPreLogin();
+                    this.ReceivePreLoginResponse();
+                    this.SendLogin7();
+                    this.ReceiveLogin7Response();
 
-            LoggingUtilities.WriteLog($" Connect done.");
+                    if (this.reconnect)
+                    {
+                        this.Disconnect();
+                        LoggingUtilities.WriteLog($" Routing to: {this.Server}:{this.Port}.");
+                    }
+                }
+                while (this.reconnect);
+
+                LoggingUtilities.WriteLog($" Connect done.");
+            }
+            catch (SocketException socketException)
+            {
+                LoggingUtilities.WriteLog($" Networking error {socketException.NativeErrorCode} while trying to connect to {this.Server}:{this.Port}.");
+            }
         }
 
         /// <summary>
@@ -293,10 +300,13 @@ namespace TDSClient.TDS.Client
         /// </summary>
         public void Disconnect()
         {
-            LoggingUtilities.WriteLog($" Disconnect initiated.");
-            this.Client.Close();
-            this.Client = null;
-            LoggingUtilities.WriteLog($" Disconnect done.");
+            if (this.Client != null)
+            {
+                LoggingUtilities.WriteLog($" Disconnect initiated.");
+                this.Client.Close();
+                this.Client = null;
+                LoggingUtilities.WriteLog($" Disconnect done.");
+            }
         }
     }
 }

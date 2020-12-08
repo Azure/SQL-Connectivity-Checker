@@ -166,7 +166,7 @@ $SQLDB_InvalidGatewayIPAddress = ' Please make sure the server name FQDN is corr
  or a client-side networking issue that you will need to pursue with your local network administrator.
  See the valid gateway addresses at https://docs.microsoft.com/azure/azure-sql/database/connectivity-architecture#gateway-ip-addresses'
 
-$SQLDB_GatewayTestFailed = ' Failure to reach the Gateway is usually a client-side networking issue that you will need to pursue with your local network administrator.
+$SQLDB_GatewayTestFailed = ' Failure to reach the Gateway is usually a client-side networking issue (like DNS issue or a port being blocked) that you will need to pursue with your local network administrator.
  See more about connectivity architecture at https://docs.microsoft.com/azure/azure-sql/database/connectivity-architecture'
 
 $SQLDB_Redirect = " Servers in SQL Database and Azure Synapse support Redirect, Proxy or Default for the server's connection policy setting:
@@ -184,7 +184,7 @@ $SQLDB_Redirect = " Servers in SQL Database and Azure Synapse support Redirect, 
   For connections to use this mode, clients need to allow outbound communication from the client to Azure SQL Database gateway IP addresses on port 1433.
 
  If you are using Proxy, the Redirect Policy related tests would not be a problem.
- If you are using Redirect, failure to reach ports in the range of 11000-11999 is usually a client-side networking issue that you will need to pursue with your local network administrator.
+ If you are using Redirect, failure to reach ports in the range of 11000-11999 is usually a client-side networking issue (like DNS issue or a port being blocked) that you will need to pursue with your local network administrator.
  Please check more about connection policies at https://docs.microsoft.com/en-us/azure/azure-sql/database/connectivity-architecture#connection-policy"
 
 $SQLMI_GatewayTestFailed = ' You can connect to SQL Managed Instance via private endpoint if you are connecting from one of the following:
@@ -192,20 +192,20 @@ $SQLMI_GatewayTestFailed = ' You can connect to SQL Managed Instance via private
  - machine in a peered virtual network
  - machine that is network connected by VPN or Azure ExpressRoute
 
- Failure to reach the Gateway is usually a client-side networking issue that you will need to pursue with your local network administrator.
+ Failure to reach the Gateway is usually a client-side networking issue (like DNS issue or a port being blocked) that you will need to pursue with your local network administrator.
  See how to connect your application to Azure SQL Managed Instance at https://docs.microsoft.com/en-us/azure/azure-sql/managed-instance/connect-application-instance'
 
-$SQLMI_PublicEndPoint_GatewayTestFailed = ' This usually indicates a client-side networking issue that you will need to pursue with your local network administrator.
+$SQLMI_PublicEndPoint_GatewayTestFailed = ' This usually indicates a client-side networking issue (like DNS issue or a port being blocked) that you will need to pursue with your local network administrator.
  See more about connectivity using Public Endpoint at https://docs.microsoft.com/en-us/azure/azure-sql/managed-instance/public-endpoint-configure'
 
 $AAD_login_windows_net = ' If you are using AAD Password or AAD Integrated Authentication please make sure you fix the connectivity from this machine to login.windows.net:443
- This usually indicates a client-side networking issue that you will need to pursue with your local network administrator.'
+ This usually indicates a client-side networking issue (like DNS issue or a port being blocked) that you will need to pursue with your local network administrator.'
 
 $AAD_login_microsoftonline_com = ' If you are using AAD Universal with MFA authentication please make sure you fix the connectivity from this machine to login.microsoftonline.com:443
- This usually indicates a client-side networking issue that you will need to pursue with your local network administrator.'
+ This usually indicates a client-side networking issue (like DNS issue or a port being blocked) that you will need to pursue with your local network administrator.'
 
 $AAD_secure_aadcdn_microsoftonline_p_com = ' If you are using AAD Universal with MFA authentication please make sure you fix the connectivity from this machine to secure.aadcdn.microsoftonline-p.com:443
- This usually indicates a client-side networking issue that you will need to pursue with your local network administrator.'
+ This usually indicates a client-side networking issue (like DNS issue or a port being blocked) that you will need to pursue with your local network administrator.'
 
 $error18456RecommendedSolution = ' This error indicates that the login request was rejected, the most common reasons are:
  - Incorrect or empty password: Please ensure that you have provided the correct password.
@@ -395,7 +395,7 @@ function FilterTranscript() {
 function TestConnectionToDatabase($Server, $gatewayPort, $Database, $User, $Password) {
     Write-Host
     [void]$summaryLog.AppendLine()
-    Write-Host ([string]::Format("Testing connecting to {0} database:", $Database)) -ForegroundColor Green
+    Write-Host ([string]::Format("Testing connecting to {0} database (please wait):", $Database)) -ForegroundColor Green
     Try {
         $masterDbConnection = [System.Data.SqlClient.SQLConnection]::new()
         $masterDbConnection.ConnectionString = [string]::Format("Server=tcp:{0},{1};Initial Catalog={2};Persist Security Info=False;User ID='{3}';Password='{4}';MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;Application Name=Azure-SQL-Connectivity-Checker;",
@@ -423,7 +423,7 @@ function TestConnectionToDatabase($Server, $gatewayPort, $Database, $User, $Pass
                 [void]$summaryLog.AppendLine($msg)
                 [void]$summaryRecommendedAction.AppendLine()
                 [void]$summaryRecommendedAction.AppendLine($msg)
-                [void]$summaryRecommendedAction.AppendLine(' This usually indicates a client-side networking issue that you will need to pursue with your local network administrator.')
+                [void]$summaryRecommendedAction.AppendLine(' This usually indicates a client-side networking issue (like DNS issue or a port being blocked) that you will need to pursue with your local network administrator.')
                 TrackWarningAnonymously ('TestConnectionToDatabase|Error10060 State' + $ex.State)
             }
             18456 {
@@ -623,7 +623,7 @@ function RunSqlMIVNetConnectivityTests($resolvedAddress) {
     Try {
         Write-Host 'Detected as Managed Instance' -ForegroundColor Yellow
         Write-Host
-        Write-Host 'Gateway connectivity tests:' -ForegroundColor Green
+        Write-Host 'Gateway connectivity tests (please wait):' -ForegroundColor Green
         $testResult = Test-NetConnection $resolvedAddress -Port 1433 -WarningAction SilentlyContinue
 
         if ($testResult.TcpTestSucceeded) {
@@ -752,7 +752,7 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
 
         Write-Host
         [void]$summaryLog.AppendLine()
-        Write-Host 'Gateway connectivity tests:' -ForegroundColor Green
+        Write-Host 'Gateway connectivity tests (please wait):' -ForegroundColor Green
         $hasGatewayTestSuccess = $false
         foreach ($gatewayAddress in $gateway.Gateways) {
             Write-Host
@@ -874,7 +874,7 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
 function RunConnectivityPolicyTests($port) {
     try {
         Write-Host
-        Write-Host 'Advanced connectivity policy tests:' -ForegroundColor Green
+        Write-Host 'Advanced connectivity policy tests (please wait):' -ForegroundColor Green
 
         if ($(Get-ExecutionPolicy) -eq 'Restricted') {
             $msg = ' Advanced connectivity policy tests cannot be run because of current execution policy (Restricted)!
@@ -913,12 +913,50 @@ function RunConnectivityPolicyTests($port) {
         else {
             Invoke-WebRequest -Uri $('https://raw.githubusercontent.com/Azure/SQL-Connectivity-Checker/' + $RepositoryBranch + '/AdvancedConnectivityPolicyTests.ps1') -OutFile "$env:TEMP\AzureSQLConnectivityChecker\AdvancedConnectivityPolicyTests.ps1" -UseBasicParsing
         }
-
+        TrackWarningAnonymously 'Advanced|Invoked'
         $job = Start-Job -ArgumentList $jobParameters -FilePath "$env:TEMP\AzureSQLConnectivityChecker\AdvancedConnectivityPolicyTests.ps1"
         Wait-Job $job | Out-Null
         Receive-Job -Job $job
+
+        $path = $env:TEMP + '/AzureSQLConnectivityChecker/ConnectivityPolicyLog.txt'
+        $result = $([System.IO.File]::ReadAllText($path))
+        $routingMatch = [Regex]::Match($result, "Routing to: (.*)\.")
+
+        if ($routingMatch.Success) {
+            $routingArray = $routingMatch.Groups[1].Value -split ':'
+            $routingServer = $routingArray[0]
+            $routingPort = $routingArray[1]
+            $networkingErrorMatch = [Regex]::Match($result, "Networking error 10060 while trying to connect to (.*)\.")
+            $networkingErrorArray = $networkingErrorMatch.Groups[1].Value -split ':'
+            $networkingErrorServer = $networkingErrorArray[0]
+            $networkingErrorPort = $networkingErrorArray[1]
+
+            if ($networkingErrorMatch.Success -and ($routingServer -ieq $networkingErrorServer) -and ($routingPort -ieq $networkingErrorPort)) {
+                [void]$summaryLog.AppendLine()
+                [void]$summaryRecommendedAction.AppendLine()
+                $msg = "ROOT CAUSE:"
+                [void]$summaryLog.AppendLine($msg)
+                [void]$summaryRecommendedAction.AppendLine($msg)
+                $msg = "The issue is caused by lack of direct network connectivity to the node hosting the database under REDIRECT connection type."
+                [void]$summaryLog.AppendLine($msg)
+                [void]$summaryRecommendedAction.AppendLine($msg)
+                $msg = [string]::Format("This machine cannot connect to {0} on port {1}", $networkingErrorServer, $networkingErrorPort);
+                [void]$summaryLog.AppendLine($msg)
+                [void]$summaryRecommendedAction.AppendLine($msg)
+                [void]$summaryRecommendedAction.AppendLine('This indicates a client-side networking issue (usually a port being blocked) that you will need to pursue with your local network administrator.')
+                if (IsManagedInstance $Server ) {
+                    [void]$summaryRecommendedAction.AppendLine('Make sure firewalls and Network Security Groups (NSG) are open to allow access on ports 11000-11999')
+                    [void]$summaryRecommendedAction.AppendLine('Check more about connection types at https://docs.microsoft.com/en-us/azure/azure-sql/managed-instance/connection-types-overview')
+                    TrackWarningAnonymously ('Advanced|SQLMI|RCA|Port' + $networkingErrorPort)
+                }
+                else {
+                    [void]$summaryRecommendedAction.AppendLine('Make sure you allow outbound communication from the client to all Azure SQL IP addresses in the region on ports in the range of 11000-11999.')
+                    [void]$summaryRecommendedAction.AppendLine('Check more about connection policies at https://docs.microsoft.com/en-us/azure/azure-sql/database/connectivity-architecture#connection-policy')
+                    TrackWarningAnonymously ('Advanced|SQLDB|RCA|Port' + $networkingErrorPort)
+                }
+            }
+        }
         Remove-Item $env:TEMP\AzureSQLConnectivityChecker -Recurse -Force
-        TrackWarningAnonymously 'Advanced|Invoked'
     }
     catch {
         $msg = ' ERROR running Advanced Connectivity Tests: ' + $_.Exception.Message
@@ -1021,7 +1059,7 @@ function SendAnonymousUsageData {
             | Add-Member -PassThru NoteProperty baseType 'EventData' `
             | Add-Member -PassThru NoteProperty baseData (New-Object PSObject `
                 | Add-Member -PassThru NoteProperty ver 2 `
-                | Add-Member -PassThru NoteProperty name '1.14'));
+                | Add-Member -PassThru NoteProperty name '1.15'));
 
         $body = $body | ConvertTo-JSON -depth 5;
         Invoke-WebRequest -Uri 'https://dc.services.visualstudio.com/v2/track' -Method 'POST' -UseBasicParsing -body $body > $null
@@ -1098,7 +1136,7 @@ try {
 
     try {
         Write-Host '******************************************' -ForegroundColor Green
-        Write-Host '  Azure SQL Connectivity Checker v1.14  ' -ForegroundColor Green
+        Write-Host '  Azure SQL Connectivity Checker v1.15  ' -ForegroundColor Green
         Write-Host '******************************************' -ForegroundColor Green
         Write-Host
         Write-Host 'Parameters' -ForegroundColor Yellow
