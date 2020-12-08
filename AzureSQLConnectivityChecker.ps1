@@ -1059,7 +1059,7 @@ function SendAnonymousUsageData {
             | Add-Member -PassThru NoteProperty baseType 'EventData' `
             | Add-Member -PassThru NoteProperty baseData (New-Object PSObject `
                 | Add-Member -PassThru NoteProperty ver 2 `
-                | Add-Member -PassThru NoteProperty name '1.15'));
+                | Add-Member -PassThru NoteProperty name '1.16'));
 
         $body = $body | ConvertTo-JSON -depth 5;
         Invoke-WebRequest -Uri 'https://dc.services.visualstudio.com/v2/track' -Method 'POST' -UseBasicParsing -body $body > $null
@@ -1136,7 +1136,7 @@ try {
 
     try {
         Write-Host '******************************************' -ForegroundColor Green
-        Write-Host '  Azure SQL Connectivity Checker v1.15  ' -ForegroundColor Green
+        Write-Host '  Azure SQL Connectivity Checker v1.16  ' -ForegroundColor Green
         Write-Host '******************************************' -ForegroundColor Green
         Write-Host
         Write-Host 'Parameters' -ForegroundColor Yellow
@@ -1366,8 +1366,20 @@ try {
         Write-Host 'RECOMMENDED ACTION(S):' -ForegroundColor Yellow
         Write-Host '######################################################' -ForegroundColor Green
         if ($summaryRecommendedAction.Length -eq 0) {
-            Write-Host ' Based on test results, there are no recommended actions.' -ForegroundColor Green
-            TrackWarningAnonymously 'NoRecommendedActions'
+            Write-Host ' We could not detect any issue while using SqlClient driver, we suggest you:' -ForegroundColor Green
+            Write-Host ' - Verify if you are using an updated version of the client driver or tool.' -ForegroundColor Yellow
+            Write-Host ' - Verify if you can connect using a different client driver or tool.' -ForegroundColor Yellow
+
+            if (IsManagedInstance $Server ) {
+                Write-Host ' See required versions of drivers and tools at https://docs.microsoft.com/en-us/azure/azure-sql/managed-instance/connect-application-instance#required-versions-of-drivers-and-tools' -ForegroundColor Yellow
+            }
+
+            Write-Host ' - Verify your connection string and credentials.' -ForegroundColor Yellow
+            Write-Host ' See more at https://docs.microsoft.com/en-us/azure/azure-sql/database/connect-query-content-reference-guide' -ForegroundColor Yellow
+            Write-Host
+            Write-Host 'If you have any feedback/issue/request let us know at https://github.com/Azure/SQL-Connectivity-Checker/issues' -ForegroundColor Green
+
+            TrackWarningAnonymously 'NoRecommendedActions2'
         }
         else {
             Write-Host $summaryRecommendedAction.ToString() -ForegroundColor Yellow
