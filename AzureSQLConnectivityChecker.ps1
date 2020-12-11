@@ -408,6 +408,25 @@ function TestConnectionToDatabase($Server, $gatewayPort, $Database, $User, $Pass
     catch [System.Data.SqlClient.SqlException] {
         $ex = $_.Exception
         Switch ($_.Exception.Number) {
+            121 {
+                $msg = ' Connection to database ' + $Database + ' failed due to "The semaphore timeout period has expired" error.'
+                Write-Host ($msg) -ForegroundColor Red
+                [void]$summaryLog.AppendLine($msg)
+                [void]$summaryRecommendedAction.AppendLine()
+                [void]$summaryRecommendedAction.AppendLine($msg)
+                [void]$summaryRecommendedAction.AppendLine('  "The semaphore timeout period has expired" is a network error, not a SQL timeout.')
+                [void]$summaryRecommendedAction.AppendLine('  This appears as a SQL error because Windows passes this to the SQL process, so it is often mistaken to be a SQL error, when it is a client operating system level error.')
+                [void]$summaryRecommendedAction.AppendLine('  This error can occur for a very wide variety of reasons, but are typically due to a network or driver-related issue.')
+                
+                [void]$summaryRecommendedAction.AppendLine('  We suggest you:')
+                [void]$summaryRecommendedAction.AppendLine('  - Verify if you are using an updated version of the client driver or tool.')
+                [void]$summaryRecommendedAction.AppendLine('  - Verify if you can connect using a different client driver or tool.')
+                if (IsManagedInstance $Server ) {
+                    [void]$summaryRecommendedAction.AppendLine( '  See required versions of drivers and tools at https://docs.microsoft.com/en-us/azure/azure-sql/managed-instance/connect-application-instance#required-versions-of-drivers-and-tools')
+                }
+                [void]$summaryRecommendedAction.AppendLine('  - Check with your local network administrator for client-side networking issues.')
+                TrackWarningAnonymously ('TestConnectionToDatabase|Error121 State' + $ex.State)
+            }
             916 {
                 $msg = ' Connection to database ' + $Database + ' failed, the login does not have sufficient permissions to connect to the named database.'
                 Write-Host ($msg) -ForegroundColor Red
@@ -495,6 +514,8 @@ function TestConnectionToDatabase($Server, $gatewayPort, $Database, $User, $Pass
                 [void]$summaryLog.AppendLine($msg)
                 [void]$summaryRecommendedAction.AppendLine()
                 [void]$summaryRecommendedAction.AppendLine($msg)
+                [void]$summaryRecommendedAction.AppendLine('  The client is trying to connect from an IP address that is not authorized to connect to the server. The server firewall has no IP address rule that allows a client to communicate from the given IP address to the database.')
+                [void]$summaryRecommendedAction.AppendLine('  Add the IP address as an IP rule, see how at https://docs.microsoft.com/en-us/azure/azure-sql/database/firewall-configure')
                 TrackWarningAnonymously ('TestConnectionToDatabase|Error40615 State' + $ex.State)
             }
             47073 {
@@ -507,6 +528,17 @@ function TestConnectionToDatabase($Server, $gatewayPort, $Database, $User, $Pass
                 [void]$summaryRecommendedAction.AppendLine()
                 [void]$summaryRecommendedAction.AppendLine($msg)
                 TrackWarningAnonymously ('TestConnectionToDatabase|47073 State' + $ex.State)
+            }
+            40914 {
+                $msg = ' Connection to database ' + $Database + ' failed, client is not allowed to access the server.'
+                Write-Host ($msg) -ForegroundColor Red
+                [void]$summaryLog.AppendLine($msg)
+                [void]$summaryRecommendedAction.AppendLine()
+                [void]$summaryRecommendedAction.AppendLine($msg)
+                [void]$summaryRecommendedAction.AppendLine('  The client is in a subnet that has virtual network server endpoints. But the server has no virtual network rule that grants to the subnet the right to communicate with the database.')
+                [void]$summaryRecommendedAction.AppendLine('  On the Firewall pane of the Azure portal, use the virtual network rules control to add a virtual network rule for the subnet.')
+                [void]$summaryRecommendedAction.AppendLine('  See how at https://docs.microsoft.com/en-us/azure/azure-sql/database/vnet-service-endpoint-rule-overview#use-the-portal-to-create-a-virtual-network-rule')
+                TrackWarningAnonymously ('TestConnectionToDatabase|Error40914 State' + $ex.State)
             }
             default {
                 $msg = ' Connection to database ' + $Database + ' failed (error ' + $ex.Number + ', state ' + $ex.State + '): ' + $ex.Message
@@ -1059,7 +1091,7 @@ function SendAnonymousUsageData {
             | Add-Member -PassThru NoteProperty baseType 'EventData' `
             | Add-Member -PassThru NoteProperty baseData (New-Object PSObject `
                 | Add-Member -PassThru NoteProperty ver 2 `
-                | Add-Member -PassThru NoteProperty name '1.16'));
+                | Add-Member -PassThru NoteProperty name '1.17'));
 
         $body = $body | ConvertTo-JSON -depth 5;
         Invoke-WebRequest -Uri 'https://dc.services.visualstudio.com/v2/track' -Method 'POST' -UseBasicParsing -body $body > $null
@@ -1136,7 +1168,7 @@ try {
 
     try {
         Write-Host '******************************************' -ForegroundColor Green
-        Write-Host '  Azure SQL Connectivity Checker v1.16  ' -ForegroundColor Green
+        Write-Host '  Azure SQL Connectivity Checker v1.17  ' -ForegroundColor Green
         Write-Host '******************************************' -ForegroundColor Green
         Write-Host
         Write-Host 'Parameters' -ForegroundColor Yellow
