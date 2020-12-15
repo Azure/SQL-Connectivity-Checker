@@ -225,13 +225,21 @@ $SQLMI_PrivateEndpoint_Error40532 = ' Error 40532 is usually related to one of t
 - Using the IP that is resolved from your full server FQDN rather than the FQDN of your server itself. You need to use the FQDN.'
 
 $SQLDB_Error40532 = ' Error 40532 is usually related to one of the following scenarios:
- - The username (login) contains the "@" symbol (e.g., a login of the form "user@mydomain.com").
-   If the {servername} value shown in the error is "mydomain.com" then you are encountering this scenario.
-   See how to handle this at https://techcommunity.microsoft.com/t5/azure-database-support-blog/providing-the-server-name-explicitly-in-user-names-for-azure-sql/ba-p/368942
- - You use VNet firewall rules.
-   This occurs when a VNet firewall rule was set for one subnet and the user is trying to access from another subnet on the same VNet.
-   It is important to understand the configuration is per subnet inside a VNet and not the whole VNet.
-   Please ensure the same to fix the issue.'
+
+  - The username (login) contains the "@" symbol (e.g., a login of the form "user@mydomain.com").
+    If the {servername} value shown in the error is "mydomain.com" then you are encountering this scenario.
+    See how to handle this at https://techcommunity.microsoft.com/t5/azure-database-support-blog/providing-the-server-name-explicitly-in-user-names-for-azure-sql/ba-p/368942
+ 
+  - The subnet where you are trying to connect from has Microsoft.Sql service endpoint enabled 
+    Turning on virtual network service endpoints to Microsoft.Sql in the subnet enables the endpoints for Azure SQL Database, Azure Synapse Analytics, Azure Database for PostgreSQL server, Azure Database for MySQL server and Azure Database for MariaDB. Attempts to connect from subnet might fail if virtual network rules are not set.
+  
+    This issue is usually originated by one of the following:
+    - Aiming to connect to SQL Database using service endpoints, Microsoft.Sql was enabled in the subnet but the virtual network rule for the originating subnet in the Firewalls and virtual networks settings on the server was not added.
+    - Aiming to connect to other database service (like Azure Database for MySQL as an example), Azure SQL Database was also impacted.  
+    
+    To fix this issue create a virtual network rule in your server in SQL Database, for the originating subnet in the Firewalls and virtual networks. 
+    See how to at https://docs.microsoft.com/azure/azure-sql/database/vnet-service-endpoint-rule-overview#use-the-portal-to-create-a-virtual-network-rule
+    You can also consider removing the service endpoint from the subnet, but you will need to take into consideration the impact in all the services mentioned above.' 
 
 # PowerShell Container Image Support Start
 
@@ -1091,7 +1099,7 @@ function SendAnonymousUsageData {
             | Add-Member -PassThru NoteProperty baseType 'EventData' `
             | Add-Member -PassThru NoteProperty baseData (New-Object PSObject `
                 | Add-Member -PassThru NoteProperty ver 2 `
-                | Add-Member -PassThru NoteProperty name '1.17'));
+                | Add-Member -PassThru NoteProperty name '1.18'));
 
         $body = $body | ConvertTo-JSON -depth 5;
         Invoke-WebRequest -Uri 'https://dc.services.visualstudio.com/v2/track' -Method 'POST' -UseBasicParsing -body $body > $null
@@ -1168,7 +1176,7 @@ try {
 
     try {
         Write-Host '******************************************' -ForegroundColor Green
-        Write-Host '  Azure SQL Connectivity Checker v1.17  ' -ForegroundColor Green
+        Write-Host '  Azure SQL Connectivity Checker v1.18  ' -ForegroundColor Green
         Write-Host '******************************************' -ForegroundColor Green
         Write-Host
         Write-Host 'Parameters' -ForegroundColor Yellow
