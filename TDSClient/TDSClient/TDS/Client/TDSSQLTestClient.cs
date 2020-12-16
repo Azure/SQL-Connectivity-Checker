@@ -266,16 +266,22 @@ namespace TDSClient.TDS.Client
         /// </summary>
         public void Connect()
         {
+            DateTime connectStartTime = DateTime.UtcNow;
+            bool preLoginDone = false;
             LoggingUtilities.WriteLog($" Connect initiated.");
+
             try
             {
                 do
                 {
+                    preLoginDone = false;
                     this.reconnect = false;
                     this.Client = new TcpClient(this.Server, this.Port);
                     this.TdsCommunicator = new TDSCommunicator(this.Client.GetStream(), 4096);
                     this.SendPreLogin();
                     this.ReceivePreLoginResponse();
+                    preLoginDone = true;
+                    LoggingUtilities.WriteLog($" PreLogin phase took {(int)(DateTime.UtcNow - connectStartTime).TotalMilliseconds} milliseconds.");
                     this.SendLogin7();
                     this.ReceiveLogin7Response();
 
@@ -292,6 +298,20 @@ namespace TDSClient.TDS.Client
             catch (SocketException socketException)
             {
                 LoggingUtilities.WriteLog($" Networking error {socketException.NativeErrorCode} while trying to connect to {this.Server}:{this.Port}.");
+            }
+            catch (Exception ex)
+            {
+                if (!preLoginDone && DateTime.UtcNow >= connectStartTime.AddSeconds(5))
+                {
+                    LoggingUtilities.WriteLog($" Possible SNI timeout");
+                }
+                LoggingUtilities.WriteLog($"Exception:");
+                LoggingUtilities.WriteLog($"{ex.Message}");
+                if (ex.InnerException != null)
+                {
+                    LoggingUtilities.WriteLog($"InnerException: {ex.InnerException.Message}");
+                }
+                throw ex;
             }
         }
 
