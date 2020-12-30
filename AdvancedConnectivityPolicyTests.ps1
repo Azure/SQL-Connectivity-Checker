@@ -131,24 +131,30 @@ function ValidateDNS([String] $Server) {
 
 function TrackWarningAnonymously ([String] $warningCode) {
     Try {
-        #Despite computername and username will be used to calculate a hash string, this will keep you anonymous but allow us to identify multiple runs from the same user
-        $StringBuilderHash = New-Object System.Text.StringBuilder
-        [System.Security.Cryptography.HashAlgorithm]::Create("MD5").ComputeHash([System.Text.Encoding]::UTF8.GetBytes($env:computername + $env:username)) | ForEach-Object {
-            [Void]$StringBuilderHash.Append($_.ToString("x2"))
-        }
+        if ($SendAnonymousUsageData) {
 
-        $body = New-Object PSObject `
-        | Add-Member -PassThru NoteProperty name 'Microsoft.ApplicationInsights.Event' `
-        | Add-Member -PassThru NoteProperty time $([System.dateTime]::UtcNow.ToString('o')) `
-        | Add-Member -PassThru NoteProperty iKey "a75c333b-14cb-4906-aab1-036b31f0ce8a" `
-        | Add-Member -PassThru NoteProperty tags (New-Object PSObject | Add-Member -PassThru NoteProperty 'ai.user.id' $StringBuilderHash.ToString()) `
-        | Add-Member -PassThru NoteProperty data (New-Object PSObject `
-            | Add-Member -PassThru NoteProperty baseType 'EventData' `
-            | Add-Member -PassThru NoteProperty baseData (New-Object PSObject `
-                | Add-Member -PassThru NoteProperty ver 2 `
-                | Add-Member -PassThru NoteProperty name $warningCode));
-        $body = $body | ConvertTo-JSON -depth 5;
-        Invoke-WebRequest -Uri 'https://dc.services.visualstudio.com/v2/track' -Method 'POST' -UseBasicParsing -body $body > $null
+            if ((Get-Host).Version.Major -le 5) {
+                #Despite computername and username will be used to calculate a hash string, this will keep you anonymous but allow us to identify multiple runs from the same user
+                $StringBuilderHash = New-Object System.Text.StringBuilder
+                [System.Security.Cryptography.HashAlgorithm]::Create("MD5").ComputeHash([System.Text.Encoding]::UTF8.GetBytes($env:computername + $env:username)) | ForEach-Object {
+                    [Void]$StringBuilderHash.Append($_.ToString("x2"))
+                }
+                $AnonymousRunId = $StringBuilderHash.ToString()
+            }
+
+            $body = New-Object PSObject `
+            | Add-Member -PassThru NoteProperty name 'Microsoft.ApplicationInsights.Event' `
+            | Add-Member -PassThru NoteProperty time $([System.dateTime]::UtcNow.ToString('o')) `
+            | Add-Member -PassThru NoteProperty iKey "a75c333b-14cb-4906-aab1-036b31f0ce8a" `
+            | Add-Member -PassThru NoteProperty tags (New-Object PSObject | Add-Member -PassThru NoteProperty 'ai.user.id' $AnonymousRunId) `
+            | Add-Member -PassThru NoteProperty data (New-Object PSObject `
+                | Add-Member -PassThru NoteProperty baseType 'EventData' `
+                | Add-Member -PassThru NoteProperty baseData (New-Object PSObject `
+                    | Add-Member -PassThru NoteProperty ver 2 `
+                    | Add-Member -PassThru NoteProperty name $warningCode));
+            $body = $body | ConvertTo-JSON -depth 5;
+            Invoke-WebRequest -Uri 'https://dc.services.visualstudio.com/v2/track' -Method 'POST' -UseBasicParsing -body $body > $null
+        }
     }
     Catch {
         Write-Host 'TrackWarningAnonymously exception:'
@@ -166,6 +172,8 @@ $EncryptionProtocol = $parameters['EncryptionProtocol']
 $RepositoryBranch = $parameters['RepositoryBranch']
 $Local = $parameters['Local']
 $LocalPath = $parameters['LocalPath']
+$SendAnonymousUsageData = $parameters['SendAnonymousUsageData']
+$AnonymousRunId = $parameters['AnonymousRunId']
 
 if ([string]::IsNullOrEmpty($env:TEMP)) {
     $env:TEMP = '/tmp';
