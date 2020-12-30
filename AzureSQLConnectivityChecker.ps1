@@ -149,6 +149,7 @@ $SQLDBGateways = @(
 $TRPorts = @('11000', '11001', '11003', '11005', '11006')
 $summaryLog = New-Object -TypeName "System.Text.StringBuilder"
 $summaryRecommendedAction = New-Object -TypeName "System.Text.StringBuilder"
+$AnonymousRunId = (New-Guid).Guid
 
 # Error Messages
 $DNSResolutionFailed = ' Please make sure the server name FQDN is correct and that your machine can resolve it.
@@ -1076,60 +1077,32 @@ function RunConnectionToDatabaseTestsAndAdvancedTests($Server, $dbPort, $Databas
     }
 }
 
-function SendAnonymousUsageData {
-    try {
-        #Despite computername and username will be used to calculate a hash string, this will keep you anonymous but allow us to identify multiple runs from the same user
-        $StringBuilderHash = [System.Text.StringBuilder]::new()
-
-        $text = $env:computername + $env:username
-        if ([string]::IsNullOrEmpty($text)) {
-            $text = $Host.InstanceId
-        }
-
-        [System.Security.Cryptography.HashAlgorithm]::Create("MD5").ComputeHash([System.Text.Encoding]::UTF8.GetBytes($text)) | ForEach-Object {
-            [Void]$StringBuilderHash.Append($_.ToString("x2"))
-        }
-
-        $body = New-Object PSObject `
-        | Add-Member -PassThru NoteProperty name 'Microsoft.ApplicationInsights.Event' `
-        | Add-Member -PassThru NoteProperty time $([System.dateTime]::UtcNow.ToString('o')) `
-        | Add-Member -PassThru NoteProperty iKey "a75c333b-14cb-4906-aab1-036b31f0ce8a" `
-        | Add-Member -PassThru NoteProperty tags (New-Object PSObject | Add-Member -PassThru NoteProperty 'ai.user.id' $StringBuilderHash.ToString()) `
-        | Add-Member -PassThru NoteProperty data (New-Object PSObject `
-            | Add-Member -PassThru NoteProperty baseType 'EventData' `
-            | Add-Member -PassThru NoteProperty baseData (New-Object PSObject `
-                | Add-Member -PassThru NoteProperty ver 2 `
-                | Add-Member -PassThru NoteProperty name '1.19'));
-
-        $body = $body | ConvertTo-JSON -depth 5;
-        Invoke-WebRequest -Uri 'https://dc.services.visualstudio.com/v2/track' -Method 'POST' -UseBasicParsing -body $body > $null
-    }
-    catch {
-        Write-Host 'Error sending anonymous usage data:'
-        Write-Host $_.Exception.Message
-    }
-}
-
 function TrackWarningAnonymously ([String] $warningCode) {
     Try {
-        #Despite computername and username will be used to calculate a hash string, this will keep you anonymous but allow us to identify multiple runs from the same user
-        $StringBuilderHash = New-Object System.Text.StringBuilder
-        [System.Security.Cryptography.HashAlgorithm]::Create("MD5").ComputeHash([System.Text.Encoding]::UTF8.GetBytes($env:computername + $env:username)) | ForEach-Object {
-            [Void]$StringBuilderHash.Append($_.ToString("x2"))
-        }
+        if ($SendAnonymousUsageData) {
 
-        $body = New-Object PSObject `
-        | Add-Member -PassThru NoteProperty name 'Microsoft.ApplicationInsights.Event' `
-        | Add-Member -PassThru NoteProperty time $([System.dateTime]::UtcNow.ToString('o')) `
-        | Add-Member -PassThru NoteProperty iKey "a75c333b-14cb-4906-aab1-036b31f0ce8a" `
-        | Add-Member -PassThru NoteProperty tags (New-Object PSObject | Add-Member -PassThru NoteProperty 'ai.user.id' $StringBuilderHash.ToString()) `
-        | Add-Member -PassThru NoteProperty data (New-Object PSObject `
-            | Add-Member -PassThru NoteProperty baseType 'EventData' `
-            | Add-Member -PassThru NoteProperty baseData (New-Object PSObject `
-                | Add-Member -PassThru NoteProperty ver 2 `
-                | Add-Member -PassThru NoteProperty name $warningCode));
-        $body = $body | ConvertTo-JSON -depth 5;
-        Invoke-WebRequest -Uri 'https://dc.services.visualstudio.com/v2/track' -Method 'POST' -UseBasicParsing -body $body > $null
+            if ((Get-Host).Version.Major -le 5) {
+                #Despite computername and username will be used to calculate a hash string, this will keep you anonymous but allow us to identify multiple runs from the same user
+                $StringBuilderHash = New-Object System.Text.StringBuilder
+                [System.Security.Cryptography.HashAlgorithm]::Create("MD5").ComputeHash([System.Text.Encoding]::UTF8.GetBytes($env:computername + $env:username)) | ForEach-Object {
+                    [Void]$StringBuilderHash.Append($_.ToString("x2"))
+                }
+                $AnonymousRunId = $StringBuilderHash.ToString()
+            }
+
+            $body = New-Object PSObject `
+            | Add-Member -PassThru NoteProperty name 'Microsoft.ApplicationInsights.Event' `
+            | Add-Member -PassThru NoteProperty time $([System.dateTime]::UtcNow.ToString('o')) `
+            | Add-Member -PassThru NoteProperty iKey "a75c333b-14cb-4906-aab1-036b31f0ce8a" `
+            | Add-Member -PassThru NoteProperty tags (New-Object PSObject | Add-Member -PassThru NoteProperty 'ai.user.id' $AnonymousRunId) `
+            | Add-Member -PassThru NoteProperty data (New-Object PSObject `
+                | Add-Member -PassThru NoteProperty baseType 'EventData' `
+                | Add-Member -PassThru NoteProperty baseData (New-Object PSObject `
+                    | Add-Member -PassThru NoteProperty ver 2 `
+                    | Add-Member -PassThru NoteProperty name $warningCode));
+            $body = $body | ConvertTo-JSON -depth 5;
+            Invoke-WebRequest -Uri 'https://dc.services.visualstudio.com/v2/track' -Method 'POST' -UseBasicParsing -body $body > $null
+        }
     }
     Catch {
         Write-Host 'TrackWarningAnonymously exception:'
@@ -1170,13 +1143,11 @@ try {
         Write-Host Warning: Cannot write log file -ForegroundColor Yellow
     }
 
-    if ($SendAnonymousUsageData) {
-        SendAnonymousUsageData
-    }
+    TrackWarningAnonymously 'v1.20'
 
     try {
         Write-Host '******************************************' -ForegroundColor Green
-        Write-Host '  Azure SQL Connectivity Checker v1.19  ' -ForegroundColor Green
+        Write-Host '  Azure SQL Connectivity Checker v1.20  ' -ForegroundColor Green
         Write-Host '******************************************' -ForegroundColor Green
         Write-Host
         Write-Host 'Parameters' -ForegroundColor Yellow
