@@ -230,17 +230,17 @@ $SQLDB_Error40532 = ' Error 40532 is usually related to one of the following sce
   - The username (login) contains the "@" symbol (e.g., a login of the form "user@mydomain.com").
     If the {servername} value shown in the error is "mydomain.com" then you are encountering this scenario.
     See how to handle this at https://techcommunity.microsoft.com/t5/azure-database-support-blog/providing-the-server-name-explicitly-in-user-names-for-azure-sql/ba-p/368942
- 
-  - The subnet where you are trying to connect from has Microsoft.Sql service endpoint enabled 
+
+  - The subnet where you are trying to connect from has Microsoft.Sql service endpoint enabled
     Turning on virtual network service endpoints to Microsoft.Sql in the subnet enables the endpoints for Azure SQL Database, Azure Synapse Analytics, Azure Database for PostgreSQL server, Azure Database for MySQL server and Azure Database for MariaDB. Attempts to connect from subnet might fail if virtual network rules are not set.
-  
+
     This issue is usually originated by one of the following:
     - Aiming to connect to SQL Database using service endpoints, Microsoft.Sql was enabled in the subnet but the virtual network rule for the originating subnet in the Firewalls and virtual networks settings on the server was not added.
-    - Aiming to connect to other database service (like Azure Database for MySQL as an example), Azure SQL Database was also impacted.  
-    
-    To fix this issue create a virtual network rule in your server in SQL Database, for the originating subnet in the Firewalls and virtual networks. 
+    - Aiming to connect to other database service (like Azure Database for MySQL as an example), Azure SQL Database was also impacted.
+
+    To fix this issue create a virtual network rule in your server in SQL Database, for the originating subnet in the Firewalls and virtual networks.
     See how to at https://docs.microsoft.com/azure/azure-sql/database/vnet-service-endpoint-rule-overview#use-the-portal-to-create-a-virtual-network-rule
-    You can also consider removing the service endpoint from the subnet, but you will need to take into consideration the impact in all the services mentioned above.' 
+    You can also consider removing the service endpoint from the subnet, but you will need to take into consideration the impact in all the services mentioned above.'
 
 # PowerShell Container Image Support Start
 
@@ -426,7 +426,7 @@ function TestConnectionToDatabase($Server, $gatewayPort, $Database, $User, $Pass
                 [void]$summaryRecommendedAction.AppendLine('  "The semaphore timeout period has expired" is a network error, not a SQL timeout.')
                 [void]$summaryRecommendedAction.AppendLine('  This appears as a SQL error because Windows passes this to the SQL process, so it is often mistaken to be a SQL error, when it is a client operating system level error.')
                 [void]$summaryRecommendedAction.AppendLine('  This error can occur for a very wide variety of reasons, but are typically due to a network or driver-related issue.')
-                
+
                 [void]$summaryRecommendedAction.AppendLine('  We suggest you:')
                 [void]$summaryRecommendedAction.AppendLine('  - Verify if you are using an updated version of the client driver or tool.')
                 [void]$summaryRecommendedAction.AppendLine('  - Verify if you can connect using a different client driver or tool.')
@@ -931,15 +931,17 @@ function RunConnectivityPolicyTests($port) {
         }
 
         $jobParameters = @{
-            Server             = $Server
-            Database           = $Database
-            Port               = $port
-            User               = $User
-            Password           = $Password
-            EncryptionProtocol = $EncryptionProtocol
-            RepositoryBranch   = $RepositoryBranch
-            Local              = $Local
-            LocalPath          = $LocalPath
+            Server                 = $Server
+            Database               = $Database
+            Port                   = $port
+            User                   = $User
+            Password               = $Password
+            EncryptionProtocol     = $EncryptionProtocol
+            RepositoryBranch       = $RepositoryBranch
+            Local                  = $Local
+            LocalPath              = $LocalPath
+            SendAnonymousUsageData = $SendAnonymousUsageData
+            AnonymousRunId         = $AnonymousRunId
         }
 
         if (Test-Path "$env:TEMP\AzureSQLConnectivityChecker\") {
