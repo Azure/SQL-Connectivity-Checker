@@ -111,17 +111,51 @@ function ValidateDNS([String] $Server) {
     Try {
         Write-Host 'Validating DNS record for' $Server -ForegroundColor Green
 
-        $DNSfromHosts = Resolve-DnsName -Name $Server -CacheOnly -ErrorAction SilentlyContinue
-        PrintDNSResults $DNSfromHosts 'hosts file'
+        if (!$(Get-Command 'Resolve-DnsName' -errorAction SilentlyContinue)) {
+            Write-Host " WARNING: Current environment doesn't support multiple DNS sources."
+            Write-Host ' DNS resolution:' ([Dns]::GetHostAddresses($Name).IPAddressToString)
+        }
+        else {
+            Try {
+                $DNSfromHosts = Resolve-DnsName -Name $Server -CacheOnly -ErrorAction SilentlyContinue
+                PrintDNSResults $DNSfromHosts 'hosts file'
+            }
+            Catch {
+                Write-Host "Error at ValidateDNS from hosts file" -Foreground Red
+                Write-Host $_.Exception.Message -ForegroundColor Red
+                TrackWarningAnonymously 'Error at ValidateDNS from hosts file'
+            }
 
-        $DNSfromCache = Resolve-DnsName -Name $Server -NoHostsFile -CacheOnly -ErrorAction SilentlyContinue
-        PrintDNSResults $DNSfromCache 'cache'
+            Try {
+                $DNSfromCache = Resolve-DnsName -Name $Server -NoHostsFile -CacheOnly -ErrorAction SilentlyContinue
+                PrintDNSResults $DNSfromCache 'cache'
+            }
+            Catch {
+                Write-Host "Error at ValidateDNS from cache" -Foreground Red
+                Write-Host $_.Exception.Message -ForegroundColor Red
+                TrackWarningAnonymously 'Error at ValidateDNS from cache'
+            }
 
-        $DNSfromCustomerServer = Resolve-DnsName -Name $Server -DnsOnly -ErrorAction SilentlyContinue
-        PrintDNSResults $DNSfromCustomerServer 'DNS server'
+            Try {
+                $DNSfromCustomerServer = Resolve-DnsName -Name $Server -DnsOnly -ErrorAction SilentlyContinue
+                PrintDNSResults $DNSfromCustomerServer 'DNS server'
+            }
+            Catch {
+                Write-Host "Error at ValidateDNS from DNS server" -Foreground Red
+                Write-Host $_.Exception.Message -ForegroundColor Red
+                TrackWarningAnonymously 'Error at ValidateDNS from DNS server'
+            }
 
-        $DNSfromAzureDNS = Resolve-DnsName -Name $Server -DnsOnly -Server 208.67.222.222 -ErrorAction SilentlyContinue
-        PrintDNSResults $DNSfromAzureDNS 'Open DNS'
+            Try {
+                $DNSfromOpenDNS = Resolve-DnsName -Name $Server -DnsOnly -Server 208.67.222.222 -ErrorAction SilentlyContinue
+                PrintDNSResults $DNSfromOpenDNS 'Open DNS'
+            }
+            Catch {
+                Write-Host "Error at ValidateDNS from Open DNS" -Foreground Red
+                Write-Host $_.Exception.Message -ForegroundColor Red
+                TrackWarningAnonymously 'Error at ValidateDNS from Open DNS'
+            }
+        }
     }
     Catch {
         Write-Host "Error at ValidateDNS" -Foreground Red
@@ -132,16 +166,6 @@ function ValidateDNS([String] $Server) {
 function TrackWarningAnonymously ([String] $warningCode) {
     Try {
         if ($SendAnonymousUsageData) {
-
-            if ((Get-Host).Version.Major -le 5) {
-                #Despite computername and username will be used to calculate a hash string, this will keep you anonymous but allow us to identify multiple runs from the same user
-                $StringBuilderHash = New-Object System.Text.StringBuilder
-                [System.Security.Cryptography.HashAlgorithm]::Create("MD5").ComputeHash([System.Text.Encoding]::UTF8.GetBytes($env:computername + $env:username)) | ForEach-Object {
-                    [Void]$StringBuilderHash.Append($_.ToString("x2"))
-                }
-                $AnonymousRunId = $StringBuilderHash.ToString()
-            }
-
             $body = New-Object PSObject `
             | Add-Member -PassThru NoteProperty name 'Microsoft.ApplicationInsights.Event' `
             | Add-Member -PassThru NoteProperty time $([System.dateTime]::UtcNow.ToString('o')) `

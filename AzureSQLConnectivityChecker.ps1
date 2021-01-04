@@ -149,7 +149,7 @@ $SQLDBGateways = @(
 $TRPorts = @('11000', '11001', '11003', '11005', '11006')
 $summaryLog = New-Object -TypeName "System.Text.StringBuilder"
 $summaryRecommendedAction = New-Object -TypeName "System.Text.StringBuilder"
-$AnonymousRunId = (New-Guid).Guid
+$AnonymousRunId = ([guid]::NewGuid()).Guid
 
 # Error Messages
 $DNSResolutionFailed = ' Please make sure the server name FQDN is correct and that your machine can resolve it.
@@ -324,46 +324,58 @@ function PrintDNSResults($dnsResult, [string] $dnsSource) {
 }
 
 function ValidateDNS([String] $Server) {
-    Write-Host 'Validating DNS record for' $Server -ForegroundColor Green
-
     Try {
-        $DNSfromHosts = Resolve-DnsName -Name $Server -CacheOnly -ErrorAction SilentlyContinue
-        PrintDNSResults $DNSfromHosts 'hosts file'
+        Write-Host 'Validating DNS record for' $Server -ForegroundColor Green
+
+        if (!$(Get-Command 'Resolve-DnsName' -errorAction SilentlyContinue)) {
+            Write-Host " WARNING: Current environment doesn't support multiple DNS sources."
+            Write-Host ' DNS resolution:' ([Dns]::GetHostAddresses($Name).IPAddressToString)
+        }
+        else {
+            Try {
+                $DNSfromHosts = Resolve-DnsName -Name $Server -CacheOnly -ErrorAction SilentlyContinue
+                PrintDNSResults $DNSfromHosts 'hosts file'
+            }
+            Catch {
+                Write-Host "Error at ValidateDNS from hosts file" -Foreground Red
+                Write-Host $_.Exception.Message -ForegroundColor Red
+                TrackWarningAnonymously 'Error at ValidateDNS from hosts file'
+            }
+
+            Try {
+                $DNSfromCache = Resolve-DnsName -Name $Server -NoHostsFile -CacheOnly -ErrorAction SilentlyContinue
+                PrintDNSResults $DNSfromCache 'cache'
+            }
+            Catch {
+                Write-Host "Error at ValidateDNS from cache" -Foreground Red
+                Write-Host $_.Exception.Message -ForegroundColor Red
+                TrackWarningAnonymously 'Error at ValidateDNS from cache'
+            }
+
+            Try {
+                $DNSfromCustomerServer = Resolve-DnsName -Name $Server -DnsOnly -ErrorAction SilentlyContinue
+                PrintDNSResults $DNSfromCustomerServer 'DNS server'
+            }
+            Catch {
+                Write-Host "Error at ValidateDNS from DNS server" -Foreground Red
+                Write-Host $_.Exception.Message -ForegroundColor Red
+                TrackWarningAnonymously 'Error at ValidateDNS from DNS server'
+            }
+
+            Try {
+                $DNSfromOpenDNS = Resolve-DnsName -Name $Server -DnsOnly -Server 208.67.222.222 -ErrorAction SilentlyContinue
+                PrintDNSResults $DNSfromOpenDNS 'Open DNS'
+            }
+            Catch {
+                Write-Host "Error at ValidateDNS from Open DNS" -Foreground Red
+                Write-Host $_.Exception.Message -ForegroundColor Red
+                TrackWarningAnonymously 'Error at ValidateDNS from Open DNS'
+            }
+        }
     }
     Catch {
-        Write-Host "Error at ValidateDNS from hosts file" -Foreground Red
+        Write-Host "Error at ValidateDNS" -Foreground Red
         Write-Host $_.Exception.Message -ForegroundColor Red
-        TrackWarningAnonymously 'Error at ValidateDNS from hosts file'
-    }
-
-    Try {
-        $DNSfromCache = Resolve-DnsName -Name $Server -NoHostsFile -CacheOnly -ErrorAction SilentlyContinue
-        PrintDNSResults $DNSfromCache 'cache'
-    }
-    Catch {
-        Write-Host "Error at ValidateDNS from cache" -Foreground Red
-        Write-Host $_.Exception.Message -ForegroundColor Red
-        TrackWarningAnonymously 'Error at ValidateDNS from cache'
-    }
-
-    Try {
-        $DNSfromCustomerServer = Resolve-DnsName -Name $Server -DnsOnly -ErrorAction SilentlyContinue
-        PrintDNSResults $DNSfromCustomerServer 'DNS server'
-    }
-    Catch {
-        Write-Host "Error at ValidateDNS from DNS server" -Foreground Red
-        Write-Host $_.Exception.Message -ForegroundColor Red
-        TrackWarningAnonymously 'Error at ValidateDNS from DNS server'
-    }
-
-    Try {
-        $DNSfromAzureDNS = Resolve-DnsName -Name $Server -DnsOnly -Server 208.67.222.222 -ErrorAction SilentlyContinue
-        PrintDNSResults $DNSfromAzureDNS 'Open DNS'
-    }
-    Catch {
-        Write-Host "Error at ValidateDNS from Open DNS" -Foreground Red
-        Write-Host $_.Exception.Message -ForegroundColor Red
-        TrackWarningAnonymously 'Error at ValidateDNS from Open DNS'
     }
 }
 
@@ -1082,16 +1094,6 @@ function RunConnectionToDatabaseTestsAndAdvancedTests($Server, $dbPort, $Databas
 function TrackWarningAnonymously ([String] $warningCode) {
     Try {
         if ($SendAnonymousUsageData) {
-
-            if ((Get-Host).Version.Major -le 5) {
-                #Despite computername and username will be used to calculate a hash string, this will keep you anonymous but allow us to identify multiple runs from the same user
-                $StringBuilderHash = New-Object System.Text.StringBuilder
-                [System.Security.Cryptography.HashAlgorithm]::Create("MD5").ComputeHash([System.Text.Encoding]::UTF8.GetBytes($env:computername + $env:username)) | ForEach-Object {
-                    [Void]$StringBuilderHash.Append($_.ToString("x2"))
-                }
-                $AnonymousRunId = $StringBuilderHash.ToString()
-            }
-
             $body = New-Object PSObject `
             | Add-Member -PassThru NoteProperty name 'Microsoft.ApplicationInsights.Event' `
             | Add-Member -PassThru NoteProperty time $([System.dateTime]::UtcNow.ToString('o')) `
@@ -1145,11 +1147,12 @@ try {
         Write-Host Warning: Cannot write log file -ForegroundColor Yellow
     }
 
-    TrackWarningAnonymously 'v1.20'
+    TrackWarningAnonymously 'v1.21'
+    TrackWarningAnonymously ('PowerShell ' + $PSVersionTable.PSVersion + '|' + $PSVersionTable.Platform + '|' + $PSVersionTable.OS ) 
 
     try {
         Write-Host '******************************************' -ForegroundColor Green
-        Write-Host '  Azure SQL Connectivity Checker v1.20  ' -ForegroundColor Green
+        Write-Host '  Azure SQL Connectivity Checker v1.21  ' -ForegroundColor Green
         Write-Host '******************************************' -ForegroundColor Green
         Write-Host
         Write-Host 'Parameters' -ForegroundColor Yellow
@@ -1160,12 +1163,15 @@ try {
         }
         if ($null -ne $RunAdvancedConnectivityPolicyTests) {
             Write-Host ' RunAdvancedConnectivityPolicyTests:' $RunAdvancedConnectivityPolicyTests -ForegroundColor Yellow
+            TrackWarningAnonymously ('RunAdvancedConnectivityPolicyTests:' + $RunAdvancedConnectivityPolicyTests)
         }
         if ($null -ne $CollectNetworkTrace) {
             Write-Host ' CollectNetworkTrace:' $CollectNetworkTrace -ForegroundColor Yellow
+            TrackWarningAnonymously ('CollectNetworkTrace:' + $CollectNetworkTrace)
         }
         if ($null -ne $EncryptionProtocol) {
             Write-Host ' EncryptionProtocol:' $EncryptionProtocol -ForegroundColor Yellow
+            TrackWarningAnonymously ('EncryptionProtocol:' + $EncryptionProtocol)
         }
         Write-Host
 
