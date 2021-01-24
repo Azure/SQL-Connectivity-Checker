@@ -947,6 +947,8 @@ function RunConnectivityPolicyTests($port) {
             AnonymousRunId         = $AnonymousRunId
             logsFolderName         = $logsFolderName
             outFolderName          = $outFolderName
+            ConnectionAttempts     = $ConnectionAttempts
+            DelayBetweenConnections= $DelayBetweenConnections
         }
 
         if ($Local) {
