@@ -16,9 +16,9 @@ namespace TDSClient.TDS.Utilities
     public static class LoggingUtilities
     {
         /// <summary>
-        /// Log output.
+        /// Summary log output.
         /// </summary>
-        private static readonly WeakReference<TextWriter> Log = new WeakReference<TextWriter>(null);
+        private static readonly WeakReference<TextWriter> SummaryLog = new WeakReference<TextWriter>(null);
 
         /// <summary>
         /// Verbose log output.
@@ -34,15 +34,15 @@ namespace TDSClient.TDS.Utilities
         /// Used to set Log output.
         /// </summary>
         /// <param name="log">Log output.</param>
-        public static void SetLog(TextWriter log)
+        public static void SetSummaryLog(TextWriter log)
         {
-            if (!Log.TryGetTarget(out TextWriter temp) || temp == null)
+            if (!SummaryLog.TryGetTarget(out TextWriter temp) || temp == null)
             {
-                Log.SetTarget(log);
+                SummaryLog.SetTarget(log);
             }
             else
             {
-                throw new InvalidOperationException("Log is already set!");
+                throw new InvalidOperationException("SummaryLog is already set!");
             }
         }
 
@@ -66,37 +66,26 @@ namespace TDSClient.TDS.Utilities
         /// Used to write message to Log and Verbose Log. 
         /// </summary>
         /// <param name="message">Message to write to Log.</param>
-        public static void WriteLog(string message)
+        public static void WriteLog(string message, bool writeToVerboseLog = true, bool writeToSummaryLog = false)
         {
-            if (Log.TryGetTarget(out TextWriter temp) && temp != null)
+            var timestamp = DateTime.UtcNow.ToString(DatetimeFormat, DateTimeFormatInfo.InvariantInfo);
+            if (writeToSummaryLog && SummaryLog.TryGetTarget(out TextWriter temp) && temp != null)
             {
-                temp.WriteLine($"[{DateTime.UtcNow.ToString(DatetimeFormat, DateTimeFormatInfo.InvariantInfo)}] {message}");
+                temp.WriteLine($"[{timestamp}] {message}");
             }
 
-            if (VerboseLog.TryGetTarget(out temp) && temp != null)
+            if (writeToVerboseLog && VerboseLog.TryGetTarget(out temp) && temp != null)
             {
-                temp.WriteLine($"[{DateTime.UtcNow.ToString(DatetimeFormat, DateTimeFormatInfo.InvariantInfo)}] {message}");
-            }
-        }
-
-        /// <summary>
-        /// Used to write message to Verbose Log only.
-        /// </summary>
-        /// <param name="message">Message to write to Log.</param>
-        public static void WriteLogVerboseOnly(string message)
-        {
-            if (VerboseLog.TryGetTarget(out TextWriter temp) && temp != null)
-            {
-                temp.WriteLine($"[{DateTime.UtcNow.ToString(DatetimeFormat, DateTimeFormatInfo.InvariantInfo)}] {message}");
+                temp.WriteLine($"[{timestamp}] {message}");
             }
         }
 
         /// <summary>
         /// Used to remove Log output.
         /// </summary>
-        public static void ClearLog()
+        public static void ClearSummaryLog()
         {
-            Log.SetTarget(null);
+            SummaryLog.SetTarget(null);
         }
 
         /// <summary>

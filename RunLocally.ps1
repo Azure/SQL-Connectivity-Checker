@@ -1,9 +1,10 @@
 ﻿#Run locally parameters
 $LocalPath = [System.IO.Path]::GetDirectoryName($myInvocation.MyCommand.Definition)
+$Path = Join-Path $LocalPath 'AzureSQLConnectivityChecker.ps1'
 
 # Script parameters
 $parameters = @{
-    Server = '.database.windows.net'
+    Server = 'datasyncsamples.database.windows.net'
     Database = ''  # Set the name of the database you wish to test, 'master' will be used by default if nothing is set
     User = ''  # Set the login username you wish to use, 'AzSQLConnCheckerUser' will be used by default if nothing is set
     Password = ''  # Set the login password you wish to use, 'AzSQLConnCheckerPassword' will be used by default if nothing is set
@@ -20,5 +21,6 @@ $parameters = @{
 }
 
 $ProgressPreference = "SilentlyContinue";
-Invoke-Command -ScriptBlock ([Scriptblock]::Create($($LocalPath + './AzureSQLConnectivityChecker.ps1 $parameters')))
-#end
+$job = Start-Job -ArgumentList $parameters -FilePath $Path
+Wait-Job $job | Out-Null
+Receive-Job -Job $job

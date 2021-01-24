@@ -937,26 +937,22 @@ function RunConnectivityPolicyTests($port) {
             LocalPath              = $LocalPath
             SendAnonymousUsageData = $SendAnonymousUsageData
             AnonymousRunId         = $AnonymousRunId
+            logsFolderName         = $logsFolderName
+            outFolderName          = $outFolderName
         }
-
-        if (Test-Path "$env:TEMP\AzureSQLConnectivityChecker\") {
-            Remove-Item $env:TEMP\AzureSQLConnectivityChecker -Recurse -Force
-        }
-
-        New-Item "$env:TEMP\AzureSQLConnectivityChecker\" -ItemType directory | Out-Null
 
         if ($Local) {
-            Copy-Item -Path $($LocalPath + './AdvancedConnectivityPolicyTests.ps1') -Destination "$env:TEMP\AzureSQLConnectivityChecker\AdvancedConnectivityPolicyTests.ps1"
+            Copy-Item -Path $($LocalPath + './AdvancedConnectivityPolicyTests.ps1') -Destination ".\AdvancedConnectivityPolicyTests.ps1"
         }
         else {
-            Invoke-WebRequest -Uri $('https://raw.githubusercontent.com/Azure/SQL-Connectivity-Checker/' + $RepositoryBranch + '/AdvancedConnectivityPolicyTests.ps1') -OutFile "$env:TEMP\AzureSQLConnectivityChecker\AdvancedConnectivityPolicyTests.ps1" -UseBasicParsing
+            Invoke-WebRequest -Uri $('https://raw.githubusercontent.com/Azure/SQL-Connectivity-Checker/' + $RepositoryBranch + '/AdvancedConnectivityPolicyTests.ps1') -OutFile ".\AdvancedConnectivityPolicyTests.ps1" -UseBasicParsing
         }
         TrackWarningAnonymously 'Advanced|Invoked'
-        $job = Start-Job -ArgumentList $jobParameters -FilePath "$env:TEMP\AzureSQLConnectivityChecker\AdvancedConnectivityPolicyTests.ps1"
+        $job = Start-Job -ArgumentList $jobParameters -FilePath ".\AdvancedConnectivityPolicyTests.ps1"
         Wait-Job $job | Out-Null
         Receive-Job -Job $job
 
-        $path = $env:TEMP + '/AzureSQLConnectivityChecker/ConnectivityPolicyLog.txt'
+        $path = './AdvancedTests_LastRunLog.txt'
         $result = $([System.IO.File]::ReadAllText($path))
         $routingMatch = [Regex]::Match($result, "Routing to: (.*)\.")
 
@@ -994,7 +990,7 @@ function RunConnectivityPolicyTests($port) {
                 }
             }
         }
-        Remove-Item $env:TEMP\AzureSQLConnectivityChecker -Recurse -Force
+        Remove-Item ".\AdvancedConnectivityPolicyTests.ps1" -Force
     }
     catch {
         $msg = ' ERROR running Advanced Connectivity Tests: ' + $_.Exception.Message
