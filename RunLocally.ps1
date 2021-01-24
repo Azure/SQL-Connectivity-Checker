@@ -13,6 +13,8 @@ $parameters = @{
     SendAnonymousUsageData = $true  # Set as $true (default) or $false
     RunAdvancedConnectivityPolicyTests = $true  # Set as $true (default) or $false, this will download the library needed for running advanced connectivity tests
     CollectNetworkTrace = $true  # Set as $true (default) or $false
+    ConnectionAttempts = 1 # Number of connection attempts while running advanced connectivity tests
+    DelayBetweenConnections = 1 # Number of seconds to wait between connection attempts while running advanced connectivity tests
     #EncryptionProtocol = '' # Supported values: 'Tls 1.0', 'Tls 1.1', 'Tls 1.2'; Without this parameter operating system will choose the best protocol to use
 
     ## Run locally parameters
