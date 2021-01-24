@@ -278,7 +278,7 @@ try {
             Add-Content -Path $fullLogPath -Value $result
 
             if ($i -lt $ConnectionAttempts) {
-                Write-Host 'Waiting ' + $DelayBetweenConnections + ' second(s)...'
+                Write-Host ('Waiting ' + $DelayBetweenConnections + ' second(s)...')
                 Start-Sleep -Seconds $DelayBetweenConnections
             }
         }
