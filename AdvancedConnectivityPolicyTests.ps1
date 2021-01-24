@@ -201,7 +201,7 @@ $AnonymousRunId = $parameters['AnonymousRunId']
 $logsFolderName = $parameters['logsFolderName']
 $outFolderName = $parameters['outFolderName']
 
-$ConnectionAttempts = 3
+$ConnectionAttempts = 1
 if ($null -ne $parameters['ConnectionAttempts']) {
     $ConnectionAttempts = $parameters['ConnectionAttempts']
 }

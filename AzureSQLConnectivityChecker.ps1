@@ -28,6 +28,8 @@ $Password = ''  # Set the login password you wish to use, 'AzSQLConnCheckerPassw
 # Optional parameters (default values will be used if omitted)
 $SendAnonymousUsageData = $true  # Set as $true (default) or $false
 $RunAdvancedConnectivityPolicyTests = $true  # Set as $true (default) or $false#Set as $true (default) or $false, this will download library needed for running advanced connectivity policy tests
+$ConnectionAttempts = 1
+$DelayBetweenConnections = 1
 $CollectNetworkTrace = $true  # Set as $true (default) or $false
 #EncryptionProtocol = ''  # Supported values: 'Tls 1.0', 'Tls 1.1', 'Tls 1.2'; Without this parameter operating system will choose the best protocol to use
 
@@ -56,6 +58,12 @@ if ($null -ne $parameters) {
     }
     if ($null -ne $parameters['RepositoryBranch']) {
         $RepositoryBranch = $parameters['RepositoryBranch']
+    }
+    if ($null -ne $parameters['ConnectionAttempts']) {
+        $ConnectionAttempts = $parameters['ConnectionAttempts']
+    }
+    if ($null -ne $parameters['DelayBetweenConnections']) {
+        $DelayBetweenConnections = $parameters['DelayBetweenConnections']
     }
 }
 
@@ -1126,12 +1134,12 @@ try {
         Write-Host Warning: Cannot write log file -ForegroundColor Yellow
     }
 
-    TrackWarningAnonymously 'v1.22'
-    TrackWarningAnonymously ('PowerShell ' + $PSVersionTable.PSVersion + '|' + $PSVersionTable.Platform + '|' + $PSVersionTable.OS ) 
+    TrackWarningAnonymously 'v1.23'
+    TrackWarningAnonymously ('PowerShell ' + $PSVersionTable.PSVersion + '|' + $PSVersionTable.Platform + '|' + $PSVersionTable.OS )
 
     try {
         Write-Host '******************************************' -ForegroundColor Green
-        Write-Host '  Azure SQL Connectivity Checker v1.22  ' -ForegroundColor Green
+        Write-Host '  Azure SQL Connectivity Checker v1.23  ' -ForegroundColor Green
         Write-Host '******************************************' -ForegroundColor Green
         Write-Host
         Write-Host 'Parameters' -ForegroundColor Yellow
