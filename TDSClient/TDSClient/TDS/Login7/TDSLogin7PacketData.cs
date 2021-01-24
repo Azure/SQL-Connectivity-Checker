@@ -163,11 +163,11 @@ namespace TDSClient.TDS.Login7
 
             if (optionName != "Password" && optionName != "ChangePassword")
             {
-                LoggingUtilities.WriteLogVerboseOnly($" Adding Login7 option {optionName} [{data}].");
+                LoggingUtilities.WriteLog($"  Adding Login7 option {optionName} [{data}].");
             }
             else
             {
-                LoggingUtilities.WriteLogVerboseOnly($" Adding Login7 option {optionName}.");
+                LoggingUtilities.WriteLog($"  Adding Login7 option {optionName}.");
             }
 
             var option = TDSLogin7OptionFactory.CreateOption(optionName, data);

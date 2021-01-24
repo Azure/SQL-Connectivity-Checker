@@ -7,6 +7,9 @@
 namespace TDSClient.TDS.Client
 {
     using System;
+    using System.Diagnostics;
+    using System.Linq;
+    using System.Net;
     using System.Net.Sockets;
     using System.Security.Authentication;
     using TDSClient.TDS.Comms;
@@ -25,6 +28,8 @@ namespace TDSClient.TDS.Client
         /// Field describing whether reconnection is required
         /// </summary>
         private bool reconnect;
+
+        private int connectionAttempt;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TDSSQLTestClient"/> class.
@@ -45,12 +50,12 @@ namespace TDSClient.TDS.Client
             this.Client = null;
             this.Version = new TDSClientVersion(1, 0, 0, 0);
             this.Server = server;
-            this.ServerName = server;
             this.Port = port;
             this.UserID = userID;
             this.Password = password;
             this.Database = database;
             this.EncryptionProtocol = encryptionProtocol;
+            this.connectionAttempt = 0;
 
             LoggingUtilities.WriteLog($" Instantiating TDSSQLTestClient with the following parameters:");
 
@@ -64,11 +69,6 @@ namespace TDSClient.TDS.Client
         /// Gets or sets the Server.
         /// </summary>
         public string Server { get; set; }
-
-        /// <summary>
-        /// Gets or sets the Server Name.
-        /// </summary>
-        public string ServerName { get; set; }
 
         /// <summary>
         /// Gets or sets the Port Number.
@@ -137,7 +137,7 @@ namespace TDSClient.TDS.Client
 
             tdsMessageBody.AddOption("HostName", Environment.MachineName);
             tdsMessageBody.AddOption("UserName", this.UserID);
-            tdsMessageBody.AddOption("ServerName", this.ServerName);
+            tdsMessageBody.AddOption("ServerName", this.Server);
             tdsMessageBody.AddOption("Password", this.Password);
             tdsMessageBody.AddOption("Database", this.Database);
             tdsMessageBody.AddOption("CltIntName", "TDSSQLTestClient");
@@ -215,23 +215,20 @@ namespace TDSClient.TDS.Client
                         {
                             LoggingUtilities.WriteLog($" Client received EnvChange routing token, client is being routed.");
                             this.Server = envChangeToken.Values["AlternateServer"];
-                            this.ServerName = this.Server;
                             this.Port = int.Parse(envChangeToken.Values["ProtocolProperty"]);
                             this.reconnect = true;
+                            LoggingUtilities.WriteLog($" Redirect to {this.Server}:{this.Port}", writeToSummaryLog: true, writeToVerboseLog: false);
                         }
                     }
                     else if (token is TDSErrorToken)
                     {
                         var errorToken = token as TDSErrorToken;
-                        LoggingUtilities.WriteLog($" Client received Error token:");
-
-                        LoggingUtilities.WriteLog($"     Number: {errorToken.Number}");
-                        LoggingUtilities.WriteLog($"     State: {errorToken.State}");
-                        LoggingUtilities.WriteLog($"     Class: {errorToken.Class}");
-                        LoggingUtilities.WriteLog($"     MsgText: {errorToken.MsgText}");
-                        LoggingUtilities.WriteLog($"     ServerName: {errorToken.ServerName}");
-                        LoggingUtilities.WriteLog($"     ProcName: {errorToken.ProcName}");
-                        LoggingUtilities.WriteLog($"     LineNumber: {errorToken.LineNumber}");
+                        LoggingUtilities.WriteLog($" Client received Error token, Number: {errorToken.Number}, State: {errorToken.State}", writeToSummaryLog: true); ;
+                        LoggingUtilities.WriteLog($"  MsgText: {errorToken.MsgText}");
+                        LoggingUtilities.WriteLog($"  Class: {errorToken.Class}");
+                        LoggingUtilities.WriteLog($"  ServerName: {errorToken.ServerName}");
+                        LoggingUtilities.WriteLog($"  ProcName: {errorToken.ProcName}");
+                        LoggingUtilities.WriteLog($"  LineNumber: {errorToken.LineNumber}");
 
                         if (errorToken.Number == 18456)
                         {
@@ -268,7 +265,10 @@ namespace TDSClient.TDS.Client
         {
             DateTime connectStartTime = DateTime.UtcNow;
             bool preLoginDone = false;
-            LoggingUtilities.WriteLog($" Connect initiated.");
+            var originalServerName = this.Server;
+            var originalPort = this.Port;
+
+            LoggingUtilities.WriteLog($" Connect initiated (attempt # {++connectionAttempt}).", writeToSummaryLog: true);
 
             try
             {
@@ -276,6 +276,8 @@ namespace TDSClient.TDS.Client
                 {
                     preLoginDone = false;
                     this.reconnect = false;
+
+                    MeasureDNSResolutionTime();
                     this.Client = new TcpClient(this.Server, this.Port);
                     this.TdsCommunicator = new TDSCommunicator(this.Client.GetStream(), 4096);
                     this.SendPreLogin();
@@ -297,7 +299,7 @@ namespace TDSClient.TDS.Client
             }
             catch (SocketException socketException)
             {
-                LoggingUtilities.WriteLog($" Networking error {socketException.NativeErrorCode} while trying to connect to {this.Server}:{this.Port}.");
+                LoggingUtilities.WriteLog($" Networking error {socketException.NativeErrorCode} while trying to connect to {this.Server}:{this.Port}.", writeToSummaryLog: true);
             }
             catch (Exception ex)
             {
@@ -311,7 +313,32 @@ namespace TDSClient.TDS.Client
                 {
                     LoggingUtilities.WriteLog($"InnerException: {ex.InnerException.Message}");
                 }
-                throw ex;
+                //throw ex;
+            }
+            finally
+            {
+                this.Server = originalServerName;
+                this.Port = originalPort;
+            }
+        }
+
+        private void MeasureDNSResolutionTime()
+        {
+            try
+            {
+                var stopwatch = Stopwatch.StartNew();
+                var addresses = Dns.GetHostAddresses(this.Server);
+                stopwatch.Stop();
+                var addressListString = string.Join(",", addresses.AsEnumerable());
+                LoggingUtilities.WriteLog($"  DNS resolution took {stopwatch.ElapsedMilliseconds} ms, ({addressListString})", writeToSummaryLog: true);
+            }
+            catch (SocketException socketException)
+            {
+                LoggingUtilities.WriteLog($" DNS resolution failed with \"{socketException.Message}\", error {socketException.NativeErrorCode} for address {this.Server}", writeToSummaryLog: true);
+            }
+            catch (Exception ex)
+            {
+                LoggingUtilities.WriteLog($" DNS resolution failed with \"{ex.Message}\", for address {this.Server}", writeToSummaryLog: true);
             }
         }
 

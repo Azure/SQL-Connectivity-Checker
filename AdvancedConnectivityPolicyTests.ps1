@@ -198,29 +198,46 @@ $Local = $parameters['Local']
 $LocalPath = $parameters['LocalPath']
 $SendAnonymousUsageData = $parameters['SendAnonymousUsageData']
 $AnonymousRunId = $parameters['AnonymousRunId']
+$logsFolderName = $parameters['logsFolderName']
+$outFolderName = $parameters['outFolderName']
+
+$ConnectionAttempts = 1
+if ($null -ne $parameters['ConnectionAttempts']) {
+    $ConnectionAttempts = $parameters['ConnectionAttempts']
+}
+
+$DelayBetweenConnections = 1
+if ($null -ne $parameters['DelayBetweenConnections']) {
+    $DelayBetweenConnections = $parameters['DelayBetweenConnections']
+}
+
 
 if ([string]::IsNullOrEmpty($env:TEMP)) {
     $env:TEMP = '/tmp';
 }
 
 try {
+    Set-Location -Path $env:TEMP
+    Set-Location $logsFolderName
+    Set-Location $outFolderName
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls11 -bor [Net.SecurityProtocolType]::Tls
 
+    $TDSClientPath = Join-Path ((Get-Location).Path) "TDSClient.dll"
     if ($Local) {
-        $path = $env:TEMP + "/AzureSQLConnectivityChecker/TDSClient.dll"
-        Copy-Item -Path $($LocalPath + '/netstandard2.0/TDSClient.dll') -Destination $path
+        Copy-Item -Path $($LocalPath + '/netstandard2.0/TDSClient.dll') -Destination $TDSClientPath
     }
     else {
-        $path = $env:TEMP + "/AzureSQLConnectivityChecker/TDSClient.dll"
-        Invoke-WebRequest -Uri $('https://github.com/Azure/SQL-Connectivity-Checker/raw/' + $RepositoryBranch + '/netstandard2.0/TDSClient.dll') -OutFile $path -UseBasicParsing
+        Invoke-WebRequest -Uri $('https://github.com/Azure/SQL-Connectivity-Checker/raw/' + $RepositoryBranch + '/netstandard2.0/TDSClient.dll') -OutFile $TDSClientPath -UseBasicParsing
     }
-
-    $path = $env:TEMP + "/AzureSQLConnectivityChecker/TDSClient.dll"
-    $assembly = [System.IO.File]::ReadAllBytes($path)
+    $assembly = [System.IO.File]::ReadAllBytes($TDSClientPath)
     [System.Reflection.Assembly]::Load($assembly) | Out-Null
 
-    $log = [System.IO.File]::CreateText($env:TEMP + '/AzureSQLConnectivityChecker/ConnectivityPolicyLog.txt')
-    [TDSClient.TDS.Utilities.LoggingUtilities]::SetVerboseLog($log)
+    $fullLogPath = Join-Path ((Get-Location).Path) 'AdvancedTests_FullLog.txt'
+    $logPath = Join-Path ((Get-Location).Path) 'AdvancedTests_LastRunLog.txt'
+    $summaryLogPath = Join-Path ((Get-Location).Path) 'AdvancedTests_SummaryLog.txt'
+    $summaryLog = [System.IO.File]::CreateText($summaryLogPath)
+    [TDSClient.TDS.Utilities.LoggingUtilities]::SetSummaryLog($summaryLog)
+
     try {
         switch ($EncryptionProtocol) {
             'Tls 1.0' {
@@ -246,8 +263,25 @@ try {
             }
         }
         $tdsClient = [TDSClient.TDS.Client.TDSSQLTestClient]::new($Server, $Port, $User, $Password, $Database, $encryption)
-        $tdsClient.Connect()
-        $tdsClient.Disconnect()
+
+        for ($i = 1; $i -le $ConnectionAttempts; ++$i) {
+            $log = [System.IO.File]::CreateText($logPath)
+            [TDSClient.TDS.Utilities.LoggingUtilities]::SetVerboseLog($log)
+
+            $tdsClient.Connect()
+            $tdsClient.Disconnect()
+
+            $log.Close()
+            [TDSClient.TDS.Utilities.LoggingUtilities]::ClearVerboseLog()
+            $result = $([System.IO.File]::ReadAllText($logPath))
+            Write-Host $result
+            Add-Content -Path $fullLogPath -Value $result
+
+            if ($i -lt $ConnectionAttempts) {
+                Write-Host ('Waiting ' + $DelayBetweenConnections + ' second(s)...')
+                Start-Sleep -Seconds $DelayBetweenConnections
+            }
+        }
         TrackWarningAnonymously ('Advanced|TDSClient|ConnectAndDisconnect')
     }
     catch {
@@ -257,12 +291,12 @@ try {
     finally {
         $log.Close()
         [TDSClient.TDS.Utilities.LoggingUtilities]::ClearVerboseLog()
+        $summaryLog.Close()
+        [TDSClient.TDS.Utilities.LoggingUtilities]::ClearSummaryLog()
+        Remove-Item $TDSClientPath -Force
     }
 
-    $path = $env:TEMP + '/AzureSQLConnectivityChecker/ConnectivityPolicyLog.txt'
-    $result = $([System.IO.File]::ReadAllText($path))
-    Write-Host $result
-
+    $result = $([System.IO.File]::ReadAllText($logPath))
     $match = [Regex]::Match($result, "Routing to: (.*)\.")
     if ($match.Success) {
         $array = $match.Groups[1].Value -split ':'
