@@ -806,7 +806,7 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
             if ($testResult.TcpTestSucceeded) {
                 $hasGatewayTestSuccess = $true
                 Write-Host ' -> TCP test succeed' -ForegroundColor Green
-                TrackWarningAnonymously 'SQLDB|GatewayTestSucceeded'
+                TrackWarningAnonymously ('SQLDB|GatewayTestSucceeded|' + $gatewayAddress)
                 PrintAverageConnectionTime $gatewayAddress 1433
                 $msg = ' Gateway connectivity to ' + $gatewayAddress + ':1433 succeed'
                 [void]$summaryLog.AppendLine($msg)
