@@ -843,10 +843,16 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
             $redirectSucceeded = 0
             $redirectTests = 0
             foreach ($tr in $gateway.TRs | Where-Object { $_ -ne '' }) {
-                foreach ($port in $TRPorts) {
-                    $addr = [string]::Format("{0}.{1}", $tr, $gateway.Cluster)
-                    Write-Host ' Tested (redirect) connectivity to' $addr':'$port -ForegroundColor White -NoNewline
+                $addr = [string]::Format("{0}.{1}", $tr, $gateway.Cluster)
+                $trDNS = Resolve-DnsName -Name $addr -ErrorAction SilentlyContinue
+                if ($null -eq $trDNS -or ($trDNS | Where-Object { $_.Type -eq 'A' } | Measure-Object).Count -eq 0 ) {
+                    Write-Host (' ' + $tr + ' DNS name could not be resolved, skipping tests on ' + $tr) -ForegroundColor Yellow
+                    TrackWarningAnonymously ('TR|DNS|' + $addr)
+                    continue
+                }
 
+                foreach ($port in $TRPorts) {
+                    Write-Host ' Tested (redirect) connectivity to' $addr':'$port -ForegroundColor White -NoNewline
                     $tcpClient = New-Object System.Net.Sockets.TcpClient
                     $portOpen = $tcpClient.ConnectAsync($addr, $port).Wait(6000)
                     if ($portOpen) {
@@ -934,21 +940,21 @@ function RunConnectivityPolicyTests($port) {
         }
 
         $jobParameters = @{
-            Server                 = $Server
-            Database               = $Database
-            Port                   = $port
-            User                   = $User
-            Password               = $Password
-            EncryptionProtocol     = $EncryptionProtocol
-            RepositoryBranch       = $RepositoryBranch
-            Local                  = $Local
-            LocalPath              = $LocalPath
-            SendAnonymousUsageData = $SendAnonymousUsageData
-            AnonymousRunId         = $AnonymousRunId
-            logsFolderName         = $logsFolderName
-            outFolderName          = $outFolderName
-            ConnectionAttempts     = $ConnectionAttempts
-            DelayBetweenConnections= $DelayBetweenConnections
+            Server                  = $Server
+            Database                = $Database
+            Port                    = $port
+            User                    = $User
+            Password                = $Password
+            EncryptionProtocol      = $EncryptionProtocol
+            RepositoryBranch        = $RepositoryBranch
+            Local                   = $Local
+            LocalPath               = $LocalPath
+            SendAnonymousUsageData  = $SendAnonymousUsageData
+            AnonymousRunId          = $AnonymousRunId
+            logsFolderName          = $logsFolderName
+            outFolderName           = $outFolderName
+            ConnectionAttempts      = $ConnectionAttempts
+            DelayBetweenConnections = $DelayBetweenConnections
         }
 
         if ($Local) {
@@ -1136,12 +1142,12 @@ try {
         Write-Host Warning: Cannot write log file -ForegroundColor Yellow
     }
 
-    TrackWarningAnonymously 'v1.24'
+    TrackWarningAnonymously 'v1.25'
     TrackWarningAnonymously ('PowerShell ' + $PSVersionTable.PSVersion + '|' + $PSVersionTable.Platform + '|' + $PSVersionTable.OS )
 
     try {
         Write-Host '******************************************' -ForegroundColor Green
-        Write-Host '  Azure SQL Connectivity Checker v1.24  ' -ForegroundColor Green
+        Write-Host '  Azure SQL Connectivity Checker v1.25  ' -ForegroundColor Green
         Write-Host '******************************************' -ForegroundColor Green
         Write-Host
         Write-Host 'Parameters' -ForegroundColor Yellow
