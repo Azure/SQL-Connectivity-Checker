@@ -968,8 +968,11 @@ function RunConnectivityPolicyTests($port) {
         Wait-Job $job | Out-Null
         Receive-Job -Job $job
 
-        $path = './AdvancedTests_LastRunLog.txt'
-        $result = $([System.IO.File]::ReadAllText($path))
+        Set-Location -Path $env:TEMP
+        Set-Location $logsFolderName
+        Set-Location $outFolderName
+        $logPath = Join-Path ((Get-Location).Path) 'AdvancedTests_LastRunLog.txt'
+        $result = $([System.IO.File]::ReadAllText($logPath))
         $routingMatch = [Regex]::Match($result, "Routing to: (.*)\.")
 
         if ($routingMatch.Success) {
@@ -1142,12 +1145,12 @@ try {
         Write-Host Warning: Cannot write log file -ForegroundColor Yellow
     }
 
-    TrackWarningAnonymously 'v1.25'
+    TrackWarningAnonymously 'v1.26'
     TrackWarningAnonymously ('PowerShell ' + $PSVersionTable.PSVersion + '|' + $PSVersionTable.Platform + '|' + $PSVersionTable.OS )
 
     try {
         Write-Host '******************************************' -ForegroundColor Green
-        Write-Host '  Azure SQL Connectivity Checker v1.25  ' -ForegroundColor Green
+        Write-Host '  Azure SQL Connectivity Checker v1.26  ' -ForegroundColor Green
         Write-Host '******************************************' -ForegroundColor Green
         Write-Host
         Write-Host 'Parameters' -ForegroundColor Yellow
@@ -1424,7 +1427,7 @@ finally {
         Write-Host Log file can be found at (Get-Location).Path
         if ($PSVersionTable.PSVersion.Major -ge 5) {
             $destAllFiles = (Get-Location).Path + '/AllFiles.zip'
-            Compress-Archive -Path (Get-Location).Path -DestinationPath $destAllFiles -Force
+            Compress-Archive -Path ((Get-Location).Path + '/*.txt'), ((Get-Location).Path + '/*.cab'), ((Get-Location).Path + '/*.etl') -DestinationPath $destAllFiles -Force
             Write-Host 'A zip file with all the files can be found at' $destAllFiles -ForegroundColor Green
         }
 
