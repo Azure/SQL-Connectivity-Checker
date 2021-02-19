@@ -1057,7 +1057,7 @@ function RunConnectionToDatabaseTestsAndAdvancedTests($Server, $dbPort, $Databas
 
         if ($customDatabaseNameWasSet) {
             if ($canConnectToMaster) {
-                $databaseFound = LookupDatabaseInSysDatabases $Server $dbPort $Database $User $Password | Out-Null
+                $databaseFound = LookupDatabaseInSysDatabases $Server $dbPort $Database $User $Password
 
                 if ($databaseFound -eq $true) {
                     $msg = '  ' + $Database + ' was found in sys.databases of master database'
