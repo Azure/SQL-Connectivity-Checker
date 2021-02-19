@@ -1020,6 +1020,34 @@ function RunConnectivityPolicyTests($port) {
     }
 }
 
+function LookupDatabaseInSysDatabases($Server, $dbPort, $Database, $User, $Password) {
+    Write-Host
+    [void]$summaryLog.AppendLine()
+    Write-Host ([string]::Format("Testing connecting to {0} database (please wait):", $Database)) -ForegroundColor Green
+    Try {
+        Write-Host ' Checking if' $Database 'exist in sys.databases:' -ForegroundColor White
+        $masterDbConnection = [System.Data.SqlClient.SQLConnection]::new()
+        $masterDbConnection.ConnectionString = [string]::Format("Server=tcp:{0},{1};Initial Catalog='master';Persist Security Info=False;User ID='{2}';Password='{3}';MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;Application Name=Azure-SQL-Connectivity-Checker;",
+            $Server, $dbPort, $User, $Password)
+        $masterDbConnection.Open()
+
+        $masterDbCommand = New-Object System.Data.SQLClient.SQLCommand
+        $masterDbCommand.Connection = $masterDbConnection
+
+        $masterDbCommand.CommandText = "select count(*) C from sys.databases where name = '" + $Database + "'"
+        $masterDbResult = $masterDbCommand.ExecuteReader()
+        $masterDbResultDataTable = new-object 'System.Data.DataTable'
+        $masterDbResultDataTable.Load($masterDbResult)
+
+        return $masterDbResultDataTable.Rows[0].C -ne 0
+    }
+    Catch {
+        Write-Host $_.Exception.Message -ForegroundColor Yellow
+        TrackWarningAnonymously 'LookupDatabaseInSysDatabases|Exception'
+        return $false
+    }
+}
+
 function RunConnectionToDatabaseTestsAndAdvancedTests($Server, $dbPort, $Database, $User, $Password) {
     try {
         $customDatabaseNameWasSet = $Database -and $Database.Length -gt 0 -and $Database -ne 'master'
@@ -1029,21 +1057,19 @@ function RunConnectionToDatabaseTestsAndAdvancedTests($Server, $dbPort, $Databas
 
         if ($customDatabaseNameWasSet) {
             if ($canConnectToMaster) {
-                Write-Host ' Checking if' $Database 'exist in sys.databases:' -ForegroundColor White
-                $masterDbConnection = [System.Data.SqlClient.SQLConnection]::new()
-                $masterDbConnection.ConnectionString = [string]::Format("Server=tcp:{0},{1};Initial Catalog='master';Persist Security Info=False;User ID='{2}';Password='{3}';MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;Application Name=Azure-SQL-Connectivity-Checker;",
-                    $Server, $dbPort, $User, $Password)
-                $masterDbConnection.Open()
+                $databaseFound = LookupDatabaseInSysDatabases $Server $dbPort $Database $User $Password | Out-Null
 
-                $masterDbCommand = New-Object System.Data.SQLClient.SQLCommand
-                $masterDbCommand.Connection = $masterDbConnection
+                if ($databaseFound -eq $true) {
+                    $msg = '  ' + $Database + ' was found in sys.databases of master database'
+                    Write-Host $msg -Foreground Green
+                    [void]$summaryLog.AppendLine($msg)
 
-                $masterDbCommand.CommandText = "select count(*) C from sys.databases where name = '" + $Database + "'"
-                $masterDbResult = $masterDbCommand.ExecuteReader()
-                $masterDbResultDataTable = new-object 'System.Data.DataTable'
-                $masterDbResultDataTable.Load($masterDbResult)
-
-                if ($masterDbResultDataTable.Rows[0].C -eq 0) {
+                    #Test database from parameter
+                    if ($customDatabaseNameWasSet) {
+                        TestConnectionToDatabase $Server $dbPort $Database $User $Password | Out-Null
+                    }
+                }
+                else {
                     $msg = ' ERROR: ' + $Database + ' was not found in sys.databases!'
                     Write-Host $msg -Foreground Red
                     [void]$summaryLog.AppendLine()
@@ -1055,16 +1081,6 @@ function RunConnectionToDatabaseTestsAndAdvancedTests($Server, $dbPort, $Databas
                     Write-Host $msg -Foreground Red
                     [void]$summaryRecommendedAction.AppendLine($msg)
                     TrackWarningAnonymously 'DatabaseNotFoundInMasterSysDatabases'
-                }
-                else {
-                    $msg = '  ' + $Database + ' was found in sys.databases of master database'
-                    Write-Host $msg -Foreground Green
-                    [void]$summaryLog.AppendLine($msg)
-
-                    #Test database from parameter
-                    if ($customDatabaseNameWasSet) {
-                        TestConnectionToDatabase $Server $dbPort $Database $User $Password | Out-Null
-                    }
                 }
             }
             else {
