@@ -1123,8 +1123,8 @@ function TrackWarningAnonymously ([String] $warningCode) {
         }
     }
     Catch {
-        Write-Host 'TrackWarningAnonymously exception:'
-        Write-Host $_.Exception.Message -ForegroundColor Red
+        #Write-Host 'TrackWarningAnonymously exception:'
+        #Write-Host $_.Exception.Message -ForegroundColor Red
     }
 }
 
@@ -1161,12 +1161,12 @@ try {
         Write-Host Warning: Cannot write log file -ForegroundColor Yellow
     }
 
-    TrackWarningAnonymously 'v1.26'
+    TrackWarningAnonymously 'v1.27'
     TrackWarningAnonymously ('PowerShell ' + $PSVersionTable.PSVersion + '|' + $PSVersionTable.Platform + '|' + $PSVersionTable.OS )
 
     try {
         Write-Host '******************************************' -ForegroundColor Green
-        Write-Host '  Azure SQL Connectivity Checker v1.26  ' -ForegroundColor Green
+        Write-Host '  Azure SQL Connectivity Checker v1.27  ' -ForegroundColor Green
         Write-Host '******************************************' -ForegroundColor Green
         Write-Host
         Write-Host 'Parameters' -ForegroundColor Yellow
