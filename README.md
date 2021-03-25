@@ -40,7 +40,7 @@ if ("AzureKudu" -eq $env:DOTNET_CLI_TELEMETRY_PROFILE) {
     $scriptFile = '/AzureSQLConnectivityChecker.ps1'
 }
 
-$scriptUrlBase = 'raw.githubusercontent.com/Azure/SQL-Connectivity-Checker/master'
+$scriptUrlBase = 'http://raw.githubusercontent.com/Azure/SQL-Connectivity-Checker/master'
 Invoke-Command -ScriptBlock ([Scriptblock]::Create((Invoke-WebRequest ($scriptUrlBase + $scriptFile) -UseBasicParsing).Content)) -ArgumentList $parameters
 #end
 ```
