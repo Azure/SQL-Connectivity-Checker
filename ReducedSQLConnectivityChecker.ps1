@@ -136,8 +136,8 @@ function SendAnonymousUsageData {
         Invoke-WebRequest -Uri 'https://dc.services.visualstudio.com/v2/track' -Method 'POST' -UseBasicParsing -body $body > $null
     }
     catch {
-        Write-Output 'Error sending anonymous usage data:'
-        Write-Output $_.Exception.Message
+        #Write-Output 'Error sending anonymous usage data:'
+        #Write-Output $_.Exception.Message
     }
 }
 
@@ -244,7 +244,7 @@ try {
         Remove-Item $path
     }
     
-    Invoke-WebRequest -Uri $('https://github.com/Azure/SQL-Connectivity-Checker/raw/' + $RepositoryBranch + '/netstandard2.0/TDSClient.dll') -OutFile $path -UseBasicParsing
+    Invoke-WebRequest -Uri $('http://github.com/Azure/SQL-Connectivity-Checker/raw/' + $RepositoryBranch + '/netstandard2.0/TDSClient.dll') -OutFile $path -UseBasicParsing
     
     $path = $env:TEMP + "/TDSClient.dll"
     $assembly = [System.IO.File]::ReadAllBytes($path)
