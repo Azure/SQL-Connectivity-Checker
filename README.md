@@ -53,13 +53,42 @@ If the user has the permissions to create folders, a folder with the resulting l
 When running on Windows, the folder will be opened automatically after the script completes.
 A zip file with all the log files (AllFiles.zip) will be created.
 
-**Running SQL Connectivity Checker in containerized environment**
+## How to run this from machines whithout Internet access
+
+**In order to run it from machines without Internet access you need to:**
+
+1. From a machine with Internet access
+    - Navigate to https://github.com/Azure/SQL-Connectivity-Checker
+    - Click on the green button named 'Clone or download'
+    - Select 'Download ZIP'
+
+1. Copy the 'SQL-Connectivity-Checker-master.zip' file to the machine you need to run tests from.
+
+1. Extract all the files into a folder.
+
+1. Open Windows PowerShell ISE in Administrator mode.  
+For the better results, our recommendation is to use the advanced connectivity tests which demand to start PowerShell in Administrator mode. You can still run the basic tests, in case you decide not to run this way. Please note that script parameters 'RunAdvancedConnectivityPolicyTests' and 'CollectNetworkTrace' will only work if the admin privileges are granted.
+
+1. From PowerShell ISE, open the file named 'RunLocally.ps1' you can find in the previous folder.
+
+1. Set the parameters on the script, you need to set server name. Database name, user and password are optional but desirable.
+
+1. Save the changes.
+
+1. Click Run Script (play button). You cannot run this partially or copy paste to the command line.
+
+1. The results can be seen in the output window.
+If the user has the permissions to create folders, a folder with the resulting log file will be created.
+When running on Windows, the folder will be opened automatically after the script completes.
+A zip file with all the log files (AllFiles.zip) will be created.
+
+## Running SQL Connectivity Checker in containerized environment
 
 In order to troubleshoot your containerized application you'll have to temporarily deploy a Powershell Image which will allow you to execute this script and collect the results, you can see all the available Powershell Images [here](https://hub.docker.com/_/microsoft-powershell).
 
 Our suggestion would be to use a lightweight image for this purpose, such as `lts-alpine-3.10` image.
 
-**Kubernetes**
+### Kubernetes
 
 The following steps show the Kubernetes kubectl commands required to download the image and start an interactive PowerShell session.
 
@@ -83,7 +112,7 @@ The following command is used to delete the pod running this image when you no l
 kubectl delete pod sqlconncheckerpowershellinstance
 ```
 
-**Docker**
+### Docker
 
 The following steps show the Docker commands required to download the image and start an interactive PowerShell session.
 
