@@ -33,15 +33,23 @@ $parameters = @{
 }
 
 $ProgressPreference = "SilentlyContinue";
-
 if ("AzureKudu" -eq $env:DOTNET_CLI_TELEMETRY_PROFILE) {
     $scriptFile = '/ReducedSQLConnectivityChecker.ps1'
 } else {
     $scriptFile = '/AzureSQLConnectivityChecker.ps1'
 }
-
 $scriptUrlBase = 'http://raw.githubusercontent.com/Azure/SQL-Connectivity-Checker/master'
-Invoke-Command -ScriptBlock ([Scriptblock]::Create((Invoke-WebRequest ($scriptUrlBase + $scriptFile) -UseBasicParsing).Content)) -ArgumentList $parameters
+cls
+Write-Host 'Trying to download the script file from GitHub (https://github.com/Azure/SQL-Connectivity-Checker), please wait...'
+try { 
+    Invoke-Command -ScriptBlock ([Scriptblock]::Create((Invoke-WebRequest ($scriptUrlBase + $scriptFile) -UseBasicParsing -TimeoutSec 60).Content)) -ArgumentList $parameters
+    }
+catch {
+    Write-Host 'ERROR: The script file could not be downloaded:' -ForegroundColor Red
+    $_.Exception
+    Write-Host 'Confirm this machine can access https://github.com/Azure/SQL-Connectivity-Checker/' -ForegroundColor Yellow
+    Write-Host 'or use a machine with Internet access to see how to run this from machines without Internet access at https://github.com/Azure/SQL-Connectivity-Checker/' -ForegroundColor Yellow
+}
 #end
 ```
 4. Set the parameters on the script, you need to set server name. Database name, user and password are optional but desirable.
