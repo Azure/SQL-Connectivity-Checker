@@ -812,7 +812,6 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
             }
             else {
                 Write-Host ' -> TCP test FAILED' -ForegroundColor Red
-                PrintAverageConnectionTime $gatewayAddress 1433
                 Write-Host
                 Write-Host ' IP routes for interface:' $testResult.InterfaceAlias
                 Get-NetRoute -InterfaceAlias $testResult.InterfaceAlias -ErrorAction SilentlyContinue -ErrorVariable ProcessError
@@ -850,8 +849,8 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
             foreach ($tr in $gateway.TRs | Where-Object { $_ -ne '' }) {
                 $addr = [string]::Format("{0}.{1}", $tr, $gateway.Cluster)
                 $trDNS = Resolve-DnsName -Name $addr -ErrorAction SilentlyContinue
-                if ($null -eq $trDNS -or ($trDNS | Where-Object { $_.Type -eq 'A' } | Measure-Object).Count -eq 0 ) {
-                    Write-Host (' ' + $tr + ' DNS name could not be resolved, skipping tests on ' + $tr) -ForegroundColor Yellow
+                if ($null -eq $trDNS -or $null -eq $trDNS.IPAddress) {
+                    Write-Host (' ' + $addr + ' DNS name could not be resolved, skipping tests on ' + $tr) -ForegroundColor Yellow
                     TrackWarningAnonymously ('TR|DNS|' + $addr)
                     continue
                 }
