@@ -820,7 +820,9 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
                     Write-Host '  Could not to get IP routes for this interface'
                 }
                 Write-Host
-                tracert -h 10 $Server
+                if ($PSVersionTable.PSVersion.Major -le 5 -or $IsWindows) {
+                    tracert -h 10 $Server
+                }
 
                 $msg = ' Gateway connectivity to ' + $gatewayAddress + ':1433 FAILED'
                 Write-Host $msg -Foreground Red
