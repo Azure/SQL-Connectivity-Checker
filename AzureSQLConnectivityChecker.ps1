@@ -681,7 +681,7 @@ function RunSqlMIVNetConnectivityTests($resolvedAddress) {
             Write-Host ' -> TCP test FAILED' -ForegroundColor Red
             Write-Host
             Write-Host ' Trying to get IP routes for interface:' $testResult.InterfaceAlias
-            Get-NetAdapter $testResult.InterfaceAlias -ErrorAction SilentlyContinue -ErrorVariable ProcessError | Get-NetRoute
+            Get-NetAdapter $testResult.InterfaceAlias -ErrorAction SilentlyContinue -ErrorVariable ProcessError | Get-NetRoute -ErrorAction SilentlyContinue -ErrorVariable ProcessError
             If ($ProcessError) {
                 Write-Host '  Could not to get IP routes for this interface'
             }
@@ -816,7 +816,11 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
                 PrintAverageConnectionTime $gatewayAddress 1433
                 Write-Host
                 Write-Host ' IP routes for interface:' $testResult.InterfaceAlias
-                Get-NetAdapter $testResult.InterfaceAlias | Get-NetRoute
+                Get-NetAdapter $testResult.InterfaceAlias -ErrorAction SilentlyContinue -ErrorVariable ProcessError | Get-NetRoute -ErrorAction SilentlyContinue -ErrorVariable ProcessError
+                If ($ProcessError) {
+                    Write-Host '  Could not to get IP routes for this interface'
+                }
+                Write-Host
                 tracert -h 10 $Server
 
                 $msg = ' Gateway connectivity to ' + $gatewayAddress + ':1433 FAILED'
@@ -1161,12 +1165,12 @@ try {
         Write-Host Warning: Cannot write log file -ForegroundColor Yellow
     }
 
-    TrackWarningAnonymously 'v1.27'
+    TrackWarningAnonymously 'v1.28'
     TrackWarningAnonymously ('PowerShell ' + $PSVersionTable.PSVersion + '|' + $PSVersionTable.Platform + '|' + $PSVersionTable.OS )
 
     try {
         Write-Host '******************************************' -ForegroundColor Green
-        Write-Host '  Azure SQL Connectivity Checker v1.27  ' -ForegroundColor Green
+        Write-Host '  Azure SQL Connectivity Checker v1.28  ' -ForegroundColor Green
         Write-Host '******************************************' -ForegroundColor Green
         Write-Host
         Write-Host 'Parameters' -ForegroundColor Yellow
