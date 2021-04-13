@@ -108,7 +108,7 @@ $SQLDBGateways = @(
     New-Object PSObject -Property @{Region = "Brazil South"; Gateways = ("191.233.200.14", "191.234.144.16", "191.234.152.3"); TRs = ('tr11', 'tr12', 'tr15'); Cluster = 'brazilsouth1-a.worker.database.windows.net'; }
     New-Object PSObject -Property @{Region = "Canada Central"; Gateways = ("40.85.224.249", "52.246.152.0", "20.38.144.1"); TRs = ('tr1', 'tr2', 'tr3'); Cluster = 'canadacentral1-a.worker.database.windows.net'; }
     New-Object PSObject -Property @{Region = "Canada East"; Gateways = ("40.86.226.166", "52.242.30.154", "40.69.105.9", "40.69.105.10"); TRs = ('tr1', 'tr2', 'tr3'); Cluster = 'canadaeast1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "Central US"; Gateways = ("23.99.160.139", "13.67.215.62", "52.182.137.15", "104.208.21.1", "13.89.169.20"); TRs = ('tr4', 'tr8', 'tr9'); Cluster = 'centralus1-a.worker.database.windows.net'; }
+    New-Object PSObject -Property @{Region = "Central US"; Gateways = ("13.67.215.62", "52.182.137.15", "104.208.21.1", "13.89.169.20"); TRs = ('tr4', 'tr8', 'tr9'); Cluster = 'centralus1-a.worker.database.windows.net'; }
     New-Object PSObject -Property @{Region = "China East"; Gateways = ("139.219.130.35"); TRs = ('tr2', 'tr3'); Cluster = 'chinaeast1-a.worker.database.chinacloudapi.cn'; }
     New-Object PSObject -Property @{Region = "China East 2"; Gateways = ("40.73.82.1"); TRs = ('tr1', 'tr5', 'tr11'); Cluster = 'chinaeast2-a.worker.database.chinacloudapi.cn'; }
     New-Object PSObject -Property @{Region = "China North"; Gateways = ("139.219.15.17"); TRs = ('tr2', 'tr3'); Cluster = 'chinanorth1-a.worker.database.chinacloudapi.cn'; }
@@ -294,11 +294,10 @@ if (!$(Get-Command 'Resolve-DnsName' -errorAction SilentlyContinue)) {
     }
 }
 
-if (!$(Get-Command 'Get-NetAdapter' -errorAction SilentlyContinue)) {
-    function Get-NetAdapter {
+if (!$(Get-Command 'Get-NetRoute' -errorAction SilentlyContinue)) {
+    function Get-NetRoute {
         param(
-            [Parameter(Position = 0, Mandatory = $true)] $HostName,
-            [Parameter(Mandatory = $true)] $Port
+            [Parameter(Position = 0, Mandatory = $true)] $InterfaceAlias
         );
         process {
             Write-Host 'Unsupported'
@@ -681,7 +680,7 @@ function RunSqlMIVNetConnectivityTests($resolvedAddress) {
             Write-Host ' -> TCP test FAILED' -ForegroundColor Red
             Write-Host
             Write-Host ' Trying to get IP routes for interface:' $testResult.InterfaceAlias
-            Get-NetAdapter $testResult.InterfaceAlias -ErrorAction SilentlyContinue -ErrorVariable ProcessError | Get-NetRoute
+            Get-NetRoute -InterfaceAlias $testResult.InterfaceAlias -ErrorAction SilentlyContinue -ErrorVariable ProcessError
             If ($ProcessError) {
                 Write-Host '  Could not to get IP routes for this interface'
             }
@@ -813,11 +812,16 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
             }
             else {
                 Write-Host ' -> TCP test FAILED' -ForegroundColor Red
-                PrintAverageConnectionTime $gatewayAddress 1433
                 Write-Host
                 Write-Host ' IP routes for interface:' $testResult.InterfaceAlias
-                Get-NetAdapter $testResult.InterfaceAlias | Get-NetRoute
-                tracert -h 10 $Server
+                Get-NetRoute -InterfaceAlias $testResult.InterfaceAlias -ErrorAction SilentlyContinue -ErrorVariable ProcessError
+                If ($ProcessError) {
+                    Write-Host '  Could not to get IP routes for this interface'
+                }
+                Write-Host
+                if ($PSVersionTable.PSVersion.Major -le 5 -or $IsWindows) {
+                    tracert -h 10 $Server
+                }
 
                 $msg = ' Gateway connectivity to ' + $gatewayAddress + ':1433 FAILED'
                 Write-Host $msg -Foreground Red
@@ -845,8 +849,8 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
             foreach ($tr in $gateway.TRs | Where-Object { $_ -ne '' }) {
                 $addr = [string]::Format("{0}.{1}", $tr, $gateway.Cluster)
                 $trDNS = Resolve-DnsName -Name $addr -ErrorAction SilentlyContinue
-                if ($null -eq $trDNS -or ($trDNS | Where-Object { $_.Type -eq 'A' } | Measure-Object).Count -eq 0 ) {
-                    Write-Host (' ' + $tr + ' DNS name could not be resolved, skipping tests on ' + $tr) -ForegroundColor Yellow
+                if ($null -eq $trDNS -or $null -eq $trDNS.IPAddress) {
+                    Write-Host (' ' + $addr + ' DNS name could not be resolved, skipping tests on ' + $tr) -ForegroundColor Yellow
                     TrackWarningAnonymously ('TR|DNS|' + $addr)
                     continue
                 }
@@ -1161,12 +1165,12 @@ try {
         Write-Host Warning: Cannot write log file -ForegroundColor Yellow
     }
 
-    TrackWarningAnonymously 'v1.27'
+    TrackWarningAnonymously 'v1.28'
     TrackWarningAnonymously ('PowerShell ' + $PSVersionTable.PSVersion + '|' + $PSVersionTable.Platform + '|' + $PSVersionTable.OS )
 
     try {
         Write-Host '******************************************' -ForegroundColor Green
-        Write-Host '  Azure SQL Connectivity Checker v1.27  ' -ForegroundColor Green
+        Write-Host '  Azure SQL Connectivity Checker v1.28  ' -ForegroundColor Green
         Write-Host '******************************************' -ForegroundColor Green
         Write-Host
         Write-Host 'Parameters' -ForegroundColor Yellow
