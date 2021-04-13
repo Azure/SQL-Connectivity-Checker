@@ -294,11 +294,10 @@ if (!$(Get-Command 'Resolve-DnsName' -errorAction SilentlyContinue)) {
     }
 }
 
-if (!$(Get-Command 'Get-NetAdapter' -errorAction SilentlyContinue)) {
-    function Get-NetAdapter {
+if (!$(Get-Command 'Get-NetRoute' -errorAction SilentlyContinue)) {
+    function Get-NetRoute {
         param(
-            [Parameter(Position = 0, Mandatory = $true)] $HostName,
-            [Parameter(Mandatory = $true)] $Port
+            [Parameter(Position = 0, Mandatory = $true)] $InterfaceAlias
         );
         process {
             Write-Host 'Unsupported'
@@ -681,7 +680,7 @@ function RunSqlMIVNetConnectivityTests($resolvedAddress) {
             Write-Host ' -> TCP test FAILED' -ForegroundColor Red
             Write-Host
             Write-Host ' Trying to get IP routes for interface:' $testResult.InterfaceAlias
-            Get-NetAdapter $testResult.InterfaceAlias -ErrorAction SilentlyContinue -ErrorVariable ProcessError | Get-NetRoute -ErrorAction SilentlyContinue -ErrorVariable ProcessError
+            Get-NetRoute -InterfaceAlias $testResult.InterfaceAlias -ErrorAction SilentlyContinue -ErrorVariable ProcessError
             If ($ProcessError) {
                 Write-Host '  Could not to get IP routes for this interface'
             }
@@ -816,7 +815,7 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
                 PrintAverageConnectionTime $gatewayAddress 1433
                 Write-Host
                 Write-Host ' IP routes for interface:' $testResult.InterfaceAlias
-                Get-NetAdapter $testResult.InterfaceAlias -ErrorAction SilentlyContinue -ErrorVariable ProcessError | Get-NetRoute -ErrorAction SilentlyContinue -ErrorVariable ProcessError
+                Get-NetRoute -InterfaceAlias $testResult.InterfaceAlias -ErrorAction SilentlyContinue -ErrorVariable ProcessError
                 If ($ProcessError) {
                     Write-Host '  Could not to get IP routes for this interface'
                 }
