@@ -288,8 +288,14 @@ if (!$(Get-Command 'Resolve-DnsName' -errorAction SilentlyContinue)) {
         );
         process {
             # ToDo: Add support
-            Write-Host "WARNING: Current environment doesn't support multiple DNS sources."
-            return @{ IPAddress = [Dns]::GetHostAddresses($Name).IPAddressToString };
+            try {
+                Write-Host "WARNING: Current environment doesn't support multiple DNS sources."
+                Write-Host "Trying to resolve DNS for" $Name
+                return @{ IPAddress = [Dns]::GetHostAddresses($Name).IPAddressToString };
+            }
+            catch {
+                #Write-Host "An error occurred:" $_ 
+            }            
         }
     }
 }
@@ -1165,12 +1171,12 @@ try {
         Write-Host Warning: Cannot write log file -ForegroundColor Yellow
     }
 
-    TrackWarningAnonymously 'v1.28'
+    TrackWarningAnonymously 'v1.29'
     TrackWarningAnonymously ('PowerShell ' + $PSVersionTable.PSVersion + '|' + $PSVersionTable.Platform + '|' + $PSVersionTable.OS )
 
     try {
         Write-Host '******************************************' -ForegroundColor Green
-        Write-Host '  Azure SQL Connectivity Checker v1.28  ' -ForegroundColor Green
+        Write-Host '  Azure SQL Connectivity Checker v1.29  ' -ForegroundColor Green
         Write-Host '******************************************' -ForegroundColor Green
         Write-Host
         Write-Host 'Parameters' -ForegroundColor Yellow
