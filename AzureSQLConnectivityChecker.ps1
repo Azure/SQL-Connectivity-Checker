@@ -294,8 +294,7 @@ if (!$(Get-Command 'Resolve-DnsName' -errorAction SilentlyContinue)) {
                 return @{ IPAddress = [Dns]::GetHostAddresses($Name).IPAddressToString };
             }
             catch {
-                Write-Host "An error occurred:"
-                Write-Host $_    
+                #Write-Host "An error occurred:" $_ 
             }            
         }
     }
