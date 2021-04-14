@@ -288,8 +288,15 @@ if (!$(Get-Command 'Resolve-DnsName' -errorAction SilentlyContinue)) {
         );
         process {
             # ToDo: Add support
-            Write-Host "WARNING: Current environment doesn't support multiple DNS sources."
-            return @{ IPAddress = [Dns]::GetHostAddresses($Name).IPAddressToString };
+            try {
+                Write-Host "WARNING: Current environment doesn't support multiple DNS sources."
+                Write-Host "Trying to resolve DNS for" $Name
+                return @{ IPAddress = [Dns]::GetHostAddresses($Name).IPAddressToString };
+            }
+            catch {
+                Write-Host "An error occurred:"
+                Write-Host $_    
+            }            
         }
     }
 }
