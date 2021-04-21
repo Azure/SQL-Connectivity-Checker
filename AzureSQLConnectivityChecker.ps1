@@ -292,14 +292,12 @@ if (!$(Get-Command 'Resolve-DnsName' -errorAction SilentlyContinue)) {
             [switch] $NoHostsFile
         );
         process {
-            # ToDo: Add support
             try {
-                Write-Host "WARNING: Current environment doesn't support multiple DNS sources."
-                Write-Host "Trying to resolve DNS for" $Name
+                Write-Host " Trying to resolve DNS for" $Name
                 return @{ IPAddress = [Dns]::GetHostAddresses($Name).IPAddressToString };
             }
             catch {
-                #Write-Host "An error occurred:" $_ 
+                TrackWarningAnonymously ('Error at Resolve-DnsName override: ' + $_.Exception.Message)
             }            
         }
     }
@@ -354,8 +352,7 @@ function ValidateDNS([String] $Server) {
     Try {
         Write-Host 'Validating DNS record for' $Server -ForegroundColor Green
 
-        if (!$(Get-Command 'Resolve-DnsName' -errorAction SilentlyContinue)) {
-            Write-Host " WARNING: Current environment doesn't support multiple DNS sources."
+        if (!$IsWindows) {
             Write-Host ' DNS resolution:' ([Dns]::GetHostAddresses($Name).IPAddressToString)
         }
         else {
