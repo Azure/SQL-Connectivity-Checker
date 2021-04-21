@@ -165,6 +165,17 @@ $DNSResolutionFailed = ' Please make sure the server name FQDN is correct and th
  Failure to resolve domain name for your logical server is almost always the result of specifying an invalid/misspelled server name,
  or a client-side networking issue that you will need to pursue with your local network administrator.'
 
+$DNSResolutionGotMultipleAddresses = ' While testing DNS resolution from multiples sources (hosts file/cache/DNS server/external DNS service) we got multiple addresses.
+ To connect to SQL Database or Azure Synapse, you need to allow network traffic to and from all Gateways for the region.
+ The Gateway used is not static, configuring a single specific address (like in hosts file) may lead to total lack of connectivity or intermittent connectivity issues (now or in the future).
+ Having DNS resolution switching between a couple of Gateway addresses is expected.
+ Please review the DNS results.'
+
+$DNSResolutionGotMultipleAddressesMI = ' While testing DNS resolution from multiples sources (hosts file/cache/DNS server/external DNS service) we got multiple addresses.
+ SQL Managed Instance IP address may change, see more at https://docs.microsoft.com/en-us/azure/azure-sql/managed-instance/frequently-asked-questions-faq#connectivity
+ Configuring a specific IP address (like in hosts file) may lead to total lack of connectivity or intermittent connectivity issues (now or in the future).
+ Please review the DNS results.'
+
 $DNSResolutionFailedSQLMIPublicEndpoint = ' Please make sure the server name FQDN is correct and that your machine can resolve it.
  You seem to be trying to connect using Public Endpoint, this error can be caused if the Public Endpoint is Disabled.
  See how to enable public endpoint for your managed instance at https://aka.ms/mimanage-publicendpoint
@@ -298,7 +309,7 @@ if (!$(Get-Command 'Resolve-DnsName' -errorAction SilentlyContinue)) {
             }
             catch {
                 TrackWarningAnonymously ('Error at Resolve-DnsName override: ' + $_.Exception.Message)
-            }            
+            }
         }
     }
 }
@@ -323,6 +334,7 @@ if (!$(Get-Command 'netsh' -errorAction SilentlyContinue) -and $CollectNetworkTr
 
 function PrintDNSResults($dnsResult, [string] $dnsSource, $errorVariable, $Server) {
     Try {
+        $dnsResultIpAddress = $null
         if ($errorVariable -and $errorVariable[0].Exception.Message -notmatch 'DNS record does not exist' -and $errorVariable[0].Exception.Message -notmatch 'DNS name does not exist') {
             $msg = ' Error getting DNS record in ' + $dnsSource + ' (' + $errorVariable[0].Exception.Message.Replace(" : " + $Server, "") + ')'
             Write-Host $msg
@@ -330,7 +342,8 @@ function PrintDNSResults($dnsResult, [string] $dnsSource, $errorVariable, $Serve
             TrackWarningAnonymously $msg
         }
         else {
-            if ($dnsResult) {
+            if ($dnsResult -and $dnsResult.IPAddress -and !([string]::IsNullOrEmpty($dnsResult.IPAddress))) {
+                $dnsResultIpAddress = $dnsResult.IPAddress
                 $msg = ' Found DNS record in ' + $dnsSource + ' (IP Address:' + $dnsResult.IPAddress + ')'
                 Write-Host $msg
                 [void]$summaryLog.AppendLine($msg)
@@ -339,6 +352,7 @@ function PrintDNSResults($dnsResult, [string] $dnsSource, $errorVariable, $Serve
                 Write-Host ' Could not find DNS record in' $dnsSource
             }
         }
+        return $dnsResultIpAddress
     }
     Catch {
         $msg = "Error at PrintDNSResults for " + $dnsSource + '(' + $_.Exception.Message + ')'
@@ -351,12 +365,16 @@ function PrintDNSResults($dnsResult, [string] $dnsSource, $errorVariable, $Serve
 function ValidateDNS([String] $Server) {
     Try {
         Write-Host 'Validating DNS record for' $Server -ForegroundColor Green
+        $DNSlist = New-Object Collections.Generic.List[string]
 
         if ($PSVersionTable.PSVersion.Major -le 5 -or $IsWindows) {
             Try {
                 $DNSfromHostsError = $null
                 $DNSfromHosts = Resolve-DnsName -Name $Server -CacheOnly -ErrorAction SilentlyContinue -ErrorVariable DNSfromHostsError
-                PrintDNSResults $DNSfromHosts 'hosts file' $DNSfromHostsError $Server
+                $address = PrintDNSResults $DNSfromHosts 'hosts file' $DNSfromHostsError $Server
+                if ($address -and -1 -eq $DNSlist.IndexOf($address)) {
+                    $DNSlist.Add($address);
+                }
             }
             Catch {
                 Write-Host "Error at ValidateDNS from hosts file" -Foreground Red
@@ -367,7 +385,10 @@ function ValidateDNS([String] $Server) {
             Try {
                 $DNSfromCacheError = $null
                 $DNSfromCache = Resolve-DnsName -Name $Server -NoHostsFile -CacheOnly -ErrorAction SilentlyContinue -ErrorVariable DNSfromCacheError
-                PrintDNSResults $DNSfromCache 'cache' $DNSfromCacheError $Server
+                $address = PrintDNSResults $DNSfromCache 'cache' $DNSfromCacheError $Server
+                if ($address -and -1 -eq $DNSlist.IndexOf($address)) {
+                    $DNSlist.Add($address);
+                }
             }
             Catch {
                 Write-Host "Error at ValidateDNS from cache" -Foreground Red
@@ -378,7 +399,10 @@ function ValidateDNS([String] $Server) {
             Try {
                 $DNSfromCustomerServerError = $null
                 $DNSfromCustomerServer = Resolve-DnsName -Name $Server -DnsOnly -ErrorAction SilentlyContinue -ErrorVariable DNSfromCustomerServerError
-                PrintDNSResults $DNSfromCustomerServer 'DNS server' $DNSfromCustomerServerError $Server
+                $address = PrintDNSResults $DNSfromCustomerServer 'DNS server' $DNSfromCustomerServerError $Server
+                if ($address -and -1 -eq $DNSlist.IndexOf($address)) {
+                    $DNSlist.Add($address);
+                }
             }
             Catch {
                 Write-Host "Error at ValidateDNS from DNS server" -Foreground Red
@@ -389,12 +413,34 @@ function ValidateDNS([String] $Server) {
             Try {
                 $DNSfromOpenDNSError = $null
                 $DNSfromOpenDNS = Resolve-DnsName -Name $Server -DnsOnly -Server 208.67.222.222 -ErrorAction SilentlyContinue -ErrorVariable DNSfromOpenDNSError
-                PrintDNSResults $DNSfromOpenDNS 'Open DNS' $DNSfromOpenDNSError $Server
+                $address = PrintDNSResults $DNSfromOpenDNS 'Open DNS' $DNSfromOpenDNSError $Server
+                if ($address -and -1 -eq $DNSlist.IndexOf($address)) {
+                    $DNSlist.Add($address);
+                }
             }
             Catch {
                 Write-Host "Error at ValidateDNS from Open DNS" -Foreground Red
                 Write-Host $_.Exception.Message -ForegroundColor Red
                 TrackWarningAnonymously 'Error at ValidateDNS from Open DNS'
+            }
+
+            if ($DNSlist.Count -gt 1) {
+                $msg = (' WARNING: Distinct DNS records were found! (' + [string]::Join(", ", $DNSlist) + ')');
+                Write-Host $msg -ForegroundColor Red
+                [void]$summaryLog.AppendLine($msg)
+                [void]$summaryRecommendedAction.AppendLine($msg)
+                TrackWarningAnonymously $msg
+
+                if (IsManagedInstance $Server) {
+                    $msg = $DNSResolutionGotMultipleAddressesMI
+                    Write-Host $msg -Foreground Red
+                    [void]$summaryRecommendedAction.AppendLine($msg)
+                }
+                else {
+                    $msg = $DNSResolutionGotMultipleAddresses
+                    Write-Host $msg -Foreground Red
+                    [void]$summaryRecommendedAction.AppendLine($msg)
+                }
             }
         }
         else {
@@ -783,7 +829,7 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
         TrackWarningAnonymously 'SQL on-demand'
     }
     else {
-        Write-Host 'Detected as SQL DB/DW Server' -ForegroundColor Yellow
+        Write-Host 'Detected as SQL Database/Azure Synapse' -ForegroundColor Yellow
         TrackWarningAnonymously 'SQL DB/DW'
     }
 
@@ -798,7 +844,9 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
         else {
             $msg = ' WARNING: ' + $resolvedAddress + ' is not a valid gateway address'
             Write-Host $msg -Foreground Red
+            [void]$summaryLog.AppendLine()
             [void]$summaryLog.AppendLine($msg)
+            [void]$summaryRecommendedAction.AppendLine()
             [void]$summaryRecommendedAction.AppendLine($msg)
 
             $msg = $SQLDB_InvalidGatewayIPAddress
@@ -807,7 +855,7 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
 
             TrackWarningAnonymously 'SQLDB|InvalidGatewayIPAddressWarning'
         }
-        
+
         RunConnectionToDatabaseTestsAndAdvancedTests $Server '1433' $Database $User $Password
     }
     else {
@@ -1048,7 +1096,7 @@ function RunConnectivityPolicyTests($port) {
                 }
             }
         }
-        Remove-Item ".\AdvancedConnectivityPolicyTests.ps1" -Force       
+        Remove-Item ".\AdvancedConnectivityPolicyTests.ps1" -Force
     }
     catch {
         $msg = ' ERROR running Advanced Connectivity Tests: ' + $_.Exception.Message
@@ -1200,12 +1248,12 @@ try {
         Write-Host Warning: Cannot write log file -ForegroundColor Yellow
     }
 
-    TrackWarningAnonymously 'v1.30'
+    TrackWarningAnonymously 'v1.31'
     TrackWarningAnonymously ('PowerShell ' + $PSVersionTable.PSVersion + '|' + $PSVersionTable.Platform + '|' + $PSVersionTable.OS )
 
     try {
         Write-Host '******************************************' -ForegroundColor Green
-        Write-Host '  Azure SQL Connectivity Checker v1.30  ' -ForegroundColor Green
+        Write-Host '  Azure SQL Connectivity Checker v1.31  ' -ForegroundColor Green
         Write-Host '******************************************' -ForegroundColor Green
         Write-Host
         Write-Host 'Parameters' -ForegroundColor Yellow
