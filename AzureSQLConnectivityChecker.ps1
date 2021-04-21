@@ -294,7 +294,7 @@ if (!$(Get-Command 'Resolve-DnsName' -errorAction SilentlyContinue)) {
         process {
             try {
                 Write-Host " Trying to resolve DNS for" $Name
-                return @{ IPAddress = [Dns]::GetHostAddresses($Name).IPAddressToString };
+                return @{ IPAddress = [System.Net.DNS]::GetHostAddresses($Name).IPAddressToString };
             }
             catch {
                 TrackWarningAnonymously ('Error at Resolve-DnsName override: ' + $_.Exception.Message)
@@ -353,7 +353,7 @@ function ValidateDNS([String] $Server) {
         Write-Host 'Validating DNS record for' $Server -ForegroundColor Green
 
         if (!$IsWindows) {
-            Write-Host ' DNS resolution:' ([Dns]::GetHostAddresses($Name).IPAddressToString)
+            Write-Host ' DNS resolution:' ([System.Net.DNS]::GetHostAddresses($Server).IPAddressToString)
         }
         else {
             Try {
