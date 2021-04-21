@@ -165,13 +165,14 @@ $DNSResolutionFailed = ' Please make sure the server name FQDN is correct and th
  Failure to resolve domain name for your logical server is almost always the result of specifying an invalid/misspelled server name,
  or a client-side networking issue that you will need to pursue with your local network administrator.'
 
-$DNSResolutionGotMultipleAddresses = ' While testing DNS resolution from multiples sources (hosts file/cache/DNS server/external DNS service) we got multiple addresses.
+$DNSResolutionGotMultipleAddresses = ' While testing DNS resolution from multiples sources (hosts file/cache/your DNS server/external DNS service) we got multiple addresses.
  To connect to SQL Database or Azure Synapse, you need to allow network traffic to and from all Gateways for the region.
  The Gateway used is not static, configuring a single specific address (like in hosts file) may lead to total lack of connectivity or intermittent connectivity issues (now or in the future).
  Having DNS resolution switching between a couple of Gateway addresses is expected.
+ If you are using Private Link, a mismatch between your DNS server and OpenDNS is expected.
  Please review the DNS results.'
 
-$DNSResolutionGotMultipleAddressesMI = ' While testing DNS resolution from multiples sources (hosts file/cache/DNS server/external DNS service) we got multiple addresses.
+$DNSResolutionGotMultipleAddressesMI = ' While testing DNS resolution from multiples sources (hosts file/cache/your DNS server/external DNS service) we got multiple addresses.
  SQL Managed Instance IP address may change, see more at https://docs.microsoft.com/en-us/azure/azure-sql/managed-instance/frequently-asked-questions-faq#connectivity
  Configuring a specific IP address (like in hosts file) may lead to total lack of connectivity or intermittent connectivity issues (now or in the future).
  Please review the DNS results.'
