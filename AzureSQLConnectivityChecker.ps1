@@ -171,10 +171,11 @@ $DNSResolutionFailedSQLMIPublicEndpoint = ' Please make sure the server name FQD
  If public endpoint is enabled, failure to resolve domain name for your logical server is almost always the result of specifying an invalid/misspelled server name,
  or a client-side networking issue that you will need to pursue with your local network administrator.'
 
-$SQLDB_InvalidGatewayIPAddress = ' Please make sure the server name FQDN is correct and that your machine can resolve it to a valid gateway IP address (DNS configuration).
- Failure to resolve domain name for your logical server is almost always the result of specifying an invalid/misspelled server name,
+$SQLDB_InvalidGatewayIPAddress = ' In case you are not using Private Endpoint, please make sure the server name FQDN is correct and that your machine can resolve it to a valid gateway IP address (DNS configuration).
+ In case you are not using Private Link, failure to resolve domain name for your logical server is almost always the result of specifying an invalid/misspelled server name,
  or a client-side networking issue that you will need to pursue with your local network administrator.
- See the valid gateway addresses at https://docs.microsoft.com/azure/azure-sql/database/connectivity-architecture#gateway-ip-addresses'
+ See the valid gateway addresses at https://docs.microsoft.com/azure/azure-sql/database/connectivity-architecture#gateway-ip-addresses
+ See more about Private Endpoint at https://docs.microsoft.com/en-us/azure/azure-sql/database/private-endpoint-overview'
 
 $SQLDB_GatewayTestFailed = ' Failure to reach the Gateway is usually a client-side networking issue (like DNS issue or a port being blocked) that you will need to pursue with your local network administrator.
  See more about connectivity architecture at https://docs.microsoft.com/azure/azure-sql/database/connectivity-architecture'
@@ -251,6 +252,10 @@ $SQLDB_Error40532 = ' Error 40532 is usually related to one of the following sce
     See how to at https://docs.microsoft.com/azure/azure-sql/database/vnet-service-endpoint-rule-overview#use-the-portal-to-create-a-virtual-network-rule
     You can also consider removing the service endpoint from the subnet, but you will need to take into consideration the impact in all the services mentioned above.'
 
+$CannotDownloadAdvancedScript = ' Advanced connectivity policy tests script could not be downloaded!
+ Confirm this machine can access https://github.com/Azure/SQL-Connectivity-Checker/
+ or use a machine with Internet access to see how to run this from machines without Internet. See how at https://github.com/Azure/SQL-Connectivity-Checker/'
+
 # PowerShell Container Image Support Start
 
 if (!$(Get-Command 'Test-NetConnection' -errorAction SilentlyContinue)) {
@@ -287,14 +292,12 @@ if (!$(Get-Command 'Resolve-DnsName' -errorAction SilentlyContinue)) {
             [switch] $NoHostsFile
         );
         process {
-            # ToDo: Add support
             try {
-                Write-Host "WARNING: Current environment doesn't support multiple DNS sources."
-                Write-Host "Trying to resolve DNS for" $Name
-                return @{ IPAddress = [Dns]::GetHostAddresses($Name).IPAddressToString };
+                Write-Host " Trying to resolve DNS for" $Name
+                return @{ IPAddress = [System.Net.DNS]::GetHostAddresses($Name).IPAddressToString };
             }
             catch {
-                #Write-Host "An error occurred:" $_ 
+                TrackWarningAnonymously ('Error at Resolve-DnsName override: ' + $_.Exception.Message)
             }            
         }
     }
@@ -318,15 +321,23 @@ if (!$(Get-Command 'netsh' -errorAction SilentlyContinue) -and $CollectNetworkTr
 
 # PowerShell Container Image Support End
 
-function PrintDNSResults($dnsResult, [string] $dnsSource) {
+function PrintDNSResults($dnsResult, [string] $dnsSource, $errorVariable, $Server) {
     Try {
-        if ($dnsResult) {
-            $msg = ' Found DNS record in ' + $dnsSource + ' (IP Address:' + $dnsResult.IPAddress + ')'
+        if ($errorVariable -and $errorVariable[0].Exception.Message -notmatch 'DNS record does not exist' -and $errorVariable[0].Exception.Message -notmatch 'DNS name does not exist') {
+            $msg = ' Error getting DNS record in ' + $dnsSource + ' (' + $errorVariable[0].Exception.Message.Replace(" : " + $Server, "") + ')'
             Write-Host $msg
             [void]$summaryLog.AppendLine($msg)
+            TrackWarningAnonymously $msg
         }
         else {
-            Write-Host ' Could not find DNS record in' $dnsSource
+            if ($dnsResult) {
+                $msg = ' Found DNS record in ' + $dnsSource + ' (IP Address:' + $dnsResult.IPAddress + ')'
+                Write-Host $msg
+                [void]$summaryLog.AppendLine($msg)
+            }
+            else {
+                Write-Host ' Could not find DNS record in' $dnsSource
+            }
         }
     }
     Catch {
@@ -341,14 +352,11 @@ function ValidateDNS([String] $Server) {
     Try {
         Write-Host 'Validating DNS record for' $Server -ForegroundColor Green
 
-        if (!$(Get-Command 'Resolve-DnsName' -errorAction SilentlyContinue)) {
-            Write-Host " WARNING: Current environment doesn't support multiple DNS sources."
-            Write-Host ' DNS resolution:' ([Dns]::GetHostAddresses($Name).IPAddressToString)
-        }
-        else {
+        if ($PSVersionTable.PSVersion.Major -le 5 -or $IsWindows) {
             Try {
-                $DNSfromHosts = Resolve-DnsName -Name $Server -CacheOnly -ErrorAction SilentlyContinue
-                PrintDNSResults $DNSfromHosts 'hosts file'
+                $DNSfromHostsError = $null
+                $DNSfromHosts = Resolve-DnsName -Name $Server -CacheOnly -ErrorAction SilentlyContinue -ErrorVariable DNSfromHostsError
+                PrintDNSResults $DNSfromHosts 'hosts file' $DNSfromHostsError $Server
             }
             Catch {
                 Write-Host "Error at ValidateDNS from hosts file" -Foreground Red
@@ -357,8 +365,9 @@ function ValidateDNS([String] $Server) {
             }
 
             Try {
-                $DNSfromCache = Resolve-DnsName -Name $Server -NoHostsFile -CacheOnly -ErrorAction SilentlyContinue
-                PrintDNSResults $DNSfromCache 'cache'
+                $DNSfromCacheError = $null
+                $DNSfromCache = Resolve-DnsName -Name $Server -NoHostsFile -CacheOnly -ErrorAction SilentlyContinue -ErrorVariable DNSfromCacheError
+                PrintDNSResults $DNSfromCache 'cache' $DNSfromCacheError $Server
             }
             Catch {
                 Write-Host "Error at ValidateDNS from cache" -Foreground Red
@@ -367,8 +376,9 @@ function ValidateDNS([String] $Server) {
             }
 
             Try {
-                $DNSfromCustomerServer = Resolve-DnsName -Name $Server -DnsOnly -ErrorAction SilentlyContinue
-                PrintDNSResults $DNSfromCustomerServer 'DNS server'
+                $DNSfromCustomerServerError = $null
+                $DNSfromCustomerServer = Resolve-DnsName -Name $Server -DnsOnly -ErrorAction SilentlyContinue -ErrorVariable DNSfromCustomerServerError
+                PrintDNSResults $DNSfromCustomerServer 'DNS server' $DNSfromCustomerServerError $Server
             }
             Catch {
                 Write-Host "Error at ValidateDNS from DNS server" -Foreground Red
@@ -377,14 +387,18 @@ function ValidateDNS([String] $Server) {
             }
 
             Try {
-                $DNSfromOpenDNS = Resolve-DnsName -Name $Server -DnsOnly -Server 208.67.222.222 -ErrorAction SilentlyContinue
-                PrintDNSResults $DNSfromOpenDNS 'Open DNS'
+                $DNSfromOpenDNSError = $null
+                $DNSfromOpenDNS = Resolve-DnsName -Name $Server -DnsOnly -Server 208.67.222.222 -ErrorAction SilentlyContinue -ErrorVariable DNSfromOpenDNSError
+                PrintDNSResults $DNSfromOpenDNS 'Open DNS' $DNSfromOpenDNSError $Server
             }
             Catch {
                 Write-Host "Error at ValidateDNS from Open DNS" -Foreground Red
                 Write-Host $_.Exception.Message -ForegroundColor Red
                 TrackWarningAnonymously 'Error at ValidateDNS from Open DNS'
             }
+        }
+        else {
+            Write-Host ' DNS resolution:' ([System.Net.DNS]::GetHostAddresses($Server).IPAddressToString)
         }
     }
     Catch {
@@ -782,7 +796,7 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
             TrackWarningAnonymously 'SQLDB|PrivateEndpoint'
         }
         else {
-            $msg = ' ERROR:' + $resolvedAddress + ' is not a valid gateway address'
+            $msg = ' WARNING: ' + $resolvedAddress + ' is not a valid gateway address'
             Write-Host $msg -Foreground Red
             [void]$summaryLog.AppendLine($msg)
             [void]$summaryRecommendedAction.AppendLine($msg)
@@ -791,9 +805,10 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
             Write-Host $msg -Foreground Red
             [void]$summaryRecommendedAction.AppendLine($msg)
 
-            TrackWarningAnonymously 'SQLDB|InvalidGatewayIPAddress'
-            Write-Error '' -ErrorAction Stop
+            TrackWarningAnonymously 'SQLDB|InvalidGatewayIPAddressWarning'
         }
+        
+        RunConnectionToDatabaseTestsAndAdvancedTests $Server '1433' $Database $User $Password
     }
     else {
         Write-Host ' The server' $Server 'is running on ' -ForegroundColor White -NoNewline
@@ -971,8 +986,22 @@ function RunConnectivityPolicyTests($port) {
             Copy-Item -Path $($LocalPath + './AdvancedConnectivityPolicyTests.ps1') -Destination ".\AdvancedConnectivityPolicyTests.ps1"
         }
         else {
-            Invoke-WebRequest -Uri $('http://raw.githubusercontent.com/Azure/SQL-Connectivity-Checker/' + $RepositoryBranch + '/AdvancedConnectivityPolicyTests.ps1') -OutFile ".\AdvancedConnectivityPolicyTests.ps1" -UseBasicParsing
+            try {
+                [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls11 -bor [Net.SecurityProtocolType]::Tls
+                Invoke-WebRequest -Uri $('http://raw.githubusercontent.com/Azure/SQL-Connectivity-Checker/' + $RepositoryBranch + '/AdvancedConnectivityPolicyTests.ps1') -OutFile ".\AdvancedConnectivityPolicyTests.ps1" -UseBasicParsing
+            }
+            catch {
+                $msg = $CannotDownloadAdvancedScript
+                Write-Host $msg -Foreground Yellow
+                [void]$summaryLog.AppendLine()
+                [void]$summaryLog.AppendLine($msg)
+                [void]$summaryRecommendedAction.AppendLine()
+                [void]$summaryRecommendedAction.AppendLine($msg)
+                TrackWarningAnonymously 'Advanced|CannotDownloadScript'
+                return
+            }
         }
+
         TrackWarningAnonymously 'Advanced|Invoked'
         $job = Start-Job -ArgumentList $jobParameters -FilePath ".\AdvancedConnectivityPolicyTests.ps1"
         Wait-Job $job | Out-Null
@@ -1019,7 +1048,7 @@ function RunConnectivityPolicyTests($port) {
                 }
             }
         }
-        Remove-Item ".\AdvancedConnectivityPolicyTests.ps1" -Force
+        Remove-Item ".\AdvancedConnectivityPolicyTests.ps1" -Force       
     }
     catch {
         $msg = ' ERROR running Advanced Connectivity Tests: ' + $_.Exception.Message
@@ -1129,7 +1158,7 @@ function TrackWarningAnonymously ([String] $warningCode) {
                     | Add-Member -PassThru NoteProperty ver 2 `
                     | Add-Member -PassThru NoteProperty name $warningCode));
             $body = $body | ConvertTo-JSON -depth 5;
-            Invoke-WebRequest -Uri 'https://dc.services.visualstudio.com/v2/track' -Method 'POST' -UseBasicParsing -body $body > $null
+            Invoke-WebRequest -Uri 'https://dc.services.visualstudio.com/v2/track' -ErrorAction SilentlyContinue -Method 'POST' -UseBasicParsing -body $body > $null
         }
     }
     Catch {
@@ -1171,12 +1200,12 @@ try {
         Write-Host Warning: Cannot write log file -ForegroundColor Yellow
     }
 
-    TrackWarningAnonymously 'v1.29'
+    TrackWarningAnonymously 'v1.30'
     TrackWarningAnonymously ('PowerShell ' + $PSVersionTable.PSVersion + '|' + $PSVersionTable.Platform + '|' + $PSVersionTable.OS )
 
     try {
         Write-Host '******************************************' -ForegroundColor Green
-        Write-Host '  Azure SQL Connectivity Checker v1.29  ' -ForegroundColor Green
+        Write-Host '  Azure SQL Connectivity Checker v1.30  ' -ForegroundColor Green
         Write-Host '******************************************' -ForegroundColor Green
         Write-Host
         Write-Host 'Parameters' -ForegroundColor Yellow
