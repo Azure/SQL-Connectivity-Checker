@@ -352,10 +352,7 @@ function ValidateDNS([String] $Server) {
     Try {
         Write-Host 'Validating DNS record for' $Server -ForegroundColor Green
 
-        if (!$IsWindows) {
-            Write-Host ' DNS resolution:' ([System.Net.DNS]::GetHostAddresses($Server).IPAddressToString)
-        }
-        else {
+        if ($PSVersionTable.PSVersion.Major -le 5 -or $IsWindows) {
             Try {
                 $DNSfromHostsError = $null
                 $DNSfromHosts = Resolve-DnsName -Name $Server -CacheOnly -ErrorAction SilentlyContinue -ErrorVariable DNSfromHostsError
@@ -399,6 +396,9 @@ function ValidateDNS([String] $Server) {
                 Write-Host $_.Exception.Message -ForegroundColor Red
                 TrackWarningAnonymously 'Error at ValidateDNS from Open DNS'
             }
+        }
+        else {
+            Write-Host ' DNS resolution:' ([System.Net.DNS]::GetHostAddresses($Server).IPAddressToString)
         }
     }
     Catch {
