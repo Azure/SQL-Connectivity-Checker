@@ -115,7 +115,8 @@ namespace TDSClient.TDS.Client
         /// </summary>
         public void SendPreLogin()
         {
-            LoggingUtilities.WriteLog($" SendPreLogin initiated.");
+            LoggingUtilities.AddEmptyLine();
+            LoggingUtilities.WriteLog($" Building PreLogin message.");
             var tdsMessageBody = new TDSPreLoginPacketData(this.Version);
 
             tdsMessageBody.AddOption(TDSPreLoginOptionTokenType.Encryption, TDSEncryptionOption.EncryptOff);
@@ -123,7 +124,7 @@ namespace TDSClient.TDS.Client
             tdsMessageBody.Terminate();
 
             this.TdsCommunicator.SendTDSMessage(tdsMessageBody);
-            LoggingUtilities.WriteLog($" SendPreLogin done.");
+            LoggingUtilities.WriteLog($" PreLogin message sent.");
         }
 
         /// <summary>
@@ -131,7 +132,8 @@ namespace TDSClient.TDS.Client
         /// </summary>
         public void SendLogin7()
         {
-            LoggingUtilities.WriteLog($" SendLogin7 initiated.");
+            LoggingUtilities.AddEmptyLine();
+            LoggingUtilities.WriteLog($" Building Login7 message.");
 
             var tdsMessageBody = new TDSLogin7PacketData();
 
@@ -165,7 +167,7 @@ namespace TDSClient.TDS.Client
 
             this.TdsCommunicator.SendTDSMessage(tdsMessageBody);
 
-            LoggingUtilities.WriteLog($" SendLogin7 done.");
+            LoggingUtilities.WriteLog($" Login7 message sent.");
         }
 
         /// <summary>
@@ -173,15 +175,16 @@ namespace TDSClient.TDS.Client
         /// </summary>
         public void ReceivePreLoginResponse()
         {
-            LoggingUtilities.WriteLog($" ReceivePreLoginResponse initiated.");
+            LoggingUtilities.AddEmptyLine();
+            LoggingUtilities.WriteLog($" Waiting for PreLogin response.");
 
             if (this.TdsCommunicator.ReceiveTDSMessage() is TDSPreLoginPacketData response)
             {
                 if (response.Options.Exists(opt => opt.Type == TDSPreLoginOptionTokenType.Encryption) && response.Encryption == TDSEncryptionOption.EncryptReq)
                 {
-                    LoggingUtilities.WriteLog($" Server requires encryption, enabling encryption.");
+                    LoggingUtilities.WriteLog($"  Server requires encryption, enabling encryption.");
                     this.TdsCommunicator.EnableEncryption(this.Server, this.EncryptionProtocol);
-                    LoggingUtilities.WriteLog($" Encryption enabled.");
+                    LoggingUtilities.WriteLog($"  Encryption enabled.");
                 }
 
                 if (response.Options.Exists(opt => opt.Type == TDSPreLoginOptionTokenType.FedAuthRequired) && response.FedAuthRequired == true)
@@ -194,7 +197,7 @@ namespace TDSClient.TDS.Client
                 throw new InvalidOperationException();
             }
 
-            LoggingUtilities.WriteLog($" ReceivePreLoginResponse done.");
+            LoggingUtilities.WriteLog($" PreLogin response received.");
         }
 
         /// <summary>
@@ -202,7 +205,8 @@ namespace TDSClient.TDS.Client
         /// </summary>
         public void ReceiveLogin7Response()
         {
-            LoggingUtilities.WriteLog($" ReceiveLogin7Response initiated.");
+            LoggingUtilities.AddEmptyLine();
+            LoggingUtilities.WriteLog($" Waiting for Login7 response.");
 
             if (this.TdsCommunicator.ReceiveTDSMessage() is TDSTokenStreamPacketData response)
             {
@@ -238,7 +242,7 @@ namespace TDSClient.TDS.Client
                     else if (token is TDSInfoToken)
                     {
                         var infoToken = token as TDSInfoToken;
-                        LoggingUtilities.WriteLog($" Client received Info token:");
+                        LoggingUtilities.WriteLog($"  Client received Info token:");
 
                         LoggingUtilities.WriteLog($"     Number: {infoToken.Number}");
                         LoggingUtilities.WriteLog($"     State: {infoToken.State}");
@@ -255,7 +259,7 @@ namespace TDSClient.TDS.Client
                 throw new InvalidOperationException();
             }
 
-            LoggingUtilities.WriteLog($" ReceiveLogin7Response done.");
+            LoggingUtilities.WriteLog($" Login7 response received.");
         }
 
         /// <summary>
@@ -268,7 +272,7 @@ namespace TDSClient.TDS.Client
             var originalServerName = this.Server;
             var originalPort = this.Port;
 
-            LoggingUtilities.WriteLog($" Connect initiated (attempt # {++connectionAttempt}).", writeToSummaryLog: true);
+            LoggingUtilities.WriteLog($"Connect initiated (attempt # {++connectionAttempt}).", writeToSummaryLog: true);
 
             try
             {
@@ -280,6 +284,11 @@ namespace TDSClient.TDS.Client
                     MeasureDNSResolutionTime();
                     this.Client = new TcpClient(this.Server, this.Port);
                     this.TdsCommunicator = new TDSCommunicator(this.Client.GetStream(), 4096);
+                    LoggingUtilities.WriteLog($"  TCP connection open between local {this.Client.Client.LocalEndPoint} and remote {this.Client.Client.RemoteEndPoint}", writeToVerboseLog: false, writeToSummaryLog: true);
+                    LoggingUtilities.WriteLog($"  TCP connection open");
+                    LoggingUtilities.WriteLog($"   Local endpoint is {this.Client.Client.LocalEndPoint}");
+                    LoggingUtilities.WriteLog($"   Remote endpoint is {this.Client.Client.RemoteEndPoint}");
+                    connectStartTime = DateTime.UtcNow;
                     this.SendPreLogin();
                     this.ReceivePreLoginResponse();
                     preLoginDone = true;
@@ -290,12 +299,13 @@ namespace TDSClient.TDS.Client
                     if (this.reconnect)
                     {
                         this.Disconnect();
+                        LoggingUtilities.AddEmptyLine();
                         LoggingUtilities.WriteLog($" Routing to: {this.Server}:{this.Port}.");
                     }
                 }
                 while (this.reconnect);
 
-                LoggingUtilities.WriteLog($" Connect done.");
+                LoggingUtilities.WriteLog($" Connect done.", writeToSummaryLog: true);
             }
             catch (SocketException socketException)
             {
@@ -305,7 +315,7 @@ namespace TDSClient.TDS.Client
             {
                 if (!preLoginDone && DateTime.UtcNow >= connectStartTime.AddSeconds(5))
                 {
-                    LoggingUtilities.WriteLog($" Possible SNI timeout");
+                    LoggingUtilities.WriteLog($" SNI timeout detected, PreLogin phase was not complete after {(int)(DateTime.UtcNow - connectStartTime).TotalMilliseconds} milliseconds.", writeToSummaryLog: true);
                 }
                 LoggingUtilities.WriteLog($"Exception:");
                 LoggingUtilities.WriteLog($"{ex.Message}");

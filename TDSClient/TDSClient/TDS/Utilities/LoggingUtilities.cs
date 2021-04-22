@@ -28,7 +28,7 @@ namespace TDSClient.TDS.Utilities
         /// <summary>
         /// Datetime format use in the logs.
         /// </summary>
-        private static readonly string DatetimeFormat = "yyyy.MM.dd HH:mm:ss.fff";
+        private static readonly string DatetimeFormat = "yyyy.MM.dd HH:mm:ss.ffff";
 
         /// <summary>
         /// Used to set Log output.
@@ -66,6 +66,8 @@ namespace TDSClient.TDS.Utilities
         /// Used to write message to Log and Verbose Log. 
         /// </summary>
         /// <param name="message">Message to write to Log.</param>
+        /// <param name="writeToVerboseLog">Option to write to verbose log.</param>
+        /// <param name="writeToSummaryLog">Option to write to summary log.</param>
         public static void WriteLog(string message, bool writeToVerboseLog = true, bool writeToSummaryLog = false)
         {
             var timestamp = DateTime.UtcNow.ToString(DatetimeFormat, DateTimeFormatInfo.InvariantInfo);
@@ -77,6 +79,24 @@ namespace TDSClient.TDS.Utilities
             if (writeToVerboseLog && VerboseLog.TryGetTarget(out temp) && temp != null)
             {
                 temp.WriteLine($"[{timestamp}] {message}");
+            }
+        }
+
+        /// <summary>
+        /// Used to write empty line to Log and Verbose Log. 
+        /// </summary>
+        /// <param name="writeToVerboseLog">Option to write to verbose log.</param>
+        /// <param name="writeToSummaryLog">Option to write to summary log.</param>
+        public static void AddEmptyLine(bool writeToVerboseLog = true, bool writeToSummaryLog = false)
+        {
+            if (writeToSummaryLog && SummaryLog.TryGetTarget(out TextWriter temp) && temp != null)
+            {
+                temp.WriteLine();
+            }
+
+            if (writeToVerboseLog && VerboseLog.TryGetTarget(out temp) && temp != null)
+            {
+                temp.WriteLine();
             }
         }
 

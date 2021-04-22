@@ -17,7 +17,7 @@ namespace TDSClientLiveTest
         {
             TDSSQLTestClient tdsClient = new TDSSQLTestClient(Server, Port, Username, Password, Database);
             TDSClient.TDS.Utilities.LoggingUtilities.SetVerboseLog(Console.Out);
-            TDSClient.TDS.Utilities.LoggingUtilities.SetSummaryLog(Console.Out);
+            //TDSClient.TDS.Utilities.LoggingUtilities.SetSummaryLog(Console.Out);
 
             for (int i = 0; i < 10; i++)
             {

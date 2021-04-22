@@ -115,8 +115,7 @@ namespace TDSClient.TDS.PreLogin
                         if (data is TDSClientVersion && this.ClientVersion == null)
                         {
                             this.ClientVersion = (TDSClientVersion)data;
-
-                            LoggingUtilities.WriteLog($" Adding PreLogin option {type}.");
+                            //LoggingUtilities.WriteLog($"    Adding PreLogin option {type}.");
                         }
                         else
                         {
@@ -132,7 +131,7 @@ namespace TDSClient.TDS.PreLogin
                         {
                             this.Encryption = (TDSEncryptionOption)data;
 
-                            LoggingUtilities.WriteLog($" Adding PreLogin option {type} [{this.Encryption}].");
+                            LoggingUtilities.WriteLog($"  Adding PreLogin option {type} [{this.Encryption}].");
                         }
                         else
                         {
@@ -148,7 +147,7 @@ namespace TDSClient.TDS.PreLogin
                         {
                             this.FedAuthRequired = (bool)data;
 
-                            LoggingUtilities.WriteLog($" Adding PreLogin option {type} [{(bool)data}].");
+                            LoggingUtilities.WriteLog($"  Adding PreLogin option {type} [{(bool)data}].");
                         }
                         else
                         {
@@ -164,7 +163,7 @@ namespace TDSClient.TDS.PreLogin
                         {
                             this.MARS = (bool)data;
 
-                            LoggingUtilities.WriteLog($" Adding PreLogin option {type} [{(bool)data}].");
+                            LoggingUtilities.WriteLog($"  Adding PreLogin option {type} [{(bool)data}].");
                         }
                         else
                         {
@@ -180,7 +179,7 @@ namespace TDSClient.TDS.PreLogin
                         {
                             this.ThreadID = (uint)data;
 
-                            LoggingUtilities.WriteLog($" Adding PreLogin option {type} [{this.ThreadID}].");
+                            LoggingUtilities.WriteLog($"  Adding PreLogin option {type} [{this.ThreadID}].");
                         }
                         else
                         {
@@ -196,10 +195,10 @@ namespace TDSClient.TDS.PreLogin
                         {
                             this.TraceID = (TDSClientTraceID)data;
 
-                            LoggingUtilities.WriteLog($" Adding PreLogin option {type}");
-                            LoggingUtilities.WriteLog($"  ConnectionID: {new Guid(this.TraceID.TraceID).ToString().ToUpper()}", writeToSummaryLog: true);
-                            LoggingUtilities.WriteLog($"  ActivityID: {new Guid(this.TraceID.ActivityID).ToString().ToUpper()}");
-                            LoggingUtilities.WriteLog($"  ActivitySequence: {this.TraceID.ActivitySequence}");
+                            LoggingUtilities.WriteLog($"  Adding PreLogin option {type}");
+                            LoggingUtilities.WriteLog($"   ConnectionID: {new Guid(this.TraceID.TraceID).ToString().ToUpper()}", writeToSummaryLog: true);
+                            LoggingUtilities.WriteLog($"   ActivityID: {new Guid(this.TraceID.ActivityID).ToString().ToUpper()}");
+                            LoggingUtilities.WriteLog($"   ActivitySequence: {this.TraceID.ActivitySequence}");
                         }
                         else
                         {
@@ -215,7 +214,7 @@ namespace TDSClient.TDS.PreLogin
                         {
                             this.Nonce = (byte[])data;
 
-                            LoggingUtilities.WriteLog($" Adding PreLogin option {type}.");
+                            LoggingUtilities.WriteLog($"  Adding PreLogin option {type}.");
                         }
                         else
                         {
@@ -242,7 +241,7 @@ namespace TDSClient.TDS.PreLogin
             this.Terminated = true;
             this.Options.Add(new TDSPreLoginOptionToken(TDSPreLoginOptionTokenType.Terminator));
 
-            LoggingUtilities.WriteLog($" Terminating PreLogin message.");
+            LoggingUtilities.WriteLog($"  Adding PreLogin message terminator.");
         }
 
         /// <summary>
