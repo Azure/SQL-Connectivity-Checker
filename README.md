@@ -6,8 +6,8 @@ This PowerShell script will run some connectivity checks from this machine to th
 - Also supports SQL on-demand (\*.ondemand.sql.azuresynapse.net or \*.ondemand.database.windows.net).  
 
 **In order to run it you need to:**
-1. Open Windows PowerShell ISE in Administrator mode  
-For the better results, our recommendation is to use the advanced connectivity tests which demand to start PowerShell in Administrator mode. You can still run the basic tests, in case you decide not to run this way. Please note that script parameters 'RunAdvancedConnectivityPolicyTests' and 'CollectNetworkTrace' will only work if the admin privileges are granted.
+1. Open Windows PowerShell ISE (in Administrator mode if possible)
+In order for a network trace to be collected along with the tests ('CollectNetworkTrace' parameter), PowerShell must be run as an administrator.
 
 2. Open a New Script window
 
@@ -53,14 +53,65 @@ catch {
 }
 #end
 ```
-4. Set the parameters on the script, you need to set server name. Database name, user and password are optional but desirable.
+4. Set the parameters on the script. You must set the server name and database name. User and password are optional, but best practices.
 
-5. Run it.
+5. Run it.  
+   Results are displayed in the output window. If the user has permissions to create folders, a folder with the resulting log file will be created, along with a ZIP file (`AllFiles.zip`). When running on Windows, the folder opens automatically after the script completes.
 
-6. The results can be seen in the output window.
-If the user has the permissions to create folders, a folder with the resulting log file will be created.
-When running on Windows, the folder will be opened automatically after the script completes.
-A zip file with all the log files (AllFiles.zip) will be created.
+6. Examine the output for any issues detected, and recommended steps to resolve the issue.
+
+## Run from Linux
+
+With the current release, PowerShell uses .NET 5.0 as its runtime. PowerShell runs on Windows, macOS, and Linux platforms.  
+
+1. In order to run this script on Linux you need to installing PowerShell on Linux (if you haven't before).
+   See how to get the packages at https://docs.microsoft.com/powershell/scripting/install/installing-powershell-core-on-linux
+
+2. After the package is installed, run pwsh from a terminal.
+
+3. Set the parameters on the following script then copy paste it to the terminal. You must set the server name and database name. User and password are optional, but best practices.
+
+```powershell
+$parameters = @{
+    # Supports Single, Elastic Pools and Managed Instance (please provide FQDN, MI public endpoint is supported)
+    # Supports Azure Synapse / Azure SQL Data Warehouse (*.sql.azuresynapse.net / *.database.windows.net)
+    # Supports Public Cloud (*.database.windows.net), Azure China (*.database.chinacloudapi.cn), Azure Germany (*.database.cloudapi.de) and Azure Government (*.database.usgovcloudapi.net)
+    Server = '.database.windows.net' # or any other supported FQDN
+    Database = ''  # Set the name of the database you wish to test, 'master' will be used by default if nothing is set
+    User = ''  # Set the login username you wish to use, 'AzSQLConnCheckerUser' will be used by default if nothing is set
+    Password = ''  # Set the login password you wish to use, 'AzSQLConnCheckerPassword' will be used by default if nothing is set
+
+    ## Optional parameters (default values will be used if omitted)
+    SendAnonymousUsageData = $true  # Set as $true (default) or $false
+    RunAdvancedConnectivityPolicyTests = $true  # Set as $true (default) or $false, this will load the library from Microsoft's GitHub repository needed for running advanced connectivity tests
+    ConnectionAttempts = 1 # Number of connection attempts while running advanced connectivity tests
+    DelayBetweenConnections = 1 # Number of seconds to wait between connection attempts while running advanced connectivity tests
+    CollectNetworkTrace = $true  # Set as $true (default) or $false
+    #EncryptionProtocol = '' # Supported values: 'Tls 1.0', 'Tls 1.1', 'Tls 1.2'; Without this parameter operating system will choose the best protocol to use
+}
+
+$ProgressPreference = "SilentlyContinue";
+if ("AzureKudu" -eq $env:DOTNET_CLI_TELEMETRY_PROFILE) {
+    $scriptFile = '/ReducedSQLConnectivityChecker.ps1'
+} else {
+    $scriptFile = '/AzureSQLConnectivityChecker.ps1'
+}
+$scriptUrlBase = 'http://raw.githubusercontent.com/Azure/SQL-Connectivity-Checker/master'
+cls
+Write-Host 'Trying to download the script file from GitHub (https://github.com/Azure/SQL-Connectivity-Checker), please wait...'
+try {
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls11 -bor [Net.SecurityProtocolType]::Tls
+    Invoke-Command -ScriptBlock ([Scriptblock]::Create((Invoke-WebRequest ($scriptUrlBase + $scriptFile) -UseBasicParsing -TimeoutSec 60).Content)) -ArgumentList $parameters
+    }
+catch {
+    Write-Host 'ERROR: The script file could not be downloaded:' -ForegroundColor Red
+    $_.Exception
+    Write-Host 'Confirm this machine can access https://github.com/Azure/SQL-Connectivity-Checker/' -ForegroundColor Yellow
+    Write-Host 'or use a machine with Internet access to see how to run this from machines without Internet. See how at https://github.com/Azure/SQL-Connectivity-Checker/' -ForegroundColor Yellow
+}
+#end
+```
+5. Examine the output for any issues detected, and recommended steps to resolve the issue.
 
 ## How to run this from machines whithout Internet access
 
