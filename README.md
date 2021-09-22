@@ -38,7 +38,7 @@ if ("AzureKudu" -eq $env:DOTNET_CLI_TELEMETRY_PROFILE) {
 } else {
     $scriptFile = '/AzureSQLConnectivityChecker.ps1'
 }
-$scriptUrlBase = 'http://raw.githubusercontent.com/Azure/SQL-Connectivity-Checker/master'
+$scriptUrlBase = 'https://raw.githubusercontent.com/Azure/SQL-Connectivity-Checker/master'
 cls
 Write-Host 'Trying to download the script file from GitHub (https://github.com/Azure/SQL-Connectivity-Checker), please wait...'
 try {
@@ -96,7 +96,7 @@ if ("AzureKudu" -eq $env:DOTNET_CLI_TELEMETRY_PROFILE) {
 } else {
     $scriptFile = '/AzureSQLConnectivityChecker.ps1'
 }
-$scriptUrlBase = 'http://raw.githubusercontent.com/Azure/SQL-Connectivity-Checker/master'
+$scriptUrlBase = 'https://raw.githubusercontent.com/Azure/SQL-Connectivity-Checker/master'
 cls
 Write-Host 'Trying to download the script file from GitHub (https://github.com/Azure/SQL-Connectivity-Checker), please wait...'
 try {

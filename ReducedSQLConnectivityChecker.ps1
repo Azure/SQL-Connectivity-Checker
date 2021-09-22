@@ -244,7 +244,7 @@ try {
         Remove-Item $path
     }
     
-    Invoke-WebRequest -Uri $('http://github.com/Azure/SQL-Connectivity-Checker/raw/' + $RepositoryBranch + '/netstandard2.0/TDSClient.dll') -OutFile $path -UseBasicParsing
+    Invoke-WebRequest -Uri $('https://github.com/Azure/SQL-Connectivity-Checker/raw/' + $RepositoryBranch + '/netstandard2.0/TDSClient.dll') -OutFile $path -UseBasicParsing
     
     $path = $env:TEMP + "/TDSClient.dll"
     $assembly = [System.IO.File]::ReadAllBytes($path)
