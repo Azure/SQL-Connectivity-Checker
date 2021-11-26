@@ -217,10 +217,42 @@ $SQLMI_GatewayTestFailed = ' You can connect to SQL Managed Instance via private
  - machine that is network connected by VPN or Azure ExpressRoute
 
  Failure to reach the Gateway is usually a client-side networking issue (like DNS issue or a port being blocked) that you will need to pursue with your local network administrator.
- See how to connect your application to Azure SQL Managed Instance at https://docs.microsoft.com/en-us/azure/azure-sql/managed-instance/connect-application-instance'
+ We strongly recommend you request assistance from your network administrator, but here are some steps you may want to try:
+
+ - The host name is valid and port used for the connection is 1433, format is tcp:<mi_name>.<dns_zone>.database.windows.net,1433
+
+ - The Network Security Groups (NSG) on the managed instance subnet allows access on port 1433.
+
+ - If you are unable to connect from an Azure hosted client (like an Azure virtual machine), check if you have a Network Security Group set on the client subnet that might be blocking *outbound* access on port 1433.
+
+ - If the connection type is Redirect:
+    - Ensure the Network Security Groups (NSG) on the managed instance subnet allows access on ports **11000-11999**.
+    - If you are unable to connect from an Azure hosted client (like an Azure virtual machine), check if you have a Network Security Group set on the client subnet that might be blocking *outbound* access on ports **11000-11999**.
+
+ - Any networking device used (like firewalls, NVAs) do not block the traffic mentioned above.
+
+ - Routing is properly configured, and asymmetric routing is avoided.
+
+ - If you are using virtual network peering between different regions, ensure that **global virtual network peering** is supported. See more at https://docs.microsoft.com/azure/azure-sql/managed-instance/connect-application-instance#connect-inside-a-different-vnet
+
+ - If you are using peering via VPN gateway, ensure the two virtual networks are properly peered, see more at https://docs.microsoft.com/azure/azure-sql/managed-instance/connect-application-instance#connect-from-on-premises
+
+Learn more about how to connect your application to Azure SQL Managed Instance at https://docs.microsoft.com/azure/azure-sql/managed-instance/connect-application-instance
+'
 
 $SQLMI_PublicEndPoint_GatewayTestFailed = ' This usually indicates a client-side networking issue (like DNS issue or a port being blocked) that you will need to pursue with your local network administrator.
- See more about connectivity using Public Endpoint at https://docs.microsoft.com/en-us/azure/azure-sql/managed-instance/public-endpoint-configure'
+ We strongly recommend you request assistance from your network administrator, but here are some steps you may want to try:
+
+ - You have Public Endpoint enabled, see https://docs.microsoft.com/azure/azure-sql/managed-instance/public-endpoint-configure#enabling-public-endpoint-for-a-managed-instance-in-the-azure-portal
+
+ - You have allowed public endpoint traffic on the network security group, see https://docs.microsoft.com/azure/azure-sql/managed-instance/public-endpoint-configure#allow-public-endpoint-traffic-on-the-network-security-group
+
+ - The host name contains .public. and that port used in the connection string is 3342, format is <mi_name>.public.<dns_zone>.database.windows.net,3342
+
+ - Network traffic to this endpoint and port is allowed from the source and any networking appliances you may have (firewalls, etc.).
+ 
+ See more about connectivity using Public Endpoint at https://docs.microsoft.com/en-us/azure/azure-sql/managed-instance/public-endpoint-configure
+'
 
 $AAD_login_windows_net = ' If you are using AAD Password or AAD Integrated Authentication please make sure you fix the connectivity from this machine to login.windows.net:443
  This usually indicates a client-side networking issue (like DNS issue or a port being blocked) that you will need to pursue with your local network administrator.'
@@ -1250,12 +1282,12 @@ try {
         Write-Host Warning: Cannot write log file -ForegroundColor Yellow
     }
 
-    TrackWarningAnonymously 'v1.35'
+    TrackWarningAnonymously 'v1.36'
     TrackWarningAnonymously ('PowerShell ' + $PSVersionTable.PSVersion + '|' + $PSVersionTable.Platform + '|' + $PSVersionTable.OS )
 
     try {
         Write-Host '******************************************' -ForegroundColor Green
-        Write-Host '  Azure SQL Connectivity Checker v1.35  ' -ForegroundColor Green
+        Write-Host '  Azure SQL Connectivity Checker v1.36  ' -ForegroundColor Green
         Write-Host '******************************************' -ForegroundColor Green
         Write-Host
         Write-Host 'Parameters' -ForegroundColor Yellow
