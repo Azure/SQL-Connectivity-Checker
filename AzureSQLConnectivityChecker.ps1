@@ -250,7 +250,7 @@ $SQLMI_PublicEndPoint_GatewayTestFailed = ' This usually indicates a client-side
  - The host name contains .public. and that port used in the connection string is 3342, format is <mi_name>.public.<dns_zone>.database.windows.net,3342
 
  - Network traffic to this endpoint and port is allowed from the source and any networking appliances you may have (firewalls, etc.).
- 
+
  See more about connectivity using Public Endpoint at https://docs.microsoft.com/en-us/azure/azure-sql/managed-instance/public-endpoint-configure
 '
 
@@ -408,7 +408,7 @@ function ValidateDNS([String] $Server) {
     Try {
         Write-Host 'Validating DNS record for' $Server -ForegroundColor Green
         $DNSlist = New-Object Collections.Generic.List[string]
-        
+
         if ($PSVersionTable.PSVersion.Major -le 5 -or $IsWindows) {
             Try {
                 $DNSfromHostsError = $null
@@ -515,10 +515,10 @@ function ValidateDNS([String] $Server) {
                 [void]$summaryRecommendedAction.AppendLine($msg)
                 TrackWarningAnonymously $msg
 
-                if (IsManagedInstance $Server) {                    
+                if (IsManagedInstance $Server) {
                     $msg = $DNSResolutionGotMultipleAddressesMI
                     Write-Host $msg -Foreground Red
-                    [void]$summaryRecommendedAction.AppendLine($msg)                    
+                    [void]$summaryRecommendedAction.AppendLine($msg)
                 }
                 else {
                     $msg = $DNSResolutionGotMultipleAddresses
