@@ -211,13 +211,13 @@ $SQLDB_Redirect = " Servers in SQL Database and Azure Synapse support Redirect, 
  If you are using Redirect, failure to reach ports in the range of 11000-11999 is usually a client-side networking issue (like DNS issue or a port being blocked) that you will need to pursue with your local network administrator.
  Please check more about connection policies at https://docs.microsoft.com/en-us/azure/azure-sql/database/connectivity-architecture#connection-policy"
 
-$SQLMI_GatewayTestFailed = ' You can connect to SQL Managed Instance via private endpoint if you are connecting from one of the following:
+$SQLMI_GatewayTestFailed = " You can connect to SQL Managed Instance via private endpoint if you are connecting from one of the following:
  - machine inside the same virtual network
  - machine in a peered virtual network
  - machine that is network connected by VPN or Azure ExpressRoute
 
  Failure to reach the Gateway is usually a client-side networking issue (like DNS issue or a port being blocked) that you will need to pursue with your local network administrator.
- We strongly recommend you request assistance from your network administrator, but here are some steps you may want to try:
+ We strongly recommend you request assistance from your network administrator, some validations you may do together are:
 
  - The host name is valid and port used for the connection is 1433, format is tcp:<mi_name>.<dns_zone>.database.windows.net,1433
 
@@ -231,17 +231,18 @@ $SQLMI_GatewayTestFailed = ' You can connect to SQL Managed Instance via private
 
  - Any networking device used (like firewalls, NVAs) do not block the traffic mentioned above.
 
- - Routing is properly configured, and asymmetric routing is avoided.
+ - Routing is properly configured, and asymmetric routing is avoided. 
+   A route with the 0.0.0.0/0 address prefix instructs Azure how to route traffic destined for an IP address that is not within the address prefix of any other route in a subnet's route table. When a subnet is created, Azure creates a default route to the 0.0.0.0/0 address prefix, with the **Internet** next hop type. Check if this route was overridden. See the details about impact of changes on this default route at https://docs.microsoft.com/azure/virtual-network/virtual-networks-udr-overview#default-route
 
  - If you are using virtual network peering between different regions, ensure that **global virtual network peering** is supported. See more at https://docs.microsoft.com/azure/azure-sql/managed-instance/connect-application-instance#connect-inside-a-different-vnet
 
  - If you are using peering via VPN gateway, ensure the two virtual networks are properly peered, see more at https://docs.microsoft.com/azure/azure-sql/managed-instance/connect-application-instance#connect-from-on-premises
 
 Learn more about how to connect your application to Azure SQL Managed Instance at https://docs.microsoft.com/azure/azure-sql/managed-instance/connect-application-instance
-'
+"
 
-$SQLMI_PublicEndPoint_GatewayTestFailed = ' This usually indicates a client-side networking issue (like DNS issue or a port being blocked) that you will need to pursue with your local network administrator.
- We strongly recommend you request assistance from your network administrator, but here are some steps you may want to try:
+$SQLMI_PublicEndPoint_GatewayTestFailed = " This usually indicates a client-side networking issue (like DNS issue or a port being blocked) that you will need to pursue with your local network administrator.
+ We strongly recommend you request assistance from your network administrator, some validations you may do together are:
 
  - You have Public Endpoint enabled, see https://docs.microsoft.com/azure/azure-sql/managed-instance/public-endpoint-configure#enabling-public-endpoint-for-a-managed-instance-in-the-azure-portal
 
@@ -251,8 +252,11 @@ $SQLMI_PublicEndPoint_GatewayTestFailed = ' This usually indicates a client-side
 
  - Network traffic to this endpoint and port is allowed from the source and any networking appliances you may have (firewalls, etc.).
 
- See more about connectivity using Public Endpoint at https://docs.microsoft.com/en-us/azure/azure-sql/managed-instance/public-endpoint-configure
-'
+ - Routing is properly configured, and asymmetric routing is avoided. 
+   A route with the 0.0.0.0/0 address prefix instructs Azure how to route traffic destined for an IP address that is not within the address prefix of any other route in a subnet's route table. When a subnet is created, Azure creates a default route to the 0.0.0.0/0 address prefix, with the **Internet** next hop type. Check if this route was overridden. See the details about impact of changes on this default route at https://docs.microsoft.com/azure/virtual-network/virtual-networks-udr-overview#default-route
+
+See more about connectivity using Public Endpoint at https://docs.microsoft.com/en-us/azure/azure-sql/managed-instance/public-endpoint-configure
+"
 
 $AAD_login_windows_net = ' If you are using AAD Password or AAD Integrated Authentication please make sure you fix the connectivity from this machine to login.windows.net:443
  This usually indicates a client-side networking issue (like DNS issue or a port being blocked) that you will need to pursue with your local network administrator.'
@@ -1337,12 +1341,12 @@ try {
         Write-Host Warning: Cannot write log file -ForegroundColor Yellow
     }
 
-    TrackWarningAnonymously 'v1.38'
+    TrackWarningAnonymously 'v1.39'
     TrackWarningAnonymously ('PowerShell ' + $PSVersionTable.PSVersion + '|' + $PSVersionTable.Platform + '|' + $PSVersionTable.OS )
 
     try {
         Write-Host '******************************************' -ForegroundColor Green
-        Write-Host '  Azure SQL Connectivity Checker v1.38  ' -ForegroundColor Green
+        Write-Host '  Azure SQL Connectivity Checker v1.39  ' -ForegroundColor Green
         Write-Host '******************************************' -ForegroundColor Green
         Write-Host
         Write-Host 'Parameters' -ForegroundColor Yellow
