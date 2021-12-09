@@ -278,11 +278,14 @@ $ServerNameNotSpecified = ' The parameter $Server was not specified, please set 
 
 $followUpMessage = ' If this is a database engine error code you may see more about it at https://docs.microsoft.com/sql/relational-databases/errors-events/database-engine-events-and-errors'
 
-$SQLMI_PrivateEndpoint_Error40532 = ' Error 40532 is usually related to one of the following scenarios:
-- The username (login) contains the "@" symbol (e.g., a login of the form "user@mydomain.com").
-  If the {servername} value shown in the error is "mydomain.com" then you are encountering this scenario.
-  See how to handle this at https://techcommunity.microsoft.com/t5/azure-database-support-blog/providing-the-server-name-explicitly-in-user-names-for-azure-sql/ba-p/368942
-- Using the IP that is resolved from your full server FQDN rather than the FQDN of your server itself. You need to use the FQDN.'
+$SQLMI_PrivateEndpoint_Error40532 = " Error 40532 is usually related to one of the following scenarios:
+- The username (login) contains the '@' symbol (e.g., a login of the form 'user@mydomain.com').
+  You can't currently login with usernames containing these characters. We are working on removing this limitation.
+- Trying to connect using the IP address instead of the FQDN of your server.
+  Connecting to a managed instance using an IP address is not supported. A Managed Instance's host name maps to the load balancer in front of the Managed Instance's virtual cluster. As one virtual cluster can host multiple Managed Instances, a connection can't be routed to the proper Managed Instance without specifying its name.
+- The IP address associated with your managed instance changed but you DNS record still points to previous address.
+  The managed instance service doesn't claim static IP address support, we strongly discourage relying on immutability of the IP address as it could cause unnecessary downtime.
+"
 
 $SQLDB_Error40532 = ' Error 40532 is usually related to one of the following scenarios:
 
@@ -1341,12 +1344,12 @@ try {
         Write-Host Warning: Cannot write log file -ForegroundColor Yellow
     }
 
-    TrackWarningAnonymously 'v1.39'
+    TrackWarningAnonymously 'v1.40'
     TrackWarningAnonymously ('PowerShell ' + $PSVersionTable.PSVersion + '|' + $PSVersionTable.Platform + '|' + $PSVersionTable.OS )
 
     try {
         Write-Host '******************************************' -ForegroundColor Green
-        Write-Host '  Azure SQL Connectivity Checker v1.39  ' -ForegroundColor Green
+        Write-Host '  Azure SQL Connectivity Checker v1.40  ' -ForegroundColor Green
         Write-Host '******************************************' -ForegroundColor Green
         Write-Host
         Write-Host 'Parameters' -ForegroundColor Yellow
