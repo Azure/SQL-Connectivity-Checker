@@ -7,7 +7,7 @@ This PowerShell script will run some connectivity checks from this machine to th
 
 **In order to run it you need to:**
 1. Open Windows PowerShell ISE (in Administrator mode if possible)
-In order for a network trace to be collected along with the tests ('CollectNetworkTrace' parameter), PowerShell must be run as an administrator.
+For a network trace to be collected along with the tests ('CollectNetworkTrace' parameter), PowerShell must be run as an administrator.
 
 2. Open a New Script window
 
@@ -64,7 +64,7 @@ catch {
 
 With the current release, PowerShell uses .NET 5.0 as its runtime. PowerShell runs on Windows, macOS, and Linux platforms.  
 
-1. In order to run this script on Linux you need to installing PowerShell on Linux (if you haven't before).
+1. To run this script on Linux you need to install PowerShell on Linux (if you haven't before).
    See how to get the packages at https://docs.microsoft.com/powershell/scripting/install/installing-powershell-core-on-linux
 
 2. After the package is installed, run pwsh from a terminal.
@@ -113,9 +113,9 @@ catch {
 ```
 5. Examine the output for any issues detected, and recommended steps to resolve the issue.
 
-## How to run this from machines whithout Internet access
+## How to run this from machines without Internet access
 
-**In order to run it from machines without Internet access you need to:**
+**To run it from machines without Internet access you need to:**
 
 1. From a machine with Internet access
     - Navigate to https://github.com/Azure/SQL-Connectivity-Checker
@@ -127,7 +127,7 @@ catch {
 1. Extract all the files into a folder.
 
 1. Open Windows PowerShell ISE in Administrator mode.  
-For the better results, our recommendation is to use the advanced connectivity tests which demand to start PowerShell in Administrator mode. You can still run the basic tests, in case you decide not to run this way. Please note that script parameters 'RunAdvancedConnectivityPolicyTests' and 'CollectNetworkTrace' will only work if the admin privileges are granted.
+For better results, our recommendation is to use the advanced connectivity tests which demand to start PowerShell in Administrator mode. You can still run the basic tests, in case you decide not to run this way. Please note that script parameters 'RunAdvancedConnectivityPolicyTests' and 'CollectNetworkTrace' will only work if the admin privileges are granted.
 
 1. From PowerShell ISE, open the file named 'RunLocally.ps1' you can find in the previous folder.
 
