@@ -92,7 +92,16 @@ namespace TDSClient.TDS.Comms
 
             LoggingUtilities.WriteLog($"   Cipher: {tempStream1.CipherAlgorithm} strength {tempStream1.CipherStrength}");
             LoggingUtilities.WriteLog($"   Hash: {tempStream1.HashAlgorithm} strength {tempStream1.HashStrength}");
-            LoggingUtilities.WriteLog($"   Key exchange: {tempStream1.KeyExchangeAlgorithm} strength {tempStream1.KeyExchangeStrength}");
+            
+            if ((int)tempStream1.KeyExchangeAlgorithm == 44550)
+            {
+                LoggingUtilities.WriteLog($"   Key exchange: ECDHE strength {tempStream1.KeyExchangeStrength}");
+            }
+            else
+            {
+                LoggingUtilities.WriteLog($"   Key exchange: {tempStream1.KeyExchangeAlgorithm} strength {tempStream1.KeyExchangeStrength}");
+            }
+
             LoggingUtilities.WriteLog($"   Protocol: {tempStream1.SslProtocol}");
 
             LoggingUtilities.WriteLog($"   Is authenticated: {tempStream1.IsAuthenticated}");
