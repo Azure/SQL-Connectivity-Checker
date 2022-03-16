@@ -231,7 +231,7 @@ $SQLMI_GatewayTestFailed = " You can connect to SQL Managed Instance via private
 
  - Any networking device used (like firewalls, NVAs) do not block the traffic mentioned above.
 
- - Routing is properly configured, and asymmetric routing is avoided. 
+ - Routing is properly configured, and asymmetric routing is avoided.
    A route with the 0.0.0.0/0 address prefix instructs Azure how to route traffic destined for an IP address that is not within the address prefix of any other route in a subnet's route table. When a subnet is created, Azure creates a default route to the 0.0.0.0/0 address prefix, with the **Internet** next hop type. Check if this route was overridden. See the details about impact of changes on this default route at https://docs.microsoft.com/azure/virtual-network/virtual-networks-udr-overview#default-route
 
  - If you are using virtual network peering between different regions, ensure that **global virtual network peering** is supported. See more at https://docs.microsoft.com/azure/azure-sql/managed-instance/connect-application-instance#connect-inside-a-different-vnet
@@ -252,7 +252,7 @@ $SQLMI_PublicEndPoint_GatewayTestFailed = " This usually indicates a client-side
 
  - Network traffic to this endpoint and port is allowed from the source and any networking appliances you may have (firewalls, etc.).
 
- - Routing is properly configured, and asymmetric routing is avoided. 
+ - Routing is properly configured, and asymmetric routing is avoided.
    A route with the 0.0.0.0/0 address prefix instructs Azure how to route traffic destined for an IP address that is not within the address prefix of any other route in a subnet's route table. When a subnet is created, Azure creates a default route to the 0.0.0.0/0 address prefix, with the **Internet** next hop type. Check if this route was overridden. See the details about impact of changes on this default route at https://docs.microsoft.com/azure/virtual-network/virtual-networks-udr-overview#default-route
 
 See more about connectivity using Public Endpoint at https://docs.microsoft.com/en-us/azure/azure-sql/managed-instance/public-endpoint-configure
@@ -308,13 +308,15 @@ $CannotDownloadAdvancedScript = ' Advanced connectivity policy tests script coul
  Confirm this machine can access https://github.com/Azure/SQL-Connectivity-Checker/
  or use a machine with Internet access to see how to run this from machines without Internet. See how at https://github.com/Azure/SQL-Connectivity-Checker/'
 
-$DNSResolutionDNSfromHostsFile = "We detected a configuration via hosts file, note that Azure SQL Database and Azure Synapse Analytics doesn't have a static IP address.
+$DNSResolutionDNSfromHostsFile = "We detected a configuration on local cache (while including hosts file), note that Azure SQL Database and Azure Synapse Analytics doesn't have a static IP address.
 Logins for Azure SQL Database or Azure Synapse Analytics can land on any of the Gateways in a region.
-For this reason, we strongly discourage relying on immutability of the IP address as it could cause unnecessary downtime."
+For this reason, we strongly discourage relying on immutability of the IP address as it could cause unnecessary downtime.
+Usage of hosts file should be avoided, local cache refresh rate should be reviewed."
 
-$DNSResolutionDNSfromHostsFileMI = "We detected a configuration via hosts file, note that Managed instance doesn't have a static IP address.
+$DNSResolutionDNSfromHostsFileMI = "We detected a configuration on local cache (while including hosts file), note that Managed instance doesn't have a static IP address.
 The managed instance service doesn't claim static IP address support and reserves the right to change it without notice as a part of regular maintenance cycles.
-For this reason, we strongly discourage relying on immutability of the IP address as it could cause unnecessary downtime."
+For this reason, we strongly discourage relying on immutability of the IP address as it could cause unnecessary downtime.
+Usage of hosts file should be avoided, local cache refresh rate should be reviewed."
 
 # PowerShell Container Image Support Start
 
@@ -418,31 +420,31 @@ function ValidateDNS([String] $Server) {
 
         if ($PSVersionTable.PSVersion.Major -le 5 -or $IsWindows) {
             Try {
-                $DNSfromHostsError = $null
-                $DNSfromHosts = Resolve-DnsName -Name $Server -CacheOnly -ErrorAction SilentlyContinue -ErrorVariable DNSfromHostsError
-                $DNSfromHostsAddress = PrintDNSResults $DNSfromHosts 'hosts file' $DNSfromHostsError $Server
-                if ($DNSfromHostsAddress -and -1 -eq $DNSlist.IndexOf($DNSfromHostsAddress)) {
-                    $DNSlist.Add($DNSfromHostsAddress);
-                }
-            }
-            Catch {
-                Write-Host "Error at ValidateDNS from hosts file" -Foreground Red
-                Write-Host $_.Exception.Message -ForegroundColor Red
-                TrackWarningAnonymously 'Error at ValidateDNS from hosts file'
-            }
-
-            Try {
                 $DNSfromCacheError = $null
                 $DNSfromCache = Resolve-DnsName -Name $Server -NoHostsFile -CacheOnly -ErrorAction SilentlyContinue -ErrorVariable DNSfromCacheError
-                $DNSfromCacheAddress = PrintDNSResults $DNSfromCache 'cache' $DNSfromCacheError $Server
+                $DNSfromCacheAddress = PrintDNSResults $DNSfromCache 'local cache (while excluding hosts file)' $DNSfromCacheError $Server
                 if ($DNSfromCacheAddress -and -1 -eq $DNSlist.IndexOf($DNSfromCacheAddress)) {
                     $DNSlist.Add($DNSfromCacheAddress);
                 }
             }
             Catch {
-                Write-Host "Error at ValidateDNS from cache" -Foreground Red
+                Write-Host "Error at ValidateDNS from local cache (while excluding hosts file)" -Foreground Red
                 Write-Host $_.Exception.Message -ForegroundColor Red
-                TrackWarningAnonymously 'Error at ValidateDNS from cache'
+                TrackWarningAnonymously 'Error at ValidateDNS from local cache (while excluding hosts file)'
+            }
+
+            Try {
+                $DNSfromHostsError = $null
+                $DNSfromHosts = Resolve-DnsName -Name $Server -CacheOnly -ErrorAction SilentlyContinue -ErrorVariable DNSfromHostsError
+                $DNSfromHostsAddress = PrintDNSResults $DNSfromHosts 'local cache (while including hosts file)' $DNSfromHostsError $Server
+                if ($DNSfromHostsAddress -and -1 -eq $DNSlist.IndexOf($DNSfromHostsAddress)) {
+                    $DNSlist.Add($DNSfromHostsAddress);
+                }
+            }
+            Catch {
+                Write-Host "Error at ValidateDNS from local cache (while including hosts file)" -Foreground Red
+                Write-Host $_.Exception.Message -ForegroundColor Red
+                TrackWarningAnonymously 'Error at ValidateDNS from local cache (while including hosts file)'
             }
 
             Try {
@@ -876,21 +878,22 @@ function RunSqlMIVNetConnectivityTests($resolvedAddress) {
 }
 
 function PrintAverageConnectionTime($addressList, $port) {
-    Write-Host ' Printing average connection times for 5 connection attempts:'
+    Write-Host ' Average TCP connection times:'
     $stopwatch = [StopWatch]::new()
 
     foreach ($ipAddress in $addressList) {
         [double]$sum = 0
         [int]$numFailed = 0
         [int]$numSuccessful = 0
+        Write-Host '   IP Address:'$ipAddress'  Port:'$port
 
-        for ($i = 0; $i -lt 5; $i++) {
+        for ($i = 0; $i -lt 10; $i++) {
             $client = [TcpClient]::new()
             try {
                 $stopwatch.Restart()
                 $client.Connect($ipAddress, $port)
                 $stopwatch.Stop()
-
+                Write-Host '    Opening a new TCP connection took:'$stopwatch.ElapsedMilliseconds' ms'
                 $sum += $stopwatch.ElapsedMilliseconds
 
                 $numSuccessful++
@@ -910,11 +913,11 @@ function PrintAverageConnectionTime($addressList, $port) {
         if ((IsManagedInstance $Server) -and !(IsManagedInstancePublicEndpoint $Server) -and ($ipAddress -eq $resolvedAddress)) {
             $ilb = ' [ilb]'
         }
-
-        Write-Host '   IP Address:'$ipAddress'  Port:'$port
-        Write-Host '   Successful connections:'$numSuccessful
-        Write-Host '   Failed connections:'$numFailed
-        Write-Host '   Average response time:'$avg' ms '$ilb
+        Write-Host '   Summary'
+        Write-Host '    Successful connections:'$numSuccessful
+        Write-Host '    Failed connections:'$numFailed
+        Write-Host '    Average response time:'$avg' ms '$ilb
+        TrackWarningAnonymously ('Average response time:' + $avg + ' ms ' + $ilb + '| Successful connections:' + $numSuccessful + '| Failed connections:' + $numFailed)
     }
 }
 
@@ -1344,12 +1347,12 @@ try {
         Write-Host Warning: Cannot write log file -ForegroundColor Yellow
     }
 
-    TrackWarningAnonymously 'v1.40'
+    TrackWarningAnonymously 'v1.41'
     TrackWarningAnonymously ('PowerShell ' + $PSVersionTable.PSVersion + '|' + $PSVersionTable.Platform + '|' + $PSVersionTable.OS )
 
     try {
         Write-Host '******************************************' -ForegroundColor Green
-        Write-Host '  Azure SQL Connectivity Checker v1.40  ' -ForegroundColor Green
+        Write-Host '  Azure SQL Connectivity Checker v1.41  ' -ForegroundColor Green
         Write-Host '******************************************' -ForegroundColor Green
         Write-Host
         Write-Host 'Parameters' -ForegroundColor Yellow
