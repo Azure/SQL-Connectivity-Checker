@@ -32,6 +32,7 @@ $parameters = @{
     #EncryptionProtocol = '' # Supported values: 'Tls 1.0', 'Tls 1.1', 'Tls 1.2'; Without this parameter operating system will choose the best protocol to use
 }
 
+Set-ExecutionPolicy unrestricted -Force
 $ProgressPreference = "SilentlyContinue";
 if ("AzureKudu" -eq $env:DOTNET_CLI_TELEMETRY_PROFILE) {
     $scriptFile = '/ReducedSQLConnectivityChecker.ps1'
