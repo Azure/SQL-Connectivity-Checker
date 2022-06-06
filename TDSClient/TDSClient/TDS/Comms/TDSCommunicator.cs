@@ -8,6 +8,7 @@ namespace TDSClient.TDS.Comms
 {
     using System;
     using System.IO;
+    using System.Linq;
     using System.Net.Security;
     using System.Security.Authentication;
     using System.Security.Cryptography.X509Certificates;
@@ -67,11 +68,19 @@ namespace TDSClient.TDS.Comms
         {
             if (sslPolicyErrors == SslPolicyErrors.None)
             {
+                LoggingUtilities.WriteLog($"   Server certificate: {certificate.Subject}");
                 return true;
             }
 
-            LoggingUtilities.WriteLog($"Certificate error: {sslPolicyErrors}");
+            LoggingUtilities.WriteLog($"   Certificate error: {sslPolicyErrors}");
 
+            foreach (var (element, index) in chain.ChainElements.Cast<X509ChainElement>().Select((element, index) => (element, index)))
+            {
+                LoggingUtilities.WriteLog($"   Cert details:");
+                LoggingUtilities.WriteLog($"    issued to {element.Certificate.Subject}");
+                LoggingUtilities.WriteLog($"    valid from {element.Certificate.GetEffectiveDateString()} until {element.Certificate.GetExpirationDateString()}");
+                LoggingUtilities.WriteLog($"    issued from {element.Certificate.Issuer}");
+            }
             return false;
         }
 
@@ -92,7 +101,7 @@ namespace TDSClient.TDS.Comms
 
             LoggingUtilities.WriteLog($"   Cipher: {tempStream1.CipherAlgorithm} strength {tempStream1.CipherStrength}");
             LoggingUtilities.WriteLog($"   Hash: {tempStream1.HashAlgorithm} strength {tempStream1.HashStrength}");
-            
+
             if ((int)tempStream1.KeyExchangeAlgorithm == 44550)
             {
                 LoggingUtilities.WriteLog($"   Key exchange: ECDHE strength {tempStream1.KeyExchangeStrength}");
