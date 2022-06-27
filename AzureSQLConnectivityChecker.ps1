@@ -135,7 +135,7 @@ $SQLDBGateways = @(
     New-Object PSObject -Property @{Region = "South Africa West"; Gateways = ("102.133.24.0"); TRs = ('tr1', 'tr18', 'tr22'); Cluster = 'southafricawest1-a.worker.database.windows.net'; }
     New-Object PSObject -Property @{Region = "South Central US"; Gateways = ("13.66.62.124", "104.214.16.32", "20.45.121.1", "20.49.88.1"); TRs = ('tr22', 'tr24', 'tr2465', 'tr2554'); Cluster = 'southcentralus1-a.worker.database.windows.net'; }
     New-Object PSObject -Property @{Region = "South East Asia"; Gateways = ("104.43.15.0", "40.78.232.3", "13.67.16.193"); TRs = ('tr3335', 'tr2135', 'tr3866', 'tr3572'); Cluster = 'southeastasia1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "Switzerland North"; Gateways = ("51.107.56.0"); TRs = ('tr1', 'tr2', 'tr54'); Cluster = 'switzerlandnorth1-a.worker.database.windows.net'; }
+    New-Object PSObject -Property @{Region = "Switzerland North"; Gateways = ("51.107.56.0","20.208.19.192","51.103.203.192"); TRs = ('tr1', 'tr2', 'tr54'); Cluster = 'switzerlandnorth1-a.worker.database.windows.net'; }
     New-Object PSObject -Property @{Region = "Switzerland West"; Gateways = ("51.107.152.0"); TRs = ('tr1', 'tr2', 'tr52'); Cluster = 'switzerlandwest1-a.worker.database.windows.net'; }
     New-Object PSObject -Property @{Region = "UAE Central"; Gateways = ("20.37.72.64"); TRs = ('tr4', 'tr23', 'tr49'); Cluster = 'uaecentral1-a.worker.database.windows.net'; }
     New-Object PSObject -Property @{Region = "UAE North"; Gateways = ("65.52.248.0"); TRs = ('tr1', 'tr4', 'tr76', 'tr410'); Cluster = 'uaenorth1-a.worker.database.windows.net'; }
