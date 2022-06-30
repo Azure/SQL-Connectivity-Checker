@@ -31,7 +31,7 @@ $RunAdvancedConnectivityPolicyTests = $true  # Set as $true (default) or $false#
 $ConnectionAttempts = 1
 $DelayBetweenConnections = 1
 $CollectNetworkTrace = $true  # Set as $true (default) or $false
-#EncryptionProtocol = ''  # Supported values: 'Tls 1.0', 'Tls 1.1', 'Tls 1.2'; Without this parameter operating system will choose the best protocol to use
+$EncryptionProtocol = ''  # Supported values: 'Tls 1.0', 'Tls 1.1', 'Tls 1.2'; Without this parameter operating system will choose the best protocol to use
 
 # Parameter region when Invoke-Command -ScriptBlock is used
 $parameters = $args[0]
@@ -49,7 +49,9 @@ if ($null -ne $parameters) {
     if ($null -ne $parameters['CollectNetworkTrace']) {
         $CollectNetworkTrace = $parameters['CollectNetworkTrace']
     }
-    $EncryptionProtocol = $parameters['EncryptionProtocol']
+    if ($null -ne $parameters['EncryptionProtocol']) {
+        $EncryptionProtocol = $parameters['EncryptionProtocol']
+    }
     if ($null -ne $parameters['Local']) {
         $Local = $parameters['Local']
     }
@@ -410,7 +412,7 @@ function PrintDNSResults($dnsResult, [string] $dnsSource, $errorVariable, $Serve
     }
 }
 
-function ValidateDNS([String] $Server) {
+function ValidateDNS([String] $Server, [bool]$isManagedInstance) {
     Try {
         Write-Host 'Validating DNS record for' $Server -ForegroundColor Green
         $DNSlist = New-Object Collections.Generic.List[string]
@@ -473,7 +475,7 @@ function ValidateDNS([String] $Server) {
             }
 
             if ($DNSfromHostsAddress) {
-                if (IsManagedInstance $Server) {
+                if ($isManagedInstance) {
                     $msg = $DNSResolutionDNSfromHostsFileMI
                 }
                 else {
@@ -509,9 +511,9 @@ function ValidateDNS([String] $Server) {
                 TrackWarningAnonymously 'EmptyDNSfromOpenDNS'
             }
 
-            $hasPrivateLink = HasPrivateLink $Server
+            $hasPrivateLinkAlias = HasPrivateLinkAlias $Server
 
-            if (($DNSlist.Count -gt 1) -and ($hasPrivateLink -eq $false)) {
+            if (($DNSlist.Count -gt 1) -and ($hasPrivateLinkAlias -eq $false)) {
                 Write-Host
                 $msg = ('WARNING: Distinct DNS records were found! (' + [string]::Join(", ", $DNSlist) + ')');
                 Write-Host $msg -ForegroundColor Red
@@ -521,7 +523,7 @@ function ValidateDNS([String] $Server) {
                 [void]$summaryRecommendedAction.AppendLine($msg)
                 TrackWarningAnonymously $msg
 
-                if (IsManagedInstance $Server) {
+                if ($isManagedInstance) {
                     $msg = $DNSResolutionGotMultipleAddressesMI
                     Write-Host $msg -Foreground Red
                     [void]$summaryRecommendedAction.AppendLine($msg)
@@ -544,7 +546,11 @@ function ValidateDNS([String] $Server) {
 }
 
 function IsManagedInstance([String] $Server) {
-    return [bool]((($Server.ToCharArray() | Where-Object { $_ -eq '.' } | Measure-Object).Count) -ge 4)
+    $hasKnownFQDN = ($Server -match '.database.windows.net') -or ($Server -match '.database.chinacloudapi.cn') -or ($Server -match '.database.usgovcloudapi.net');
+    $has4parts = [bool]((($Server.ToCharArray() | Where-Object { $_ -eq '.' } | Measure-Object).Count) -ge 4);
+    $isSQLDBPE = ($Server -match '.privatelink.database.');
+    $has3342 = ($Server -match ',3342') -or ($Server -match ', 3342')
+    return ($hasKnownFQDN -and $has4parts -and !$isSQLDBPE) -or $has3342
 }
 
 function IsSqlOnDemand([String] $Server) {
@@ -552,10 +558,13 @@ function IsSqlOnDemand([String] $Server) {
 }
 
 function IsManagedInstancePublicEndpoint([String] $Server) {
-    return [bool]((IsManagedInstance $Server) -and ($Server -match '.public.'))
+    $isMI = (IsManagedInstance $Server);
+    $hasPublic = ($Server -match '.public.');
+    $has3342 = ($Server -match ',3342') -or ($Server -match ', 3342');
+    return $isMI -and ($hasPublic -or $has3342)
 }
 
-function HasPrivateLink([String] $Server) {
+function HasPrivateLinkAlias([String] $Server) {
     [bool]((((Resolve-DnsName $Server) | Where-Object { $_.Name -Match ".privatelink." } | Measure-Object).Count) -gt 0)
 }
 
@@ -871,10 +880,10 @@ function RunSqlMIPublicEndpointConnectivityTests($resolvedAddress) {
 function RunSqlMIVNetConnectivityTests($resolvedAddress) {
     Try {
         Write-Host 'Detected as Managed Instance' -ForegroundColor Yellow
-        $hasPrivateLink = HasPrivateLink $Server
-        if ($hasPrivateLink) {
-            Write-Host ' This connection seems to be using Private Link' -ForegroundColor Yellow
-            TrackWarningAnonymously 'SQLMI|PrivateLink'
+        $hasPrivateLinkAlias = HasPrivateLinkAlias $Server
+        if ($hasPrivateLinkAlias) {
+            Write-Host ' This instance has a privatelink alias, confirm if IP is resolving to privatelink or regular VNet internal endpoint' -ForegroundColor Yellow
+            TrackWarningAnonymously 'SQLMI|PrivateLinkAliasExists'
         }
         Write-Host
         Write-Host 'Gateway connectivity tests (please wait):' -ForegroundColor Green
@@ -979,11 +988,11 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
         TrackWarningAnonymously 'SQL DB/DW'
     }
 
-    $hasPrivateLink = HasPrivateLink $Server
+    $hasPrivateLinkAlias = HasPrivateLinkAlias $Server
     $gateway = $SQLDBGateways | Where-Object { $_.Gateways -eq $resolvedAddress }
 
     if (!$gateway) {
-        if ($hasPrivateLink) {
+        if ($hasPrivateLinkAlias) {
             Write-Host ' This connection seems to be using Private Link, skipping Gateway connectivity tests' -ForegroundColor Yellow
             TrackWarningAnonymously 'SQLDB|PrivateLink'
         }
@@ -1005,6 +1014,16 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
         RunConnectionToDatabaseTestsAndAdvancedTests $Server '1433' $Database $User $Password
     }
     else {
+        if ($hasPrivateLinkAlias) {
+            $msg = ' This server has a privatelink alias but DNS is resolving to a regular Gateway IP address, running public endpoint tests.'
+            Write-Host $msg -Foreground Yellow
+            [void]$summaryLog.AppendLine()
+            [void]$summaryLog.AppendLine($msg)
+            [void]$summaryRecommendedAction.AppendLine()
+            [void]$summaryRecommendedAction.AppendLine($msg)
+            TrackWarningAnonymously 'SQLDB|HasPEbutDNSresolvesToGW'
+        }
+
         Write-Host ' The server' $Server 'is running on ' -ForegroundColor White -NoNewline
         Write-Host $gateway.Region -ForegroundColor Yellow
 
@@ -1394,12 +1413,12 @@ try {
         Write-Host Warning: Cannot write log file -ForegroundColor Yellow
     }
 
-    TrackWarningAnonymously 'v1.45'
+    TrackWarningAnonymously 'v1.46'
     TrackWarningAnonymously ('PowerShell ' + $PSVersionTable.PSVersion + '|' + $PSVersionTable.Platform + '|' + $PSVersionTable.OS )
 
     try {
         Write-Host '******************************************' -ForegroundColor Green
-        Write-Host '  Azure SQL Connectivity Checker v1.45  ' -ForegroundColor Green
+        Write-Host '  Azure SQL Connectivity Checker v1.46  ' -ForegroundColor Green
         Write-Host '******************************************' -ForegroundColor Green
         Write-Host
         Write-Host 'Parameters' -ForegroundColor Yellow
@@ -1432,7 +1451,10 @@ try {
 
         $Server = $Server.Trim()
 
-        if ( (IsManagedInstancePublicEndpoint $Server) -and !($Server -match ',3342')) {
+        $isManagedInstance = (IsManagedInstance $Server);
+        $isManagedInstancePublicEndpoint = (IsManagedInstancePublicEndpoint $Server);
+
+        if ($isManagedInstancePublicEndpoint -and !($Server -match ',3342')) {
             $msg = ' You seem to be trying to connect using SQL MI Public Endpoint but port 3342 was not specified'
 
             Write-Host $msg -Foreground Red
@@ -1447,7 +1469,7 @@ try {
             Write-Error '' -ErrorAction Stop
         }
 
-        if ( (IsManagedInstance $Server) -and !(IsManagedInstancePublicEndpoint $Server) -and ($Server -match ',3342')) {
+        if ($isManagedInstance -and !$isManagedInstancePublicEndpoint -and ($Server -match ',3342')) {
             $msg = ' You seem to be trying to connect using SQLMI Private Endpoint but using Public Endpoint port number (3342)'
 
             Write-Host $msg -Foreground Red
@@ -1510,7 +1532,7 @@ try {
             }
         }
 
-        ValidateDNS $Server
+        ValidateDNS $Server $isManagedInstance
 
         try {
             $dnsResult = [System.Net.DNS]::GetHostEntry($Server)
@@ -1520,7 +1542,7 @@ try {
             Write-Host $msg -Foreground Red
             [void]$summaryLog.AppendLine($msg)
 
-            if (IsManagedInstancePublicEndpoint $Server) {
+            if ($isManagedInstancePublicEndpoint) {
                 $msg = $DNSResolutionFailedSQLMIPublicEndpoint
                 Write-Host $msg -Foreground Red
                 [void]$summaryRecommendedAction.AppendLine($msg)
@@ -1539,8 +1561,8 @@ try {
 
         #Run connectivity tests
         Write-Host
-        if (IsManagedInstance $Server) {
-            if (IsManagedInstancePublicEndpoint $Server) {
+        if ($isManagedInstance) {
+            if ($isManagedInstancePublicEndpoint) {
                 RunSqlMIPublicEndpointConnectivityTests $resolvedAddress
                 $dbPort = 3342
             }
