@@ -4,10 +4,13 @@ $Path = Join-Path $LocalPath 'AzureSQLConnectivityChecker.ps1'
 
 # Script parameters
 $parameters = @{
-    Server   = '.database.windows.net'
+
+    AuthenticationType = 'Azure Active Directory Password' # Set the type of authentication you wish to use: 'Azure Active Directory Password', 'Azure Active Directory Integrated', 'SQL Server Authentication' (SQL Authentication will be used by default if nothing is set)
+
+    Server   = 'sopanic-test14.public.b2a0fc20a533.sqltest-eg1.mscds.com,3342'
     Database = ''  # Set the name of the database you wish to test, 'master' will be used by default if nothing is set
-    User     = ''  # Set the login username you wish to use, 'AzSQLConnCheckerUser' will be used by default if nothing is set
-    Password = ''  # Set the login password you wish to use, 'AzSQLConnCheckerPassword' will be used by default if nothing is set
+    User     = 'claadtestuser@cltestaad.ccsctp.net'  # Set the login username you wish to use, 'AzSQLConnCheckerUser' will be used by default if nothing is set
+    Password = 'D5946DB3-490C-7'  # Set the login password you wish to use, 'AzSQLConnCheckerPassword' will be used by default if nothing is set
 
     ## Optional parameters (default values will be used if ommited)
     SendAnonymousUsageData             = $true  # Set as $true (default) or $false

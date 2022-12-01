@@ -17,6 +17,7 @@ using namespace System.Diagnostics
 # Supports Single, Elastic Pools and Managed Instance (please provide FQDN, MI public endpoint is supported)
 # Supports Azure Synapse / Azure SQL Data Warehouse (*.sql.azuresynapse.net / *.database.windows.net)
 # Supports Public Cloud (*.database.windows.net), Azure China (*.database.chinacloudapi.cn), Azure Germany (*.database.cloudapi.de) and Azure Government (*.database.usgovcloudapi.net)
+$AuthenticationType = '' # Set the type of authentication you wish to use: 'Azure Active Directory Password', 'Azure Active Directory Integrated', 'SQL Server Authentication' (SQL Authentication will be used by default if nothing is set)
 $Server = '.database.windows.net' # or any other supported FQDN
 $Database = ''  # Set the name of the database you wish to test, 'master' will be used by default if nothing is set
 $User = ''  # Set the login username you wish to use, 'AzSQLConnCheckerUser' will be used by default if nothing is set
@@ -36,6 +37,7 @@ $EncryptionProtocol = ''  # Supported values: 'Tls 1.0', 'Tls 1.1', 'Tls 1.2'; W
 # Parameter region when Invoke-Command -ScriptBlock is used
 $parameters = $args[0]
 if ($null -ne $parameters) {
+    $AuthenticationType = $parameters['AuthenticationType']
     $Server = $parameters['Server']
     $Database = $parameters['Database']
     $User = $parameters['User']
@@ -67,6 +69,10 @@ if ($null -ne $parameters) {
     if ($null -ne $parameters['DelayBetweenConnections']) {
         $DelayBetweenConnections = $parameters['DelayBetweenConnections']
     }
+}
+
+if ($null -eq $AuthenticationType -or '' -eq $AuthenticationType) {
+    $AuthenticationType = 'SQL Server Authentication'
 }
 
 if ($null -eq $User -or '' -eq $User) {
@@ -161,6 +167,9 @@ $summaryRecommendedAction = New-Object -TypeName "System.Text.StringBuilder"
 $AnonymousRunId = ([guid]::NewGuid()).Guid
 
 # Error Messages
+
+# TODO: add needed error messages for added AAD auth
+
 $DNSResolutionFailed = ' Please make sure the server name FQDN is correct and that your machine can resolve it.
  Failure to resolve domain name for your logical server is almost always the result of specifying an invalid/misspelled server name,
  or a client-side networking issue that you will need to pursue with your local network administrator.'
@@ -586,14 +595,13 @@ function FilterTranscript() {
     }
 }
 
-function TestConnectionToDatabase($Server, $gatewayPort, $Database, $User, $Password) {
+function TestConnectionToDatabase($Server, $gatewayPort, $Database, $AuthenticationType, $User, $Password) {
     Write-Host
     [void]$summaryLog.AppendLine()
     Write-Host ([string]::Format("Testing connecting to {0} database (please wait):", $Database)) -ForegroundColor Green
     Try {
         $masterDbConnection = [System.Data.SqlClient.SQLConnection]::new()
-        $masterDbConnection.ConnectionString = [string]::Format("Server=tcp:{0},{1};Initial Catalog={2};Persist Security Info=False;User ID='{3}';Password='{4}';MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;Application Name=Azure-SQL-Connectivity-Checker;",
-            $Server, $gatewayPort, $Database, $User, $Password)
+        $masterDbConnection.ConnectionString = GetConnectionString $Server $gatewayPort $Database $AuthenticationType $User $Password
         $masterDbConnection.Open()
         Write-Host ([string]::Format(" The connection attempt succeeded", $Database))
         [void]$summaryLog.AppendLine([string]::Format(" The connection attempt to {0} database succeeded", $Database))
@@ -753,6 +761,18 @@ function TestConnectionToDatabase($Server, $gatewayPort, $Database, $User, $Pass
     }
 }
 
+function GetConnectionString ($Server, $gatewayPort, $Database, $AuthenticationType, $User, $Password) {
+    if (($null -eq $AuthenticationType) -or ('SQL Server Authentication' -eq $AuthenticationType) -or ('' -eq $AuthenticationType)) {
+        return [string]::Format("Server=tcp:{0},{1};Initial Catalog={2};Persist Security Info=False;User ID='{3}';Password='{4}';MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;Application Name=Azure-SQL-Connectivity-Checker;", $Server, $gatewayPort, $Database, $User, $Password)
+    }
+
+    if ('Azure Active Directory Password' -eq $AuthenticationType) { 
+            return [string]::Format("Server=tcp:{0},{1};Initial Catalog={2};Persist Security Info=False;User ID='{3}';Password='{4}';MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Application Name=Azure-SQL-Connectivity-Checker;Authentication='Active Directory Password'",
+            $Server, $gatewayPort, $Database, $User, $Password)
+    }
+    
+}
+
 function PrintSupportedCiphers() {
     Try {
         if ( ($PSVersionTable.PSVersion.Major -le 5 ) -or ($PSVersionTable.Platform -eq 'Windows')) {
@@ -851,7 +871,7 @@ function RunSqlMIPublicEndpointConnectivityTests($resolvedAddress) {
             $msg = ' Gateway connectivity to ' + $resolvedAddress + ':3342 succeed'
             [void]$summaryLog.AppendLine($msg)
             TrackWarningAnonymously 'SQLMI|PublicEndpoint|GatewayTestSucceeded'
-            RunConnectionToDatabaseTestsAndAdvancedTests $Server '3342' $Database $User $Password
+            RunConnectionToDatabaseTestsAndAdvancedTests $Server '3342' $Database $AuthenticationType $User $Password
         }
         else {
             Write-Host ' -> TCP test FAILED' -ForegroundColor Red
@@ -1279,8 +1299,7 @@ function LookupDatabaseInSysDatabases($Server, $dbPort, $Database, $User, $Passw
     Try {
         Write-Host ' Checking if' $Database 'exist in sys.databases:' -ForegroundColor White
         $masterDbConnection = [System.Data.SqlClient.SQLConnection]::new()
-        $masterDbConnection.ConnectionString = [string]::Format("Server=tcp:{0},{1};Initial Catalog='master';Persist Security Info=False;User ID='{2}';Password='{3}';MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;Application Name=Azure-SQL-Connectivity-Checker;",
-            $Server, $dbPort, $User, $Password)
+        $masterDbConnection.ConnectionString = GetConnectionString $Server $gatewayPort $Database $AuthenticationType $User $Password
         $masterDbConnection.Open()
 
         $masterDbCommand = New-Object System.Data.SQLClient.SQLCommand
@@ -1300,16 +1319,16 @@ function LookupDatabaseInSysDatabases($Server, $dbPort, $Database, $User, $Passw
     }
 }
 
-function RunConnectionToDatabaseTestsAndAdvancedTests($Server, $dbPort, $Database, $User, $Password) {
+function RunConnectionToDatabaseTestsAndAdvancedTests($Server, $dbPort, $Database, $AuthenticationType, $User, $Password) {
     try {
         $customDatabaseNameWasSet = $Database -and $Database.Length -gt 0 -and $Database -ne 'master'
 
         #Test master database
-        $canConnectToMaster = TestConnectionToDatabase $Server $dbPort 'master' $User $Password
+        $canConnectToMaster = TestConnectionToDatabase $Server $dbPort 'master' $AuthenticationType $User $Password
 
         if ($customDatabaseNameWasSet) {
             if ($canConnectToMaster) {
-                $databaseFound = LookupDatabaseInSysDatabases $Server $dbPort $Database $User $Password
+                $databaseFound = LookupDatabaseInSysDatabases $Server $dbPort $Database $AuthenticationType $User $Password
 
                 if ($databaseFound -eq $true) {
                     $msg = '  ' + $Database + ' was found in sys.databases of master database'
@@ -1318,7 +1337,7 @@ function RunConnectionToDatabaseTestsAndAdvancedTests($Server, $dbPort, $Databas
 
                     #Test database from parameter
                     if ($customDatabaseNameWasSet) {
-                        TestConnectionToDatabase $Server $dbPort $Database $User $Password | Out-Null
+                        TestConnectionToDatabase $Server $dbPort $Database $AuthenticationType $User $Password | Out-Null
                     }
                 }
                 else {
@@ -1338,7 +1357,7 @@ function RunConnectionToDatabaseTestsAndAdvancedTests($Server, $dbPort, $Databas
             else {
                 #Test database from parameter anyway
                 if ($customDatabaseNameWasSet) {
-                    TestConnectionToDatabase $Server $dbPort $Database $User $Password | Out-Null
+                    TestConnectionToDatabase $Server $dbPort $Database $AuthenticationType $User $Password | Out-Null
                 }
             }
         }
@@ -1422,6 +1441,14 @@ try {
         Write-Host '******************************************' -ForegroundColor Green
         Write-Host
         Write-Host 'Parameters' -ForegroundColor Yellow
+
+        if ($null -ne $Database) {
+            Write-Host ' Authentication type:' $AuthenticationType -ForegroundColor Yellow
+        }
+        else {
+            Write-Host ' Authentication type: SQL Server Authentication' -ForegroundColor Yellow
+        }
+
         Write-Host ' Server:' $Server -ForegroundColor Yellow
 
         if ($null -ne $Database) {
