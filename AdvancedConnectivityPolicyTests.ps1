@@ -189,6 +189,7 @@ function TrackWarningAnonymously ([String] $warningCode) {
 $parameters = $args[0]
 $Server = $parameters['Server']
 $Port = $parameters['Port']
+$AuthenticationType = $parameters['AuthenticatonType']
 $User = $parameters['User']
 $Password = $parameters['Password']
 $Database = $parameters['Database']
@@ -262,7 +263,7 @@ try {
                 $encryption = [System.Security.Authentication.SslProtocols]::Tls12 -bor [System.Security.Authentication.SslProtocols]::Tls11 -bor [System.Security.Authentication.SslProtocols]::Default
             }
         }
-        $tdsClient = [TDSClient.TDS.Client.TDSSQLTestClient]::new($Server, $Port, $User, $Password, $Database, $encryption)
+        $tdsClient = [TDSClient.TDS.Client.TDSSQLTestClient]::new($Server, $Port, $AuthenticationType, $User, $Password, $Database, $encryption)
 
         for ($i = 1; $i -le $ConnectionAttempts; ++$i) {
             $log = [System.IO.File]::CreateText($logPath)

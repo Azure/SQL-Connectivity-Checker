@@ -63,8 +63,10 @@ namespace TDSClient.TDS.Login7
         }
 
         /// <summary>
-        /// Gets the total length of the LOGIN7 structure.
+        /// Gets the total length of the LOGIN7 structure. 
         /// </summary>
+
+        //TODO: check if this is correct for both scenarios
         public uint Length
         {
             get
@@ -137,6 +139,13 @@ namespace TDSClient.TDS.Login7
         /// Gets or sets Client ID
         /// </summary>
         public byte[] ClientID { get; set; }
+
+        /// <summary>
+        /// Gets or sets FeatureExt.
+        /// The data block that can be used to inform and/or negotiate features between client and server. 
+        /// It contains data for one or more optional features.
+        /// </summary>
+        public TDSLogin7FeatureExtFedAuth FeatureExt { get; set; }
 
         /// <summary>
         /// Gets or sets the variable portion of this message. A stream of bytes in the order shown, indicates the offset
@@ -228,6 +237,7 @@ namespace TDSClient.TDS.Login7
             LittleEndianUtilities.WriteUInt(stream, this.ClientTimeZone);
             LittleEndianUtilities.WriteUInt(stream, this.ClientLCID);
             TDSLogin7OptionFactory.WriteOptionsToStream(stream, this.Options, this.ClientID);
+            this.FeatureExt.Pack(stream); //here after Options we add feature ext bytes // feature id, featuredatalen, featuredata
         }
 
         /// <summary>

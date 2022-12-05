@@ -40,9 +40,9 @@ namespace TDSClient.TDS.Client
         /// <param name="password">User password</param>
         /// <param name="database">Database to connect to</param>
         /// <param name="encryptionProtocol">Encryption Protocol</param>
-        public TDSSQLTestClient(string server, int port, string userID, string password, string database, SslProtocols encryptionProtocol = SslProtocols.Tls12)
+        public TDSSQLTestClient(string server, int port, string authenticationType, string userID, string password, string database, SslProtocols encryptionProtocol = SslProtocols.Tls12)
         {
-            if (string.IsNullOrEmpty(server) || string.IsNullOrEmpty(userID) || string.IsNullOrEmpty(password) || string.IsNullOrEmpty(database))
+            if (string.IsNullOrEmpty(server) || string.IsNullOrEmpty(userID) || string.IsNullOrEmpty(password) || string.IsNullOrEmpty(database) || string.IsNullOrEmpty(authenticationType))
             {
                 throw new ArgumentNullException();
             }
@@ -56,6 +56,7 @@ namespace TDSClient.TDS.Client
             this.Database = database;
             this.EncryptionProtocol = encryptionProtocol;
             this.connectionAttempt = 0;
+            this.AuthenticationType = authenticationType;
 
             LoggingUtilities.WriteLog($" Instantiating TDSSQLTestClient with the following parameters:");
 
@@ -63,7 +64,13 @@ namespace TDSClient.TDS.Client
             LoggingUtilities.WriteLog($"     Port: {port}.");
             LoggingUtilities.WriteLog($"     UserID: {userID}.");
             LoggingUtilities.WriteLog($"     Database: {database}.");
+            LoggingUtilities.WriteLog($"     Authentication type: {authenticationType}.");
         }
+
+        /// <summary>
+        /// Gets or sets the authentication type.
+        /// </summary>
+        public string AuthenticationType { get; set; }
 
         /// <summary>
         /// Gets or sets the Server.
@@ -164,6 +171,11 @@ namespace TDSClient.TDS.Client
             tdsMessageBody.TypeFlags.OLEDB = TDSLogin7TypeFlagsOLEDB.On;
             tdsMessageBody.TypeFlags.SQLType = TDSLogin7TypeFlagsSQLType.DFLT;
             tdsMessageBody.TypeFlags.ReadOnlyIntent = TDSLogin7TypeFlagsReadOnlyIntent.On;
+
+            if (this.AuthenticationType.Equals("Azure Active Directory Password")) {
+                LoggingUtilities.WriteLog("Adding feature ext for fed auth with adal");
+                tdsMessageBody.FeatureExt = new TDSLogin7FeatureExtFedAuth(TDSFedAuthLibraryType.ADAL, TDSFedAuthEcho.EchoOff, TDSFedAuthADALWorkflow.UsernamePassword);
+            }
 
             this.TdsCommunicator.SendTDSMessage(tdsMessageBody);
 

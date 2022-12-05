@@ -1201,6 +1201,7 @@ function RunConnectivityPolicyTests($port) {
             Server                  = $Server
             Database                = $Database
             Port                    = $port
+            AuthenticationType      = $AuthenticationType
             User                    = $User
             Password                = $Password
             EncryptionProtocol      = $EncryptionProtocol
