@@ -167,5 +167,16 @@ using System.Text;
             // Write into a the stream
             destination.Write(byteString, 0, byteString.Length);
         }
+
+        /// <summary>
+        /// Read signed integer from the packet
+        /// </summary>
+        internal static int ReadInt(Stream source)
+        {
+            return (int)(source.ReadByte())
+                + (int)(source.ReadByte() << 8)
+                + (int)(source.ReadByte() << 16)
+                + (int)(source.ReadByte() << 24);
+        }
     }
 }

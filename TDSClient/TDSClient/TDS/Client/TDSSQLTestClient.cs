@@ -179,9 +179,9 @@ namespace TDSClient.TDS.Client
             tdsMessageBody.TypeFlags.SQLType = TDSLogin7TypeFlagsSQLType.DFLT;
             tdsMessageBody.TypeFlags.ReadOnlyIntent = TDSLogin7TypeFlagsReadOnlyIntent.On;
 
-            if (this.AuthenticationType.Equals("Azure Active Directory Password")) {
-                tdsMessageBody.FeatureExt = new TDSLogin7FeatureExtFedAuth(TDSFedAuthLibraryType.ADAL, TDSFedAuthEcho.EchoOff, TDSFedAuthADALWorkflow.UsernamePassword);
-            }
+            // if (this.AuthenticationType.Equals("Azure Active Directory Password")) {
+            //     tdsMessageBody.FeatureExt = new TDSLogin7FeatureExtFedAuth(TDSFedAuthLibraryType.ADAL, TDSFedAuthEcho.EchoOff, TDSFedAuthADALWorkflow.UsernamePassword);
+            // }
 
             this.TdsCommunicator.SendTDSMessage(tdsMessageBody);
 
