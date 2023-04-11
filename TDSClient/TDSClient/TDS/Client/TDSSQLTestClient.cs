@@ -36,6 +36,7 @@ namespace TDSClient.TDS.Client
         /// </summary>
         /// <param name="server">Server to connect to</param>
         /// <param name="port">Port to connect to</param>
+        /// <param name="authenticationType">Type of authentication to use</param>
         /// <param name="userID">Used ID</param>
         /// <param name="password">User password</param>
         /// <param name="database">Database to connect to</param>
@@ -128,6 +129,12 @@ namespace TDSClient.TDS.Client
 
             tdsMessageBody.AddOption(TDSPreLoginOptionTokenType.Encryption, TDSEncryptionOption.EncryptOff);
             tdsMessageBody.AddOption(TDSPreLoginOptionTokenType.TraceID, new TDSClientTraceID(Guid.NewGuid().ToByteArray(), Guid.NewGuid().ToByteArray(), 0));
+
+            if(this.AuthenticationType.Equals("Azure Active Directory Password"))
+            {
+                tdsMessageBody.AddOption(TDSPreLoginOptionTokenType.FedAuthRequired, TdsPreLoginFedAuthRequiredOption.FedAuthRequired);
+            }
+
             tdsMessageBody.Terminate();
 
             this.TdsCommunicator.SendTDSMessage(tdsMessageBody);
@@ -173,7 +180,6 @@ namespace TDSClient.TDS.Client
             tdsMessageBody.TypeFlags.ReadOnlyIntent = TDSLogin7TypeFlagsReadOnlyIntent.On;
 
             if (this.AuthenticationType.Equals("Azure Active Directory Password")) {
-                LoggingUtilities.WriteLog("Adding feature ext for fed auth with adal");
                 tdsMessageBody.FeatureExt = new TDSLogin7FeatureExtFedAuth(TDSFedAuthLibraryType.ADAL, TDSFedAuthEcho.EchoOff, TDSFedAuthADALWorkflow.UsernamePassword);
             }
 
@@ -199,10 +205,10 @@ namespace TDSClient.TDS.Client
                     LoggingUtilities.WriteLog($"  Encryption enabled.");
                 }
 
-                if (response.Options.Exists(opt => opt.Type == TDSPreLoginOptionTokenType.FedAuthRequired) && response.FedAuthRequired == true)
-                {
-                    throw new NotSupportedException("FedAuth is being requested but the client doesn't support FedAuth.");
-                }
+                // if (response.Options.Exists(opt => opt.Type == TDSPreLoginOptionTokenType.FedAuthRequired) && response.FedAuthRequired == TdsPreLoginFedAuthRequiredOption.FedAuthRequired)
+                // {
+                //     throw new NotSupportedException("FedAuth is being requested but the client doesn't support FedAuth.");
+                // }
             }
             else
             {
@@ -245,6 +251,8 @@ namespace TDSClient.TDS.Client
                         LoggingUtilities.WriteLog($"  ServerName: {errorToken.ServerName}");
                         LoggingUtilities.WriteLog($"  ProcName: {errorToken.ProcName}");
                         LoggingUtilities.WriteLog($"  LineNumber: {errorToken.LineNumber}");
+                        LoggingUtilities.WriteLog($"  State: {errorToken.State}");
+
 
                         if (errorToken.Number == 18456)
                         {
@@ -279,6 +287,7 @@ namespace TDSClient.TDS.Client
         /// </summary>
         public void Connect()
         {
+            Console.WriteLine("Entered connect method");
             DateTime connectStartTime = DateTime.UtcNow;
             bool preLoginDone = false;
             var originalServerName = this.Server;

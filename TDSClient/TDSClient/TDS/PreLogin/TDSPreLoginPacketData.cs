@@ -79,7 +79,7 @@ namespace TDSClient.TDS.PreLogin
         /// <summary>
         /// Gets or sets a value indicating whether Federated Authentication is required
         /// </summary>
-        public bool FedAuthRequired { get; set; }
+        public TdsPreLoginFedAuthRequiredOption FedAuthRequired { get; set; }
 
         /// <summary>
         /// Gets or sets Nonce
@@ -145,9 +145,9 @@ namespace TDSClient.TDS.PreLogin
                     {
                         if (data is bool)
                         {
-                            this.FedAuthRequired = (bool)data;
+                            this.FedAuthRequired = (TdsPreLoginFedAuthRequiredOption)data;
 
-                            LoggingUtilities.WriteLog($"  Adding PreLogin option {type} [{(bool)data}].");
+                            LoggingUtilities.WriteLog($"  Adding PreLogin option {type} [{this.FedAuthRequired}].");
                         }
                         else
                         {
@@ -276,15 +276,7 @@ namespace TDSClient.TDS.PreLogin
 
                     case TDSPreLoginOptionTokenType.FedAuthRequired:
                         {
-                            if (this.FedAuthRequired)
-                            {
-                                stream.WriteByte(0x01);
-                            }
-                            else
-                            {
-                                stream.WriteByte(0x00);
-                            }
-
+                            stream.WriteByte((byte)this.FedAuthRequired);
                             break;
                         }
 
@@ -378,7 +370,7 @@ namespace TDSClient.TDS.PreLogin
 
                     case TDSPreLoginOptionTokenType.FedAuthRequired:
                         {
-                            this.FedAuthRequired = stream.ReadByte() == 1;
+                            this.FedAuthRequired = (TdsPreLoginFedAuthRequiredOption)stream.ReadByte();
                             break;
                         }
 

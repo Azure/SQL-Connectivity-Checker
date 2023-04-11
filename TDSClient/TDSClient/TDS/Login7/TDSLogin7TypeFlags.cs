@@ -91,6 +91,24 @@ namespace TDSClient.TDS.Login7
         public TDSLogin7TypeFlagsReadOnlyIntent ReadOnlyIntent { get; set; }
 
         /// <summary>
+        /// Default constructor
+        /// </summary>
+        public TDSLogin7TypeFlags()
+        {
+        }
+
+        /// <summary>
+        /// Initialization constructor
+        /// </summary>
+        public TDSLogin7TypeFlags(byte flags)
+        {
+            // Parse bytes as per TDS specification, section 2.2.6.3 LOGIN 7
+            SQLType = (TDSLogin7TypeFlagsSQLType)(flags & 0xF);
+            OLEDB = (TDSLogin7TypeFlagsOLEDB)((flags >> 4) & 0x1);
+            ReadOnlyIntent = (TDSLogin7TypeFlagsReadOnlyIntent)((flags >> 5) & 0x1);
+        }
+
+        /// <summary>
         /// Determines whether the specified object is equal to the current object.
         /// </summary>
         /// <param name="obj">The object to compare with the current object.</param>

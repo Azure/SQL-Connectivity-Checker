@@ -195,6 +195,28 @@ namespace TDSClient.TDS.Login7
         }
 
         /// <summary>
+        /// Initialization constructor
+        /// </summary>
+        public TDSLogin7OptionFlags1()
+        {
+        }
+
+        /// <summary>
+        /// Initialization constructor
+        /// </summary>
+        public TDSLogin7OptionFlags1(byte flags)
+        {
+            // Parse bytes as per TDS specification, section 2.2.6.3 LOGIN 7
+            ByteOrder = (TDSLogin7OptionFlags1ByteOrder)(flags & 0x1);
+            Char = (TDSLogin7OptionFlags1Char)((flags >> 1) & 0x1);
+            Float = (TDSLogin7OptionFlags1Float)((flags >> 2) & 0x3);
+            DumpLoad = (TDSLogin7OptionFlags1DumpLoad)((flags >> 4) & 0x1);
+            UseDB = (TDSLogin7OptionFlags1UseDB)((flags >> 5) & 0x1);
+            Database = (TDSLogin7OptionFlags1Database)((flags >> 6) & 0x1);
+            SetLang = (TDSLogin7OptionFlags1SetLang)((flags >> 7) & 0x1);
+        }
+
+        /// <summary>
         /// Determines whether the specified object is equal to the current object.
         /// </summary>
         /// <param name="other">The object to compare with the current object.</param>

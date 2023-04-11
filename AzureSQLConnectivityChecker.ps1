@@ -12,6 +12,8 @@ using namespace System.Net
 using namespace System.net.Sockets
 using namespace System.Collections.Generic
 using namespace System.Diagnostics
+using namespace System.Diagnostics.Tracing
+using namespace Microsoft.Data.SqlClient
 
 # Parameter region for when script is run directly
 # Supports Single, Elastic Pools and Managed Instance (please provide FQDN, MI public endpoint is supported)
@@ -1245,6 +1247,7 @@ function RunConnectivityPolicyTests($port) {
         Set-Location $logsFolderName
         Set-Location $outFolderName
         $logPath = Join-Path ((Get-Location).Path) 'AdvancedTests_LastRunLog.txt'
+        Write-Host "Reading from conn checker " + $logPath
         $result = $([System.IO.File]::ReadAllText($logPath))
         $routingMatch = [Regex]::Match($result, "Routing to: (.*)\.")
 
@@ -1361,9 +1364,9 @@ function RunConnectionToDatabaseTestsAndAdvancedTests($Server, $dbPort, $Databas
                     TestConnectionToDatabase $Server $dbPort $Database $AuthenticationType $User $Password | Out-Null
                 }
             }
-        }
+        } 
 
-        #Advanced Connectivity Tests
+        # Advanced Connectivity Tests
         if ($RunAdvancedConnectivityPolicyTests) {
             RunConnectivityPolicyTests $dbPort
         }

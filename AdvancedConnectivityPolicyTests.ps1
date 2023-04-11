@@ -189,7 +189,7 @@ function TrackWarningAnonymously ([String] $warningCode) {
 $parameters = $args[0]
 $Server = $parameters['Server']
 $Port = $parameters['Port']
-$AuthenticationType = $parameters['AuthenticatonType']
+$AuthenticationType = $parameters['AuthenticationType']
 $User = $parameters['User']
 $Password = $parameters['Password']
 $Database = $parameters['Database']
@@ -237,7 +237,9 @@ try {
     $logPath = Join-Path ((Get-Location).Path) 'AdvancedTests_LastRunLog.txt'
     $summaryLogPath = Join-Path ((Get-Location).Path) 'AdvancedTests_SummaryLog.txt'
     $summaryLog = [System.IO.File]::CreateText($summaryLogPath)
+
     [TDSClient.TDS.Utilities.LoggingUtilities]::SetSummaryLog($summaryLog)
+
 
     try {
         switch ($EncryptionProtocol) {
@@ -263,17 +265,22 @@ try {
                 $encryption = [System.Security.Authentication.SslProtocols]::Tls12 -bor [System.Security.Authentication.SslProtocols]::Tls11 -bor [System.Security.Authentication.SslProtocols]::Default
             }
         }
+        Write-Host $Server + $Port + $AuthenticationType + $User + $Password + $Database + $encryption
         $tdsClient = [TDSClient.TDS.Client.TDSSQLTestClient]::new($Server, $Port, $AuthenticationType, $User, $Password, $Database, $encryption)
 
         for ($i = 1; $i -le $ConnectionAttempts; ++$i) {
+            Write-Host "Creating from advaned conn checker " + $logPath
             $log = [System.IO.File]::CreateText($logPath)
             [TDSClient.TDS.Utilities.LoggingUtilities]::SetVerboseLog($log)
+            Write-Host "Still here"
+
 
             $tdsClient.Connect()
             $tdsClient.Disconnect()
 
             $log.Close()
             [TDSClient.TDS.Utilities.LoggingUtilities]::ClearVerboseLog()
+            Write-Host "Reading from advanced conn checker " + $logPath
             $result = $([System.IO.File]::ReadAllText($logPath))
             Write-Host $result
             Add-Content -Path $fullLogPath -Value $result

@@ -123,6 +123,26 @@ namespace TDSClient.TDS.Login7
         public TDSLogin7OptionFlags2IntSecurity IntSecurity { get; set; }
 
         /// <summary>
+        /// Default construgtor
+        /// </summary>
+        public TDSLogin7OptionFlags2()
+        {
+        }
+
+        /// <summary>
+        /// Initialization constructor
+        /// </summary>
+        public TDSLogin7OptionFlags2(byte flags)
+        {
+            // Parse bytes as per TDS specification, section 2.2.6.3 LOGIN 7
+            Language = (TDSLogin7OptionFlags2Language)(flags & 0x1);
+            ODBC = (TDSLogin7OptionFlags2ODBC)((flags >> 1) & 0x1);
+            // Skipping deprecated fTranBoundary and fCacheConnect
+            UserType = (TDSLogin7OptionFlags2UserType)((flags >> 4) & 0x7);
+            IntSecurity = (TDSLogin7OptionFlags2IntSecurity)((flags >> 7) & 0x1);
+        }
+
+        /// <summary>
         /// Determines whether the specified object is equal to the current object.
         /// </summary>
         /// <param name="obj">The object to compare with the current object.</param>
