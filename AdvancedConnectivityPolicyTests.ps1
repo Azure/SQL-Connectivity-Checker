@@ -225,14 +225,17 @@ try {
 
     $TDSClientPath = Join-Path ((Get-Location).Path) "TDSClient.dll"
     if ($Local) {
-        Copy-Item -Path $($LocalPath + '/netstandard2.0/TDSClient.dll') -Destination $TDSClientPath
+        Copy-Item -Path $($LocalPath + 'netstandard2.0\TDSClient.dll') -Destination $TDSClientPath
     }
     else {
         Invoke-WebRequest -Uri $('https://github.com/Azure/SQL-Connectivity-Checker/raw/' + $RepositoryBranch + '/netstandard2.0/TDSClient.dll') -OutFile $TDSClientPath -UseBasicParsing
     }
-    $assembly = [System.IO.File]::ReadAllBytes($TDSClientPath)
+    $assembly = [System.IO.File]::ReadAllBytes("D:\Connectivity checker\SQL-Connectivity-Checker\netstandard2.0\TDSClient.dll")
     [System.Reflection.Assembly]::Load($assembly) | Out-Null
 
+
+    Write-Host "here1"
+    Write-Host $TDSClientPath
     $fullLogPath = Join-Path ((Get-Location).Path) 'AdvancedTests_FullLog.txt'
     $logPath = Join-Path ((Get-Location).Path) 'AdvancedTests_LastRunLog.txt'
     $summaryLogPath = Join-Path ((Get-Location).Path) 'AdvancedTests_SummaryLog.txt'

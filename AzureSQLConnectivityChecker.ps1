@@ -20,10 +20,10 @@ using namespace Microsoft.Data.SqlClient
 # Supports Azure Synapse / Azure SQL Data Warehouse (*.sql.azuresynapse.net / *.database.windows.net)
 # Supports Public Cloud (*.database.windows.net), Azure China (*.database.chinacloudapi.cn), Azure Germany (*.database.cloudapi.de) and Azure Government (*.database.usgovcloudapi.net)
 $AuthenticationType = '' # Set the type of authentication you wish to use: 'Azure Active Directory Password', 'Azure Active Directory Integrated', 'SQL Server Authentication' (SQL Authentication will be used by default if nothing is set)
-$Server = '.database.windows.net' # or any other supported FQDN
+$Server = 'akvtest.public.10fbf4e79f04.database.windows.net,3342' # or any other supported FQDN
 $Database = ''  # Set the name of the database you wish to test, 'master' will be used by default if nothing is set
-$User = ''  # Set the login username you wish to use, 'AzSQLConnCheckerUser' will be used by default if nothing is set
-$Password = ''  # Set the login password you wish to use, 'AzSQLConnCheckerPassword' will be used by default if nothing is set
+$User = 'CloudSAe1499661'  # Set the login username you wish to use, 'AzSQLConnCheckerUser' will be used by default if nothing is set
+$Password = 'bogdanius 999000#'  # Set the login password you wish to use, 'AzSQLConnCheckerPassword' will be used by default if nothing is set
 # In case you want to hide the password (like during a remote session), uncomment the 2 lines below (by removing leading #) and password will be asked during execution
 # $Credentials = Get-Credential -Message "Credentials to test connections to the database (optional)" -User $User
 # $Password = $Credentials.GetNetworkCredential().password
@@ -44,6 +44,7 @@ if ($null -ne $parameters) {
     $Database = $parameters['Database']
     $User = $parameters['User']
     $Password = $parameters['Password']
+    $LocalPath = "D:\Connectivity checker\SQL-Connectivity-Checker\"
     if ($null -ne $parameters['SendAnonymousUsageData']) {
         $SendAnonymousUsageData = $parameters['SendAnonymousUsageData']
     }
@@ -59,9 +60,9 @@ if ($null -ne $parameters) {
     if ($null -ne $parameters['Local']) {
         $Local = $parameters['Local']
     }
-    if ($null -ne $parameters['LocalPath']) {
-        $LocalPath = $parameters['LocalPath']
-    }
+    # if ($null -ne $parameters['LocalPath']) {
+    #     $LocalPath = $parameters['LocalPath']
+    # }
     if ($null -ne $parameters['RepositoryBranch']) {
         $RepositoryBranch = $parameters['RepositoryBranch']
     }
@@ -603,7 +604,11 @@ function TestConnectionToDatabase($Server, $gatewayPort, $Database, $Authenticat
     Write-Host ([string]::Format("Testing connecting to {0} database (please wait):", $Database)) -ForegroundColor Green
     Try {
         $masterDbConnection = [System.Data.SqlClient.SQLConnection]::new()
-        $masterDbConnection.ConnectionString = GetConnectionString $Server $gatewayPort $Database $AuthenticationType $User $Password
+        Write-Host $Database
+        Write-Host $AuthenticationType
+        Write-Host $User
+        Write-Host $Password
+        $masterDbConnection.ConnectionString = GetConnectionString $Server $gatewayPort $Database $AuthenticationType $User $Password # here we can use both AAD and non-AAD
         $masterDbConnection.Open()
         Write-Host ([string]::Format(" The connection attempt succeeded", $Database))
         [void]$summaryLog.AppendLine([string]::Format(" The connection attempt to {0} database succeeded", $Database))
@@ -1219,27 +1224,27 @@ function RunConnectivityPolicyTests($port) {
         }
 
         if ($Local) {
-            Copy-Item -Path $($LocalPath + './AdvancedConnectivityPolicyTests.ps1') -Destination ".\AdvancedConnectivityPolicyTests.ps1"
+            Copy-Item -Path $('D:\Connectivity checker\SQL-Connectivity-Checker\AdvancedConnectivityPolicyTests.ps1') -Destination ".\AdvancedConnectivityPolicyTests.ps1"
         }
-        else {
-            try {
-                [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls11 -bor [Net.SecurityProtocolType]::Tls
-                Invoke-WebRequest -Uri $('https://raw.githubusercontent.com/Azure/SQL-Connectivity-Checker/' + $RepositoryBranch + '/AdvancedConnectivityPolicyTests.ps1') -OutFile ".\AdvancedConnectivityPolicyTests.ps1" -UseBasicParsing
-            }
-            catch {
-                $msg = $CannotDownloadAdvancedScript
-                Write-Host $msg -Foreground Yellow
-                [void]$summaryLog.AppendLine()
-                [void]$summaryLog.AppendLine($msg)
-                [void]$summaryRecommendedAction.AppendLine()
-                [void]$summaryRecommendedAction.AppendLine($msg)
-                TrackWarningAnonymously 'Advanced|CannotDownloadScript'
-                return
-            }
-        }
+        # else {
+        #     try {
+        #         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls11 -bor [Net.SecurityProtocolType]::Tls
+        #         Invoke-WebRequest -Uri $('https://raw.githubusercontent.com/Azure/SQL-Connectivity-Checker/' + $RepositoryBranch + '/AdvancedConnectivityPolicyTests.ps1') -OutFile ".\AdvancedConnectivityPolicyTests.ps1" -UseBasicParsing
+        #     }
+        #     catch {
+        #         $msg = $CannotDownloadAdvancedScript
+        #         Write-Host $msg -Foreground Yellow
+        #         [void]$summaryLog.AppendLine()
+        #         [void]$summaryLog.AppendLine($msg)
+        #         [void]$summaryRecommendedAction.AppendLine()
+        #         [void]$summaryRecommendedAction.AppendLine($msg)
+        #         TrackWarningAnonymously 'Advanced|CannotDownloadScript'
+        #         return
+        #     }
+        # }
 
         TrackWarningAnonymously 'Advanced|Invoked'
-        $job = Start-Job -ArgumentList $jobParameters -FilePath ".\AdvancedConnectivityPolicyTests.ps1"
+        $job = Start-Job -ArgumentList $jobParameters -FilePath "D:\Connectivity checker\SQL-Connectivity-Checker\AdvancedConnectivityPolicyTests.ps1"
         Wait-Job $job | Out-Null
         Receive-Job -Job $job
 
@@ -1446,7 +1451,7 @@ try {
         Write-Host
         Write-Host 'Parameters' -ForegroundColor Yellow
 
-        if ($null -ne $Database) {
+        if ($null -ne $AuthenticationType) {
             Write-Host ' Authentication type:' $AuthenticationType -ForegroundColor Yellow
         }
         else {

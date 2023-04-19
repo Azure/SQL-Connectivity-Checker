@@ -143,7 +143,7 @@ namespace TDSClient.TDS.PreLogin
 
                 case TDSPreLoginOptionTokenType.FedAuthRequired:
                     {
-                        if (data is bool)
+                        if (data is TdsPreLoginFedAuthRequiredOption)
                         {
                             this.FedAuthRequired = (TdsPreLoginFedAuthRequiredOption)data;
 

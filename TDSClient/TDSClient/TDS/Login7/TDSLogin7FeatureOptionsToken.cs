@@ -58,29 +58,6 @@ namespace TDSClient.TDS.Login7
 							optionToken = new TDSLogin7FedAuthOptionToken();
 							break;
 						}
-					// case TDSFeatureID.SessionRecovery:
-					// 	{
-					// 		// Session recovery
-					// 		optionToken = new TDSLogin7SessionRecoveryOptionToken();
-					// 		break;
-					// 	}
-					// case TDSFeatureID.ClientTelemetry:
-					// 	{
-					// 		// Client telemetry
-					// 		optionToken = new TDSLogin7ClientTelemetryOptionToken();
-					// 		break;
-					// 	}
-					// case TDSFeatureID.DataClassification:
-					// 	{
-					// 		// Data classification
-					// 		optionToken = new TDSLogin7DataClassificationOptionToken(dataClassificationVersion);
-					// 		break;
-					// 	}
-					// case TDSFeatureID.SupportUTF8:
-					// 	{
-					// 		optionToken = new TDSLogin7ClientUTF8SupportOptionToken();
-					// 		break;
-					// 	}
 					case TDSFeatureID.Terminator:
 						{
 							// Do nothing

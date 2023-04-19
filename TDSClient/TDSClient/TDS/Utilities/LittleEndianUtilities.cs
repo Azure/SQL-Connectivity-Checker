@@ -6,17 +6,20 @@
 
 namespace TDSClient.TDS.Utilities
 {
-    using System.IO;
-    using System;
+using System.IO;
+using System;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
+
 
     /// <summary>
     /// Utility class used for read and write operations on a stream containing data in little-endian byte order
     /// </summary>
     public static class LittleEndianUtilities
     {
+
+
         /// <summary>
         /// Used to write value to stream in little endian order.
         /// </summary>
@@ -178,5 +181,17 @@ using System.Text;
                 + (int)(source.ReadByte() << 16)
                 + (int)(source.ReadByte() << 24);
         }
+
+        /// <summary>
+        /// Write signed integer into the stream
+        /// </summary>
+        internal static void WriteInt(Stream destination, int value)
+        {
+            destination.WriteByte((byte)value);
+            destination.WriteByte((byte)(value >> 8));
+            destination.WriteByte((byte)(value >> 16));
+            destination.WriteByte((byte)(value >> 24));
+        }
+
     }
 }

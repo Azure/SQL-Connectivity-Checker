@@ -209,7 +209,9 @@ namespace TDSClient.TDS.Comms
                         }
 
                         this.innerTdsStream.CurrentOutboundMessageType = TDSMessageType.TDS7Login;
+
                         break;
+
                     }
 
                 case TDSCommunicatorState.LoggedIn:
@@ -223,7 +225,9 @@ namespace TDSClient.TDS.Comms
                     }
             }
 
+
             var buffer = new byte[data.Length()];
+
             data.Pack(new MemoryStream(buffer));
 
             this.innerStream.Write(buffer, 0, buffer.Length);

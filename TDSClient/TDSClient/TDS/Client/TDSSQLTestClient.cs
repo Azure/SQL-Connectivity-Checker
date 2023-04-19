@@ -18,6 +18,7 @@ namespace TDSClient.TDS.Client
     using TDSClient.TDS.PreLogin;
     using TDSClient.TDS.Tokens;
     using TDSClient.TDS.Utilities;
+    using TDSClient.TDS.Interfaces;
 
     /// <summary>
     /// SQL Test Client used to run diagnostics on SQL Server using TDS protocol.
@@ -130,6 +131,7 @@ namespace TDSClient.TDS.Client
             tdsMessageBody.AddOption(TDSPreLoginOptionTokenType.Encryption, TDSEncryptionOption.EncryptOff);
             tdsMessageBody.AddOption(TDSPreLoginOptionTokenType.TraceID, new TDSClientTraceID(Guid.NewGuid().ToByteArray(), Guid.NewGuid().ToByteArray(), 0));
 
+            // add fed auth required option if we are using AAD authentication
             if(this.AuthenticationType.Equals("Azure Active Directory Password"))
             {
                 tdsMessageBody.AddOption(TDSPreLoginOptionTokenType.FedAuthRequired, TdsPreLoginFedAuthRequiredOption.FedAuthRequired);
@@ -144,19 +146,28 @@ namespace TDSClient.TDS.Client
         /// <summary>
         /// Sends Login7 message to the server
         /// </summary>
-        public void SendLogin7()
+        public void SendLogin7(bool isSqlAuth)
         {
             LoggingUtilities.AddEmptyLine();
             LoggingUtilities.WriteLog($" Building Login7 message.");
 
             var tdsMessageBody = new TDSLogin7PacketData();
 
-            tdsMessageBody.AddOption("HostName", Environment.MachineName);
-            tdsMessageBody.AddOption("UserName", this.UserID);
-            tdsMessageBody.AddOption("ServerName", this.Server);
-            tdsMessageBody.AddOption("Password", this.Password);
-            tdsMessageBody.AddOption("Database", this.Database);
-            tdsMessageBody.AddOption("CltIntName", "TDSSQLTestClient");
+            tdsMessageBody.HostName = Environment.MachineName;
+            tdsMessageBody.CltIntName = "TDSSQLTestClient";
+
+            tdsMessageBody.ClientTimeZone = 480;
+
+            if(isSqlAuth)
+            {
+                tdsMessageBody.UserID = this.UserID;
+                tdsMessageBody.Password = this.Password;
+            }
+
+            tdsMessageBody.ServerName = this.Server;
+            LoggingUtilities.WriteLog(tdsMessageBody.ServerName);
+
+            tdsMessageBody.Database = this.Database;
 
             tdsMessageBody.OptionFlags1.Char = TDSLogin7OptionFlags1Char.CharsetASCII;
             tdsMessageBody.OptionFlags1.Database = TDSLogin7OptionFlags1Database.InitDBFatal;
@@ -166,6 +177,26 @@ namespace TDSClient.TDS.Client
             tdsMessageBody.OptionFlags1.ByteOrder = TDSLogin7OptionFlags1ByteOrder.OrderX86;
             tdsMessageBody.OptionFlags1.UseDB = TDSLogin7OptionFlags1UseDB.UseDBOff;
 
+            if (this.AuthenticationType.Contains("Integrated"))
+            {
+                // Enable integrated authentication
+                tdsMessageBody.OptionFlags2.IntSecurity = TDSLogin7OptionFlags2IntSecurity.IntegratedSecurityOn;
+
+                // // Generate client context
+				// (Context as GenericTDSClientContext).NTUserAuthenticationContext = SSPIContext.CreateClient();
+
+				// // Create a request mesage
+				// SSPIResponse request = (Context as GenericTDSClientContext).NTUserAuthenticationContext.StartClientAuthentication(Context.ServerHost, Context.ServerPort);
+
+				// // Put SSPI block into the login packet
+				// loginToken.SSPI = request.Payload;
+            }
+            else
+            {
+                // Turn off integrated authentication
+                tdsMessageBody.OptionFlags2.IntSecurity = TDSLogin7OptionFlags2IntSecurity.IntegratedSecurityOff;
+            }
+
             tdsMessageBody.OptionFlags2.Language = TDSLogin7OptionFlags2Language.InitLangFatal;
             tdsMessageBody.OptionFlags2.ODBC = TDSLogin7OptionFlags2ODBC.OdbcOn;
             tdsMessageBody.OptionFlags2.UserType = TDSLogin7OptionFlags2UserType.UserNormal;
@@ -173,15 +204,31 @@ namespace TDSClient.TDS.Client
             tdsMessageBody.OptionFlags3.ChangePassword = TDSLogin7OptionFlags3ChangePassword.NoChangeRequest;
             tdsMessageBody.OptionFlags3.UserInstanceProcess = TDSLogin7OptionFlags3UserInstanceProcess.DontRequestSeparateProcess;
             tdsMessageBody.OptionFlags3.UnknownCollationHandling = TDSLogin7OptionFlags3UnknownCollationHandling.On;
-            tdsMessageBody.OptionFlags3.Extension = TDSLogin7OptionFlags3Extension.DoesntExist;
+
+            if (isSqlAuth)
+            {
+                tdsMessageBody.OptionFlags3.Extension = TDSLogin7OptionFlags3Extension.DoesntExist;
+            }
+            else
+            {
+                tdsMessageBody.OptionFlags3.Extension = TDSLogin7OptionFlags3Extension.Exists;
+
+                TDSLogin7FedAuthOptionToken featureOption =
+				    CreateLogin7FederatedAuthenticationFeatureExt(TDSFedAuthLibraryType.ADAL, TDSFedAuthADALWorkflow.UserPassword);
+
+                // Check if we have a feature extension
+			    if (tdsMessageBody.FeatureExt == null)
+			    {
+				    // Create feature extension before using it
+                    LoggingUtilities.WriteLog("Adding feature ext");
+				    tdsMessageBody.FeatureExt = new TDSLogin7FeatureOptionsToken();
+			    }
+                tdsMessageBody.FeatureExt.Add(featureOption);
+            }
 
             tdsMessageBody.TypeFlags.OLEDB = TDSLogin7TypeFlagsOLEDB.On;
             tdsMessageBody.TypeFlags.SQLType = TDSLogin7TypeFlagsSQLType.DFLT;
             tdsMessageBody.TypeFlags.ReadOnlyIntent = TDSLogin7TypeFlagsReadOnlyIntent.On;
-
-            // if (this.AuthenticationType.Equals("Azure Active Directory Password")) {
-            //     tdsMessageBody.FeatureExt = new TDSLogin7FeatureExtFedAuth(TDSFedAuthLibraryType.ADAL, TDSFedAuthEcho.EchoOff, TDSFedAuthADALWorkflow.UsernamePassword);
-            // }
 
             this.TdsCommunicator.SendTDSMessage(tdsMessageBody);
 
@@ -189,14 +236,34 @@ namespace TDSClient.TDS.Client
         }
 
         /// <summary>
+		/// Creates Fedauth feature extension for the login7 packet.
+		/// </summary>
+		protected virtual TDSLogin7FedAuthOptionToken CreateLogin7FederatedAuthenticationFeatureExt(TDSFedAuthLibraryType libraryType, TDSFedAuthADALWorkflow workflow = TDSFedAuthADALWorkflow.EMPTY)
+		{
+			// Create feature option
+			TDSLogin7FedAuthOptionToken featureOption =
+				new TDSLogin7FedAuthOptionToken(TdsPreLoginFedAuthRequiredOption.FedAuthRequired,
+												libraryType,
+												null,
+												null,
+												null /*channelBindingToken*/,
+												false /*fIncludeSignature*/,
+												libraryType == TDSFedAuthLibraryType.ADAL ? true : false /*fRequestingFurtherInfo*/,
+												workflow);
+
+			return featureOption;
+		}
+
+        /// <summary>
         /// Receive PreLogin response from the server.
         /// </summary>
-        public void ReceivePreLoginResponse()
+        public ITDSPacketData ReceivePreLoginResponse()
         {
             LoggingUtilities.AddEmptyLine();
             LoggingUtilities.WriteLog($" Waiting for PreLogin response.");
 
-            if (this.TdsCommunicator.ReceiveTDSMessage() is TDSPreLoginPacketData response)
+            ITDSPacketData preLoginResponse = this.TdsCommunicator.ReceiveTDSMessage();
+            if (preLoginResponse is TDSPreLoginPacketData response)
             {
                 if (response.Options.Exists(opt => opt.Type == TDSPreLoginOptionTokenType.Encryption) && response.Encryption == TDSEncryptionOption.EncryptReq)
                 {
@@ -204,11 +271,6 @@ namespace TDSClient.TDS.Client
                     this.TdsCommunicator.EnableEncryption(this.Server, this.EncryptionProtocol);
                     LoggingUtilities.WriteLog($"  Encryption enabled.");
                 }
-
-                // if (response.Options.Exists(opt => opt.Type == TDSPreLoginOptionTokenType.FedAuthRequired) && response.FedAuthRequired == TdsPreLoginFedAuthRequiredOption.FedAuthRequired)
-                // {
-                //     throw new NotSupportedException("FedAuth is being requested but the client doesn't support FedAuth.");
-                // }
             }
             else
             {
@@ -216,6 +278,7 @@ namespace TDSClient.TDS.Client
             }
 
             LoggingUtilities.WriteLog($" PreLogin response received.");
+            return preLoginResponse;
         }
 
         /// <summary>
@@ -311,11 +374,27 @@ namespace TDSClient.TDS.Client
                     LoggingUtilities.WriteLog($"   Remote endpoint is {this.Client.Client.RemoteEndPoint}");
                     connectStartTime = DateTime.UtcNow;
                     this.SendPreLogin();
-                    this.ReceivePreLoginResponse();
+                    TDSPreLoginPacketData preLoginResponse = (TDSPreLoginPacketData)this.ReceivePreLoginResponse();
+
+                    if (preLoginResponse.Options.Exists(opt => opt.Type == TDSPreLoginOptionTokenType.FedAuthRequired) && preLoginResponse.FedAuthRequired == TdsPreLoginFedAuthRequiredOption.FedAuthRequired)
+                    {
+                        LoggingUtilities.WriteLog($"  Server requires fed auth");
+                    }
+
                     preLoginDone = true;
                     LoggingUtilities.WriteLog($" PreLogin phase took {(int)(DateTime.UtcNow - connectStartTime).TotalMilliseconds} milliseconds.");
-                    this.SendLogin7();
-                    this.ReceiveLogin7Response();
+
+                    if (preLoginResponse.Options.Exists(opt => opt.Type == TDSPreLoginOptionTokenType.FedAuthRequired) && preLoginResponse.FedAuthRequired == TdsPreLoginFedAuthRequiredOption.FedAuthRequired)
+                    {
+                        this.SendLogin7(false);
+                    }
+                    else 
+                    {
+                        this.SendLogin7(true);
+                    }
+
+                    //this.SendLogin7();
+                    //this.ReceiveLogin7Response();
 
                     if (this.reconnect)
                     {
