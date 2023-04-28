@@ -13,12 +13,12 @@ namespace TDSClient.TDS.FedAuthInfo
         /// <summary>
         /// Information Data Length
         /// </summary>
-        private uint m_infoDataLength;
+        public uint m_infoDataLength;
 
         /// <summary>
         /// STS URL
         /// </summary>
-        private byte[] m_stsUrl;
+        public byte[] m_stsUrl;
 
         /// <summary>
         /// Return the FedAuthInfo Id.

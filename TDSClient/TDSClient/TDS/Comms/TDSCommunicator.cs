@@ -18,6 +18,7 @@ namespace TDSClient.TDS.Comms
     using TDSClient.TDS.PreLogin;
     using TDSClient.TDS.Tokens;
     using TDSClient.TDS.Utilities;
+    using TDSClient.TDS.FedAuthInfo;
 
     /// <summary>
     /// Class that implements TDS communication.
@@ -169,17 +170,16 @@ namespace TDSClient.TDS.Comms
                 case TDSCommunicatorState.SentLogin7RecordWithCompleteAuthToken:
                     {
                         result = new TDSTokenStreamPacketData();
-
                         result.Unpack(new MemoryStream(resultBuffer));
                         break;
                     }
 
                 case TDSCommunicatorState.SentLogin7RecordWithoutAuthToken:
-                {
-                    result = new TDSTokenStreamPacketData();
-                    result.Unpack(new MemoryStream(resultBuffer));
-                    break;
-                }
+                    {
+                        result = new TDSTokenStreamPacketData();
+                        result.Unpack(new MemoryStream(resultBuffer));
+                        break;
+                    }
 
                 default:
                     {
@@ -241,10 +241,6 @@ namespace TDSClient.TDS.Comms
             data.Pack(ms);
 
             this.innerStream.Write(buffer, 0, buffer.Length);
-
-            foreach(byte part in buffer) {
-                LoggingUtilities.WriteLog(part.ToString());
-            }
 
             switch (this.communicatorState)
             {

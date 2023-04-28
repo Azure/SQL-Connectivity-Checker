@@ -188,7 +188,7 @@ namespace TDSClient.TDS.Login7
         /// </summary>
         public uint ClientLCID { get; set; }
 
-                /// <summary>
+        /// <summary>
         /// Client host name
         /// </summary>
         public string HostName { get; set; }
@@ -391,39 +391,29 @@ namespace TDSClient.TDS.Login7
             variableProperties.Add(new TDSLogin7TokenOffsetProperty(GetType().GetProperty("HostName"), FixedPacketLength, (ushort)(string.IsNullOrEmpty(HostName) ? 0 : HostName.Length)));
             LittleEndianUtilities.WriteUShort(destination, (ushort)variableProperties.Last().Position);
             LittleEndianUtilities.WriteUShort(destination, (ushort)variableProperties.Last().Length);
-            LoggingUtilities.WriteLog(FixedPacketLength.ToString());
 
             // Write user name and password
             variableProperties.Add(new TDSLogin7TokenOffsetProperty(GetType().GetProperty("UserID"), (ushort)(variableProperties.Last().Position + variableProperties.Last().Length * 2), (ushort)(string.IsNullOrEmpty(UserID) ? 0 : UserID.Length)));
             LittleEndianUtilities.WriteUShort(destination, (ushort)variableProperties.Last().Position);
             LittleEndianUtilities.WriteUShort(destination, (ushort)variableProperties.Last().Length);
-            LoggingUtilities.WriteLog(variableProperties.Last().Position.ToString());
-
 
             variableProperties.Add(new TDSLogin7TokenOffsetProperty(GetType().GetProperty("Password"), (ushort)(variableProperties.Last().Position + variableProperties.Last().Length * 2), (ushort)(string.IsNullOrEmpty(Password) ? 0 : Password.Length)));
             LittleEndianUtilities.WriteUShort(destination, (ushort)variableProperties.Last().Position);
             LittleEndianUtilities.WriteUShort(destination, (ushort)variableProperties.Last().Length);
-            LoggingUtilities.WriteLog(variableProperties.Last().Position.ToString());
-
 
             // Write application name
             variableProperties.Add(new TDSLogin7TokenOffsetProperty(GetType().GetProperty("ApplicationName"), (ushort)(variableProperties.Last().Position + variableProperties.Last().Length * 2), (ushort)(string.IsNullOrEmpty(ApplicationName) ? 0 : ApplicationName.Length)));
             LittleEndianUtilities.WriteUShort(destination, (ushort)variableProperties.Last().Position);
             LittleEndianUtilities.WriteUShort(destination, (ushort)variableProperties.Last().Length);
-            LoggingUtilities.WriteLog(variableProperties.Last().Position.ToString());
-
 
             // Write server name
             variableProperties.Add(new TDSLogin7TokenOffsetProperty(GetType().GetProperty("ServerName"), (ushort)(variableProperties.Last().Position + variableProperties.Last().Length * 2), (ushort)(string.IsNullOrEmpty(ServerName) ? 0 : ServerName.Length)));
             LittleEndianUtilities.WriteUShort(destination, (ushort)variableProperties.Last().Position);
             LittleEndianUtilities.WriteUShort(destination, (ushort)variableProperties.Last().Length);
-            LoggingUtilities.WriteLog(variableProperties.Last().Position.ToString());
-
 
             // Check if we have a feature extension block
             if (FeatureExt != null)
             {
-                LoggingUtilities.WriteLog("Adding feature extension position and length");
                 // Write the offset of the feature extension offset (pointer to pointer)
                 variableProperties.Add(new TDSLogin7TokenOffsetProperty(GetType().GetProperty("FeatureExt"), (ushort)(variableProperties.Last().Position + variableProperties.Last().Length * 2), sizeof(uint) / 2, true));  // Should be 4 bytes, devided by 2 because the next guy multiplies by 2
 
@@ -436,29 +426,22 @@ namespace TDSClient.TDS.Login7
                 LittleEndianUtilities.WriteUShort(destination, 0);
                 LittleEndianUtilities.WriteUShort(destination, 0);
             }
-            LoggingUtilities.WriteLog(variableProperties.Last().Position.ToString());
 
             // Write client library name
             // We do not need to account for skipped unused bytes here because they're already accounted in fixedPacketLength
             variableProperties.Add(new TDSLogin7TokenOffsetProperty(GetType().GetProperty("LibraryName"), (ushort)(variableProperties.Last().Position + variableProperties.Last().Length * 2), (ushort)(string.IsNullOrEmpty(LibraryName) ? 0 : LibraryName.Length)));
             LittleEndianUtilities.WriteUShort(destination, (ushort)variableProperties.Last().Position);
             LittleEndianUtilities.WriteUShort(destination, (ushort)variableProperties.Last().Length);
-            LoggingUtilities.WriteLog(variableProperties.Last().Position.ToString());
-
 
             // Write language
             variableProperties.Add(new TDSLogin7TokenOffsetProperty(GetType().GetProperty("Language"), (ushort)(variableProperties.Last().Position + variableProperties.Last().Length * 2), (ushort)(string.IsNullOrEmpty(Language) ? 0 : Language.Length)));
             LittleEndianUtilities.WriteUShort(destination, (ushort)variableProperties.Last().Position);
             LittleEndianUtilities.WriteUShort(destination, (ushort)variableProperties.Last().Length);
-            LoggingUtilities.WriteLog(variableProperties.Last().Position.ToString());
-
 
             // Write database
             variableProperties.Add(new TDSLogin7TokenOffsetProperty(GetType().GetProperty("Database"), (ushort)(variableProperties.Last().Position + variableProperties.Last().Length * 2), (ushort)(string.IsNullOrEmpty(Database) ? 0 : Database.Length)));
             LittleEndianUtilities.WriteUShort(destination, (ushort)variableProperties.Last().Position);
             LittleEndianUtilities.WriteUShort(destination, (ushort)variableProperties.Last().Length);
-            LoggingUtilities.WriteLog(variableProperties.Last().Position.ToString());
-
 
             // Check if client is defined
             if (ClientID == null)
@@ -466,8 +449,6 @@ namespace TDSClient.TDS.Login7
                 // Allocate empty identifier
                 ClientID = new byte[6];
             }
-
-            LoggingUtilities.WriteLog(variableProperties.Last().Position.ToString());
 
             // Write unique client identifier
             destination.Write(ClientID, 0, 6);
@@ -531,7 +512,6 @@ namespace TDSClient.TDS.Login7
                 else
                 {
                     // Write the string value
-                    LoggingUtilities.WriteLog("Writing " + property.Property.Name + " to the stream");
                     LittleEndianUtilities.WriteString(destination, (string)property.Property.GetValue(this, null));
                 }
 
@@ -541,7 +521,6 @@ namespace TDSClient.TDS.Login7
             }
 
             // Transfer deflated feature extension into the login stream
-            LoggingUtilities.WriteLog("Writing feature extension to the stream");
             featureExtension.WriteTo(destination);
         }
 
