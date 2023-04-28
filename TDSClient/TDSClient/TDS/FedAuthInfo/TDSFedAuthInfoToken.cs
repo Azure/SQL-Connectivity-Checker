@@ -2,12 +2,14 @@
 using System.Collections.Generic;
 using TDSClient.TDS.Utilities;
 
+using TDSClient.TDS.Tokens;
+
 namespace TDSClient.TDS.FedAuthInfo
 {
     /// <summary>
     /// FeatureAck token definition.
     /// </summary>
-    public class TDSFedAuthInfoToken : TDSPacketToken
+    public class TDSFedAuthInfoToken : TDSToken
     {
         /// <summary>
         /// Collection of feature extension acknoeldged options
@@ -151,6 +153,20 @@ namespace TDSClient.TDS.FedAuthInfo
             {
                 optionStreams[i].WriteTo(destination);
             }
+        }
+
+                /// <summary>
+        /// TDS Token length
+        /// </summary>
+        /// <returns>Returns TDS Token length</returns>
+        public override ushort Length() 
+        {
+            return 1;
+        }
+
+        public override bool Equals(object obj) 
+        {
+            return true;
         }
     }
 }

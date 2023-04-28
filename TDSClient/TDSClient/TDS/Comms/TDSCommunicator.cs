@@ -42,7 +42,7 @@ namespace TDSClient.TDS.Comms
         /// <summary>
         /// Current TDS Communicator State
         /// </summary>
-        private TDSCommunicatorState communicatorState;
+        public TDSCommunicatorState communicatorState;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TDSCommunicator" /> class.
@@ -169,9 +169,17 @@ namespace TDSClient.TDS.Comms
                 case TDSCommunicatorState.SentLogin7RecordWithCompleteAuthToken:
                     {
                         result = new TDSTokenStreamPacketData();
+
                         result.Unpack(new MemoryStream(resultBuffer));
                         break;
                     }
+
+                case TDSCommunicatorState.SentLogin7RecordWithoutAuthToken:
+                {
+                    result = new TDSTokenStreamPacketData();
+                    result.Unpack(new MemoryStream(resultBuffer));
+                    break;
+                }
 
                 default:
                     {
@@ -228,9 +236,15 @@ namespace TDSClient.TDS.Comms
 
             var buffer = new byte[data.Length()];
 
-            data.Pack(new MemoryStream(buffer));
+            MemoryStream ms = new MemoryStream(buffer);
+
+            data.Pack(ms);
 
             this.innerStream.Write(buffer, 0, buffer.Length);
+
+            foreach(byte part in buffer) {
+                LoggingUtilities.WriteLog(part.ToString());
+            }
 
             switch (this.communicatorState)
             {
@@ -242,7 +256,7 @@ namespace TDSClient.TDS.Comms
 
                 case TDSCommunicatorState.SentInitialPreLogin:
                     {
-                        this.communicatorState = TDSCommunicatorState.SentLogin7RecordWithCompleteAuthToken;
+                        this.communicatorState = TDSCommunicatorState.SentLogin7RecordWithoutAuthToken;
                         break;
                     }
             }

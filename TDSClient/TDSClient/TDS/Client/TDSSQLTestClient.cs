@@ -12,6 +12,7 @@ namespace TDSClient.TDS.Client
     using System.Net;
     using System.Net.Sockets;
     using System.Security.Authentication;
+
     using TDSClient.TDS.Comms;
     using TDSClient.TDS.Header;
     using TDSClient.TDS.Login7;
@@ -19,6 +20,8 @@ namespace TDSClient.TDS.Client
     using TDSClient.TDS.Tokens;
     using TDSClient.TDS.Utilities;
     using TDSClient.TDS.Interfaces;
+    using TDSClient.TDS.LoginAck;
+    using TDSClient.TDS.FedAuthInfo;
 
     /// <summary>
     /// SQL Test Client used to run diagnostics on SQL Server using TDS protocol.
@@ -154,20 +157,25 @@ namespace TDSClient.TDS.Client
             var tdsMessageBody = new TDSLogin7PacketData();
 
             tdsMessageBody.HostName = Environment.MachineName;
-            tdsMessageBody.CltIntName = "TDSSQLTestClient";
+            tdsMessageBody.ApplicationName = "TDSSQLTestClient";
 
             tdsMessageBody.ClientTimeZone = 480;
 
-            if(isSqlAuth)
+            if (isSqlAuth)
             {
                 tdsMessageBody.UserID = this.UserID;
                 tdsMessageBody.Password = this.Password;
+                //tdsMessageBody.AddOption("UserName", this.UserID);
+                //tdsMessageBody.AddOption("Password", this.Password);  
             }
 
             tdsMessageBody.ServerName = this.Server;
-            LoggingUtilities.WriteLog(tdsMessageBody.ServerName);
-
             tdsMessageBody.Database = this.Database;
+
+            // tdsMessageBody.AddOption("HostName", Environment.MachineName);
+            // tdsMessageBody.AddOption("Database", this.Database);
+            // tdsMessageBody.AddOption("ServerName", this.Server);
+            // tdsMessageBody.AddOption("CltIntName", "TDSSQLTestClient");
 
             tdsMessageBody.OptionFlags1.Char = TDSLogin7OptionFlags1Char.CharsetASCII;
             tdsMessageBody.OptionFlags1.Database = TDSLogin7OptionFlags1Database.InitDBFatal;
@@ -213,8 +221,7 @@ namespace TDSClient.TDS.Client
             {
                 tdsMessageBody.OptionFlags3.Extension = TDSLogin7OptionFlags3Extension.Exists;
 
-                TDSLogin7FedAuthOptionToken featureOption =
-				    CreateLogin7FederatedAuthenticationFeatureExt(TDSFedAuthLibraryType.ADAL, TDSFedAuthADALWorkflow.UserPassword);
+                TDSLogin7FedAuthOptionToken featureOption = CreateLogin7FederatedAuthenticationFeatureExt(TDSFedAuthLibraryType.ADAL, TDSFedAuthADALWorkflow.UserPassword);
 
                 // Check if we have a feature extension
 			    if (tdsMessageBody.FeatureExt == null)
@@ -305,6 +312,18 @@ namespace TDSClient.TDS.Client
                             LoggingUtilities.WriteLog($" Redirect to {this.Server}:{this.Port}", writeToSummaryLog: true, writeToVerboseLog: false);
                         }
                     }
+                    else if (token is TDSLoginAckToken)
+                    {
+                        // Cast to login acknowledgement
+					    TDSLoginAckToken loginAck = token as TDSLoginAckToken;
+
+					    // Populate run time context
+					    LoggingUtilities.WriteLog(loginAck.ServerName);
+					    LoggingUtilities.WriteLog(loginAck.ServerVersion.ToString());
+					    LoggingUtilities.WriteLog(loginAck.TDSVersion.ToString());
+
+						LoggingUtilities.WriteLog("Logged in.");
+                    }
                     else if (token is TDSErrorToken)
                     {
                         var errorToken = token as TDSErrorToken;
@@ -345,12 +364,68 @@ namespace TDSClient.TDS.Client
             LoggingUtilities.WriteLog($" Login7 response received.");
         }
 
+		/// <summary>
+		/// It is called when we receive FedAuthInfoToken from the server.
+		/// </summary>
+		/// <param name="response"></param>
+		/// <returns></returns>
+		public virtual void ReceiveFedAuthInfoTokenResponse()
+		{
+			// Create a new mesage
+			//TDSMessage request = null;
+
+			// To indicate if EnvChangeToken was present
+			bool fEnvChangeTokenPresent = false;
+
+			// A token that is not Error, EnvChang or FedAuthInfoToken was received
+			bool fAnotherTokenTypeReceived = false;
+
+            if (this.TdsCommunicator.ReceiveTDSMessage() is TDSTokenStreamPacketData response) {
+
+                foreach (var token in response.Tokens)
+			    {
+				    // Check token type
+				    if (token is TDSFedAuthInfoToken && !fEnvChangeTokenPresent)
+				    {
+						LoggingUtilities.WriteLog("Received fed auth info token");
+					    TDSFedAuthInfoToken fedAuthInfoToken = token as TDSFedAuthInfoToken;
+                        LoggingUtilities.WriteLog(fedAuthInfoToken.Options.ToString());
+				    }
+				    else if (token is TDSErrorToken)
+				    {
+                        var errorToken = token as TDSErrorToken;
+                        LoggingUtilities.WriteLog($" Client received Error token, Number: {errorToken.Number}, State: {errorToken.State}", writeToSummaryLog: true); ;
+                        LoggingUtilities.WriteLog($"  MsgText: {errorToken.MsgText}");
+                        LoggingUtilities.WriteLog($"  Class: {errorToken.Class}");
+                        LoggingUtilities.WriteLog($"  ServerName: {errorToken.ServerName}");
+                        LoggingUtilities.WriteLog($"  ProcName: {errorToken.ProcName}");
+                        LoggingUtilities.WriteLog($"  LineNumber: {errorToken.LineNumber}");
+                        LoggingUtilities.WriteLog($"  State: {errorToken.State}");
+				    }
+				    else
+				    {
+					    fAnotherTokenTypeReceived = true;
+				    }
+			    }
+            }
+
+			else
+            {
+                throw new InvalidOperationException();
+            }
+
+            if (fAnotherTokenTypeReceived)
+            {
+                throw new InvalidOperationException();
+            }
+
+        }
+
         /// <summary>
         /// Connect to the server.
         /// </summary>
         public void Connect()
         {
-            Console.WriteLine("Entered connect method");
             DateTime connectStartTime = DateTime.UtcNow;
             bool preLoginDone = false;
             var originalServerName = this.Server;
@@ -387,13 +462,14 @@ namespace TDSClient.TDS.Client
                     if (preLoginResponse.Options.Exists(opt => opt.Type == TDSPreLoginOptionTokenType.FedAuthRequired) && preLoginResponse.FedAuthRequired == TdsPreLoginFedAuthRequiredOption.FedAuthRequired)
                     {
                         this.SendLogin7(false);
+                        TdsCommunicator.communicatorState = TDSCommunicatorState.SentLogin7RecordWithoutAuthToken;
                     }
                     else 
                     {
                         this.SendLogin7(true);
                     }
 
-                    //this.SendLogin7();
+                    this.ReceiveFedAuthInfoTokenResponse();
                     //this.ReceiveLogin7Response();
 
                     if (this.reconnect)

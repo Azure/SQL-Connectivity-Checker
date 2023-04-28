@@ -181,7 +181,7 @@ namespace TDSClient.TDS.Login7.Options
         /// <param name="stream">MemoryStream to write to</param>
         /// <param name="options">Options to write to the stream</param>
         /// <param name="clientID">ClientID to write to the stream</param>
-        public static void WriteOptionsToStream(MemoryStream stream, List<TDSLogin7Option> options, byte[] clientID)
+        public static ushort WriteOptionsToStream(MemoryStream stream, List<TDSLogin7Option> options, byte[] clientID)
         {
             ushort currentPos = 94;
             
@@ -189,7 +189,13 @@ namespace TDSClient.TDS.Login7.Options
             {
                 if (option != "ClientID")
                 {
-                    LittleEndianUtilities.WriteUShort(stream, currentPos);
+                    if(option == "Extension")
+                    {
+                        LittleEndianUtilities.WriteUShort(stream, currentPos);
+                    }
+                    else
+                    {
+                        LittleEndianUtilities.WriteUShort(stream, currentPos);
 
                     var tmp = options.Where(o => o.Name == option);
                     if (tmp.Any())
@@ -204,6 +210,8 @@ namespace TDSClient.TDS.Login7.Options
                     {
                         LittleEndianUtilities.WriteUShort(stream, 0);
                     }
+                    }
+                    
                 }
                 else
                 {
@@ -220,6 +228,8 @@ namespace TDSClient.TDS.Login7.Options
             {
                 option.Pack(stream);
             }
+
+            return currentPos;
         }
     }
 }

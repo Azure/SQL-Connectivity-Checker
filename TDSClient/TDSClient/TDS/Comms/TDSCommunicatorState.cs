@@ -27,6 +27,11 @@ namespace TDSClient.TDS.Comms
         SentLogin7RecordWithCompleteAuthToken,
 
         /// <summary>
+        /// SentLogin7RecordWithoutAuthToken Communicator State
+        /// </summary>
+        SentLogin7RecordWithoutAuthToken,
+
+        /// <summary>
         /// LoggedIn Communicator State
         /// </summary>
         LoggedIn

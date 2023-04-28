@@ -55,13 +55,9 @@ namespace TDSClient.TDS.Login7
 		{
 			get
 			{
-				return (uint)(sizeof(byte) // Option (library + echo)
-					+ (WorkflowType == TDSFedAuthADALWorkflow.EMPTY ? 0 : (sizeof(byte)))
-					+ sizeof(uint) // Token length variable
-					+ (Token == null ? 0 : Token.Length) // Actual token length
-					+ (Nonce == null ? 0 : NonceDataLength) // Nonce Length
-					+ (ChannelBingingToken == null ? 0 : ChannelBingingToken.Length) // Channel binding token
-					+ (Signature == null ? 0 : SignatureDataLength)); // signature
+				return (uint)(6*sizeof(byte) // Option (library + echo)
+					+ (sizeof(byte)));
+
 			}
 		}
 
@@ -259,17 +255,21 @@ namespace TDSClient.TDS.Login7
 									+ (Nonce == null ? 0 : NonceDataLength) // Nonce
 									+ (ChannelBingingToken == null ? 0 : (uint)ChannelBingingToken.Length) // Channel binding
 									+ (Signature == null ? 0 : SignatureDataLength)); // Signature
+			
+			LoggingUtilities.WriteLog("Feature extension data length: " + optionDataLength.ToString());
 
 			// Write the cache length into the destination
-			BigEndianUtilities.WriteUInt(destination, optionDataLength);
+			LittleEndianUtilities.WriteUInt(destination, optionDataLength);
 
 			// Construct a byte from fedauthlibrary and fedauth echo.
 			byte temp = (byte)((((byte)(Library) << 1) | (byte)(Echo)));
+			LoggingUtilities.WriteLog("addinf options" + ((byte)temp).ToString());
 			destination.WriteByte(temp);
 
 			//write ADAL workflow type 
 			if (Library == TDSFedAuthLibraryType.ADAL && WorkflowType != TDSFedAuthADALWorkflow.EMPTY)
 			{
+				LoggingUtilities.WriteLog("addinf workflow type" + ((byte)WorkflowType).ToString());
 				destination.WriteByte((byte)WorkflowType);
 			}
 

@@ -66,32 +66,32 @@ namespace TDSClient.TDS.Login7
         /// <summary>
         /// Length of the fixed portion of the packet
         /// </summary>
-        protected static ushort FixedPacketLength = sizeof(uint)  // Length
-                + sizeof(uint)  // TDSVersion
-                + sizeof(uint)  // PacketSize
-                + sizeof(uint)  // ClientProgramVersion
-                + sizeof(uint)  // ClientPID
-                + sizeof(uint)  // ConnectionID
-                + sizeof(byte)  // OptionalFlags1
-                + sizeof(byte)  // OptionalFlags2
-                + sizeof(byte)  // OptionalFlags3
-                + sizeof(byte)  // TypeFlags
-                + sizeof(int)  // ClientTimeZone
-                + sizeof(uint)  // ClientLCID
-                + sizeof(ushort) + sizeof(ushort)  // HostName
-                + sizeof(ushort) + sizeof(ushort)  // UserID
-                + sizeof(ushort) + sizeof(ushort)  // Password
-                + sizeof(ushort) + sizeof(ushort)  // ApplicationName
-                + sizeof(ushort) + sizeof(ushort)  // ServerName
-                + sizeof(ushort) + sizeof(ushort)  // Unused
-                + sizeof(ushort) + sizeof(ushort)  // LibraryName
-                + sizeof(ushort) + sizeof(ushort)  // Language
-                + sizeof(ushort) + sizeof(ushort)  // Database
-                + 6 * sizeof(byte)  // ClientID
+        protected static ushort FixedPacketLength = sizeof(uint)  // Length4
+                + sizeof(uint)  // TDSVersion4
+                + sizeof(uint)  // PacketSize4
+                + sizeof(uint)  // ClientProgramVersion4
+                + sizeof(uint)  // ClientPID4
+                + sizeof(uint)  // ConnectionID4
+                + sizeof(byte)  // OptionalFlags1 1
+                + sizeof(byte)  // OptionalFlags2 1
+                + sizeof(byte)  // OptionalFlags3 1
+                + sizeof(byte)  // TypeFlags 
+                + sizeof(uint)  // ClientTimeZone 4
+                + sizeof(int)  // ClientLCID 4
+                + sizeof(ushort) + sizeof(ushort)  // HostName 4
+                + sizeof(ushort) + sizeof(ushort)  // UserID 4
+                + sizeof(ushort) + sizeof(ushort)  // Password 4
+                + sizeof(ushort) + sizeof(ushort)  // ApplicationName 4
+                + sizeof(ushort) + sizeof(ushort)  // ServerName 4
+                + sizeof(ushort) + sizeof(ushort)  // Unused/Extension 4
+                + sizeof(ushort) + sizeof(ushort)  // LibraryName 4
+                + sizeof(ushort) + sizeof(ushort)  // Language 4
+                + sizeof(ushort) + sizeof(ushort)  // Database 4
+                + 6 * sizeof(byte)  // ClientID 6
                 + sizeof(ushort) + sizeof(ushort)  // SSPI
                 + sizeof(ushort) + sizeof(ushort)  // AttachDatabaseFile
                 + sizeof(ushort) + sizeof(ushort)  // ChangePassword
-                + sizeof(uint);  // LongSSPI;
+                + sizeof(int);  // LongSSPI;
 
         /// <summary>
         /// Gets the length of the LOGIN7 structure. 
@@ -122,10 +122,10 @@ namespace TDSClient.TDS.Login7
                 FeatureExt.Pack(featureExtension);
 
                 // Update total lentgh
-                notFixed += (uint)(sizeof(uint) /* Offset of feature extension data */ + featureExtension.Length /* feature extension itself*/);
+                notFixed += (uint)(sizeof(uint) /* feature extension itself*/ + featureExtension.Length); // offset (in data) + feature extension real data
             }
-            return
-                  (ushort)(FixedPacketLength + notFixed); // SSPILong);  // Feature extension
+
+            return (ushort)(FixedPacketLength + notFixed);
         }
 
         /// <summary>
@@ -217,8 +217,6 @@ namespace TDSClient.TDS.Login7
         /// Client library name
         /// </summary>
         public string LibraryName { get; set; }
-
-        public string CltIntName { get; set; }
 
         /// <summary>
         /// User language
@@ -326,26 +324,14 @@ namespace TDSClient.TDS.Login7
                    this.Options.All(other.Options.Contains);
         }
 
-        /// <summary>
-        /// Used to pack IPackageable to a stream.
-        /// </summary>
-        /// <param name="stream">MemoryStream in which IPackageable is packet into.</param>
+        // <summary>
+        // Used to pack IPackageable to a stream.
+        // </summary>
+        // <param name="stream">MemoryStream in which IPackageable is packet into.</param>
         public void Pack(MemoryStream destination)
         {
             // Calculate total length by adding strings
-            uint totalPacketLength = (uint)(Length()
-                + (uint)(string.IsNullOrEmpty(HostName) ? 0 : HostName.Length * 2)  // HostName
-                + (uint)(string.IsNullOrEmpty(UserID) ? 0 : UserID.Length * 2)  // UserID
-                + (uint)(string.IsNullOrEmpty(Password) ? 0 : Password.Length * 2)  // Password
-                + (uint)(string.IsNullOrEmpty(ApplicationName) ? 0 : ApplicationName.Length * 2)  // ApplicationName
-                + (uint)(string.IsNullOrEmpty(ServerName) ? 0 : ServerName.Length * 2)  // ServerName
-                + (uint)(string.IsNullOrEmpty(LibraryName) ? 0 : LibraryName.Length * 2)  // LibraryName
-                + (uint)(string.IsNullOrEmpty(Language) ? 0 : Language.Length * 2)  // Language
-                + (uint)(string.IsNullOrEmpty(Database) ? 0 : Database.Length * 2)  // Database
-                + (uint)(string.IsNullOrEmpty(AttachDatabaseFile) ? 0 : AttachDatabaseFile.Length * 2)  // AttachDatabaseFile
-                + (uint)(string.IsNullOrEmpty(ChangePassword) ? 0 : ChangePassword.Length * 2)  // ChangePassword
-                + (uint)(SSPI == null ? 0 : SSPI.Length)  // SSPI
-                + 0);  // Feature extension
+            uint totalPacketLength = (uint)(Length());  // Feature extension
 
             MemoryStream featureExtension = null;
 
@@ -357,10 +343,10 @@ namespace TDSClient.TDS.Login7
 
                 // Serialize feature extension
                 FeatureExt.Pack(featureExtension);
-
-                // Update total lentgh
-                totalPacketLength += (uint)(sizeof(uint) /* Offset of feature extension data */ + featureExtension.Length /* feature extension itself*/);
             }
+
+            LoggingUtilities.WriteLog("Total length:" + totalPacketLength.ToString());
+            LoggingUtilities.WriteLog("Length of stream:" + destination.Length.ToString());
 
             // Write packet length
             LittleEndianUtilities.WriteUInt(destination, totalPacketLength);
@@ -401,53 +387,46 @@ namespace TDSClient.TDS.Login7
             // Prepare a collection of property values that will be set later
             IList<TDSLogin7TokenOffsetProperty> variableProperties = new List<TDSLogin7TokenOffsetProperty>();
 
-            LoggingUtilities.WriteLog(FixedPacketLength.ToString());
-
             // Write client host name
             variableProperties.Add(new TDSLogin7TokenOffsetProperty(GetType().GetProperty("HostName"), FixedPacketLength, (ushort)(string.IsNullOrEmpty(HostName) ? 0 : HostName.Length)));
             LittleEndianUtilities.WriteUShort(destination, (ushort)variableProperties.Last().Position);
             LittleEndianUtilities.WriteUShort(destination, (ushort)variableProperties.Last().Length);
-
-            LoggingUtilities.WriteLog(((ushort)variableProperties.Last().Position).ToString());
-            LoggingUtilities.WriteLog(((ushort)variableProperties.Last().Length).ToString());
-
+            LoggingUtilities.WriteLog(FixedPacketLength.ToString());
 
             // Write user name and password
             variableProperties.Add(new TDSLogin7TokenOffsetProperty(GetType().GetProperty("UserID"), (ushort)(variableProperties.Last().Position + variableProperties.Last().Length * 2), (ushort)(string.IsNullOrEmpty(UserID) ? 0 : UserID.Length)));
             LittleEndianUtilities.WriteUShort(destination, (ushort)variableProperties.Last().Position);
             LittleEndianUtilities.WriteUShort(destination, (ushort)variableProperties.Last().Length);
+            LoggingUtilities.WriteLog(variableProperties.Last().Position.ToString());
 
-                        LoggingUtilities.WriteLog(((ushort)variableProperties.Last().Position).ToString());
-            LoggingUtilities.WriteLog(((ushort)variableProperties.Last().Length).ToString());
 
             variableProperties.Add(new TDSLogin7TokenOffsetProperty(GetType().GetProperty("Password"), (ushort)(variableProperties.Last().Position + variableProperties.Last().Length * 2), (ushort)(string.IsNullOrEmpty(Password) ? 0 : Password.Length)));
             LittleEndianUtilities.WriteUShort(destination, (ushort)variableProperties.Last().Position);
             LittleEndianUtilities.WriteUShort(destination, (ushort)variableProperties.Last().Length);
+            LoggingUtilities.WriteLog(variableProperties.Last().Position.ToString());
 
-                        LoggingUtilities.WriteLog(((ushort)variableProperties.Last().Position).ToString());
-            LoggingUtilities.WriteLog(((ushort)variableProperties.Last().Length).ToString());
 
             // Write application name
             variableProperties.Add(new TDSLogin7TokenOffsetProperty(GetType().GetProperty("ApplicationName"), (ushort)(variableProperties.Last().Position + variableProperties.Last().Length * 2), (ushort)(string.IsNullOrEmpty(ApplicationName) ? 0 : ApplicationName.Length)));
             LittleEndianUtilities.WriteUShort(destination, (ushort)variableProperties.Last().Position);
             LittleEndianUtilities.WriteUShort(destination, (ushort)variableProperties.Last().Length);
+            LoggingUtilities.WriteLog(variableProperties.Last().Position.ToString());
 
-                        LoggingUtilities.WriteLog(((ushort)variableProperties.Last().Position).ToString());
-            LoggingUtilities.WriteLog(((ushort)variableProperties.Last().Length).ToString());
 
             // Write server name
             variableProperties.Add(new TDSLogin7TokenOffsetProperty(GetType().GetProperty("ServerName"), (ushort)(variableProperties.Last().Position + variableProperties.Last().Length * 2), (ushort)(string.IsNullOrEmpty(ServerName) ? 0 : ServerName.Length)));
             LittleEndianUtilities.WriteUShort(destination, (ushort)variableProperties.Last().Position);
             LittleEndianUtilities.WriteUShort(destination, (ushort)variableProperties.Last().Length);
+            LoggingUtilities.WriteLog(variableProperties.Last().Position.ToString());
 
-                        LoggingUtilities.WriteLog(((ushort)variableProperties.Last().Position).ToString());
-            LoggingUtilities.WriteLog(((ushort)variableProperties.Last().Length).ToString());
 
             // Check if we have a feature extension block
             if (FeatureExt != null)
             {
+                LoggingUtilities.WriteLog("Adding feature extension position and length");
                 // Write the offset of the feature extension offset (pointer to pointer)
                 variableProperties.Add(new TDSLogin7TokenOffsetProperty(GetType().GetProperty("FeatureExt"), (ushort)(variableProperties.Last().Position + variableProperties.Last().Length * 2), sizeof(uint) / 2, true));  // Should be 4 bytes, devided by 2 because the next guy multiplies by 2
+
                 LittleEndianUtilities.WriteUShort(destination, (ushort)variableProperties.Last().Position);
                 LittleEndianUtilities.WriteUShort(destination, (ushort)(variableProperties.Last().Length * 2));  // Compensate for division by 2 above
             }
@@ -457,34 +436,29 @@ namespace TDSClient.TDS.Login7
                 LittleEndianUtilities.WriteUShort(destination, 0);
                 LittleEndianUtilities.WriteUShort(destination, 0);
             }
-
-                        LoggingUtilities.WriteLog(((ushort)variableProperties.Last().Position).ToString());
-            LoggingUtilities.WriteLog(((ushort)variableProperties.Last().Length).ToString());
+            LoggingUtilities.WriteLog(variableProperties.Last().Position.ToString());
 
             // Write client library name
             // We do not need to account for skipped unused bytes here because they're already accounted in fixedPacketLength
             variableProperties.Add(new TDSLogin7TokenOffsetProperty(GetType().GetProperty("LibraryName"), (ushort)(variableProperties.Last().Position + variableProperties.Last().Length * 2), (ushort)(string.IsNullOrEmpty(LibraryName) ? 0 : LibraryName.Length)));
             LittleEndianUtilities.WriteUShort(destination, (ushort)variableProperties.Last().Position);
             LittleEndianUtilities.WriteUShort(destination, (ushort)variableProperties.Last().Length);
+            LoggingUtilities.WriteLog(variableProperties.Last().Position.ToString());
 
-                        LoggingUtilities.WriteLog(((ushort)variableProperties.Last().Position).ToString());
-            LoggingUtilities.WriteLog(((ushort)variableProperties.Last().Length).ToString());
 
             // Write language
             variableProperties.Add(new TDSLogin7TokenOffsetProperty(GetType().GetProperty("Language"), (ushort)(variableProperties.Last().Position + variableProperties.Last().Length * 2), (ushort)(string.IsNullOrEmpty(Language) ? 0 : Language.Length)));
             LittleEndianUtilities.WriteUShort(destination, (ushort)variableProperties.Last().Position);
             LittleEndianUtilities.WriteUShort(destination, (ushort)variableProperties.Last().Length);
+            LoggingUtilities.WriteLog(variableProperties.Last().Position.ToString());
 
-                        LoggingUtilities.WriteLog(((ushort)variableProperties.Last().Position).ToString());
-            LoggingUtilities.WriteLog(((ushort)variableProperties.Last().Length).ToString());
 
             // Write database
             variableProperties.Add(new TDSLogin7TokenOffsetProperty(GetType().GetProperty("Database"), (ushort)(variableProperties.Last().Position + variableProperties.Last().Length * 2), (ushort)(string.IsNullOrEmpty(Database) ? 0 : Database.Length)));
             LittleEndianUtilities.WriteUShort(destination, (ushort)variableProperties.Last().Position);
             LittleEndianUtilities.WriteUShort(destination, (ushort)variableProperties.Last().Length);
+            LoggingUtilities.WriteLog(variableProperties.Last().Position.ToString());
 
-                        LoggingUtilities.WriteLog(((ushort)variableProperties.Last().Position).ToString());
-            LoggingUtilities.WriteLog(((ushort)variableProperties.Last().Length).ToString());
 
             // Check if client is defined
             if (ClientID == null)
@@ -492,6 +466,8 @@ namespace TDSClient.TDS.Login7
                 // Allocate empty identifier
                 ClientID = new byte[6];
             }
+
+            LoggingUtilities.WriteLog(variableProperties.Last().Position.ToString());
 
             // Write unique client identifier
             destination.Write(ClientID, 0, 6);
@@ -501,27 +477,18 @@ namespace TDSClient.TDS.Login7
             LittleEndianUtilities.WriteUShort(destination, (ushort)variableProperties.Last().Position);
             LittleEndianUtilities.WriteUShort(destination, (ushort)variableProperties.Last().Length);
 
-                        LoggingUtilities.WriteLog(((ushort)variableProperties.Last().Position).ToString());
-            LoggingUtilities.WriteLog(((ushort)variableProperties.Last().Length).ToString());
-
             // Write database file to be attached. NOTE, "variableProperties.Last().Length" without " * 2" because the preceeding buffer isn't string
             variableProperties.Add(new TDSLogin7TokenOffsetProperty(GetType().GetProperty("AttachDatabaseFile"), (ushort)(variableProperties.Last().Position + variableProperties.Last().Length), (ushort)(string.IsNullOrEmpty(AttachDatabaseFile) ? 0 : AttachDatabaseFile.Length)));
             LittleEndianUtilities.WriteUShort(destination, (ushort)variableProperties.Last().Position);
             LittleEndianUtilities.WriteUShort(destination, (ushort)variableProperties.Last().Length);
-
-                        LoggingUtilities.WriteLog(((ushort)variableProperties.Last().Position).ToString());
-            LoggingUtilities.WriteLog(((ushort)variableProperties.Last().Length).ToString());
 
             // Write password change
             variableProperties.Add(new TDSLogin7TokenOffsetProperty(GetType().GetProperty("ChangePassword"), (ushort)(variableProperties.Last().Position + variableProperties.Last().Length * 2), (ushort)(string.IsNullOrEmpty(ChangePassword) ? 0 : ChangePassword.Length)));
             LittleEndianUtilities.WriteUShort(destination, (ushort)variableProperties.Last().Position);
             LittleEndianUtilities.WriteUShort(destination, (ushort)variableProperties.Last().Length);
 
-                        LoggingUtilities.WriteLog(((ushort)variableProperties.Last().Position).ToString());
-            LoggingUtilities.WriteLog(((ushort)variableProperties.Last().Length).ToString());
-
             // Skip long SSPI
-            LittleEndianUtilities.WriteUInt(destination, 0);            
+            LittleEndianUtilities.WriteUInt(destination, 0);
 
             // We will be changing collection as we go and serialize everything. As such we can't use foreach and iterator.
             int iCurrentProperty = 0;
@@ -529,13 +496,7 @@ namespace TDSClient.TDS.Login7
             // Iterate through the collection
             while (iCurrentProperty < variableProperties.Count)
             {
-                // Get current property by index
                 TDSLogin7TokenOffsetProperty property = variableProperties[iCurrentProperty];
-
-                LoggingUtilities.WriteLog(property.Property.Name);
-                LoggingUtilities.WriteLog(property.Position.ToString());
-                LoggingUtilities.WriteLog(property.Property.ToString());
-
 
                 // Check if length is positive
                 if (property.Length == 0)
@@ -553,32 +514,14 @@ namespace TDSClient.TDS.Login7
                 }
                 else if (property.Property.Name == "FeatureExt")
                 {
-                    // Check if we are to serialize the offset or the actual data
-                    if (property.IsOffsetOffset)
-                    {
-                        LoggingUtilities.WriteLog("pointer");
+                    LoggingUtilities.WriteLog("Writing offset of feature extension");
+                    // Property will be written at the offset immediately following all variable length data
+                    property.Position = variableProperties.Last().Position + variableProperties.Last().Length;
 
-                        // Property will be written at the offset immediately following all variable length data
-                        property.Position = variableProperties.Last().Position + variableProperties.Last().Length;
+                    LoggingUtilities.WriteLog("Position of feature ext:" +property.Position.ToString());
 
-                        // Write the position at which we'll be serializing the feature extension block
-                        LittleEndianUtilities.WriteUInt(destination, property.Position);
-
-                        // Order strings in ascending order by offset
-                        variableProperties = variableProperties.OrderBy(p => p.Position).ToList();
-
-                        // Compensate increment to the next position in order to stay on the same
-                        iCurrentProperty--;
-
-                        // No longer offset, actual data is going to follow
-                        property.IsOffsetOffset = false;
-                    }
-                    else
-                    {
-                        LoggingUtilities.WriteLog("not pointer");
-                        // Transfer deflated feature extension into the login stream
-                        featureExtension.WriteTo(destination);
-                    }
+                    // Write the position at which we'll be serializing the feature extension block
+                    LittleEndianUtilities.WriteUInt(destination, property.Position);
                 }
                 else if (property.Property.Name == "SSPI")
                 {
@@ -588,34 +531,19 @@ namespace TDSClient.TDS.Login7
                 else
                 {
                     // Write the string value
+                    LoggingUtilities.WriteLog("Writing " + property.Property.Name + " to the stream");
                     LittleEndianUtilities.WriteString(destination, (string)property.Property.GetValue(this, null));
                 }
 
                 // Move to the next property
                 iCurrentProperty++;
-            }
-        }
 
-        // /// <summary>
-        // /// Used to pack IPackageable to a stream.
-        // /// </summary>
-        // /// <param name="stream">MemoryStream in which IPackageable is packet into.</param>
-        // public void Pack(MemoryStream stream)
-        // {
-        //     LittleEndianUtilities.WriteUInt(stream, this.Length());
-        //     LittleEndianUtilities.WriteUInt(stream, this.TDSVersion);
-        //     LittleEndianUtilities.WriteUInt(stream, this.PacketSize);
-        //     LittleEndianUtilities.WriteUInt(stream, this.ClientProgVer);
-        //     LittleEndianUtilities.WriteUInt(stream, this.ClientPID);
-        //     LittleEndianUtilities.WriteUInt(stream, this.ConnectionID);
-        //     this.OptionFlags1.Pack(stream);
-        //     this.OptionFlags2.Pack(stream);
-        //     this.TypeFlags.Pack(stream);
-        //     this.OptionFlags3.Pack(stream);
-        //     LittleEndianUtilities.WriteUInt(stream, this.ClientTimeZone);
-        //     LittleEndianUtilities.WriteUInt(stream, this.ClientLCID);
-        //     TDSLogin7OptionFactory.WriteOptionsToStream(stream, this.Options, this.ClientID);
-        // }
+            }
+
+            // Transfer deflated feature extension into the login stream
+            LoggingUtilities.WriteLog("Writing feature extension to the stream");
+            featureExtension.WriteTo(destination);
+        }
 
         /// <summary>
         /// Used to unpack IPackageable from a stream.
