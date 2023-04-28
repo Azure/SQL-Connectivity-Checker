@@ -51,30 +51,22 @@ namespace TDSClient.TDS.FedAuthInfo
 
             uint tokenLength = LittleEndianUtilities.ReadUInt(source);
             uint countOfIds = LittleEndianUtilities.ReadUInt(source);
-            LoggingUtilities.WriteLog("Token length: " + tokenLength.ToString());
-            LoggingUtilities.WriteLog("Token count: " + countOfIds.ToString());
 
             int i = 0;
 
             do
             {
                 // Read feature type.
-                // 
                 currentFeatureType = (TDSFedAuthInfoId)source.ReadByte();
-                LoggingUtilities.WriteLog("Token type: " + currentFeatureType.ToString());
 
                 // Ensure we're not looking at the terminator.
-                // 
                 switch (currentFeatureType)
                 {
                     case TDSFedAuthInfoId.STSURL:
                         {
                             // Create an STSURL option.
-                            // 
                             infoDataLength = LittleEndianUtilities.ReadUInt(source);
                             infoDataOffset = LittleEndianUtilities.ReadUInt(source);
-                            LoggingUtilities.WriteLog("Data length: " + infoDataLength.ToString());
-                            LoggingUtilities.WriteLog("Data offset: " + infoDataOffset.ToString());
                             Options.Add(i++, new TDSFedAuthInfoOptionSTSURL(infoDataLength));
                             break;
                         }
@@ -82,11 +74,8 @@ namespace TDSClient.TDS.FedAuthInfo
                     case TDSFedAuthInfoId.SPN:
                         {
                             // Create SPN option.
-                            // 
                             infoDataLength = LittleEndianUtilities.ReadUInt(source);
                             infoDataOffset = LittleEndianUtilities.ReadUInt(source);
-                            LoggingUtilities.WriteLog("Data length: " + infoDataLength.ToString());
-                            LoggingUtilities.WriteLog("Data offset: " + infoDataOffset.ToString());
                             Options.Add(i++, new TDSFedAuthInfoOptionSPN(infoDataLength));
                             break;
                         }
@@ -94,7 +83,6 @@ namespace TDSClient.TDS.FedAuthInfo
                     default:
                         {
                             // Create a new generic option
-                            // 
                             break;
                         }
                 }
@@ -103,12 +91,10 @@ namespace TDSClient.TDS.FedAuthInfo
 
             foreach (TDSFedAuthInfoOption infoOption in Options.Values)
             {
-                LoggingUtilities.WriteLog("Unpacking info option");
                 infoOption.Unpack(source);
             }
 
             // We're done inflating
-            LoggingUtilities.WriteLog("done unpacking");
             return true;
         }
 
