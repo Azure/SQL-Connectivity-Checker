@@ -1,5 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
+﻿//  ---------------------------------------------------------------------------
+//  <copyright file="TDSFedAuthInfoId.cs" company="Microsoft">
+//     Copyright (c) Microsoft Corporation.  All rights reserved.
+//  </copyright>
+//  ---------------------------------------------------------------------------
 
 namespace TDSClient.TDS.FedAuthInfo
 {

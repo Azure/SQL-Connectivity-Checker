@@ -1,21 +1,26 @@
-﻿using System.IO;
-using System.Collections.Generic;
-using System.Text;
-
-using TDSClient.TDS;
-using TDSClient.TDS.Utilities;
+﻿//  ---------------------------------------------------------------------------
+//  <copyright file="TDSFedAuthToken.cs" company="Microsoft">
+//     Copyright (c) Microsoft Corporation.  All rights reserved.
+//  </copyright>
+//  ---------------------------------------------------------------------------
 
 namespace TDSClient.TDS.FedAuthMessage
 {
+	using System.IO;
+	using System.Text;
+
+	using TDSClient.TDS.Utilities;
+	using TDSClient.TDS.Tokens;
+
 	/// <summary>
 	/// FedAuthToken Message definition.
 	/// </summary>
-	public class TDSFedAuthToken : TDSPacketToken
+	public class TDSFedAuthToken : TDSToken
 	{
 		/// <summary>
-		/// Sample ADAL Token
+		/// ADAL Access Token
 		/// </summary>
-		public const string ADALJWT = @"eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6InIwbW96XzltN3JWTng1OGtTX0JfaW1jdE45SSJ9.eyJpc3MiOiJoYXJpc3VkYW5pc3N1ZXIiLCJhdWQiOiJzcWxkYmF1ZGllbmNlIiwibmJmIjoxMzk5MTAwNDAwLCJleHAiOjE0MDE4NjUyMDAsIm9pZCI6IjhmYmJiYWQ1LTU3MDEtNDdkZC1hNjA3LTUxMGY0ZDI0Mzc5NiIsIm5hbWVpZCI6ImFiNWRlY2Q0LTRlNzQtNDVlOC04YmU4LTI4NDA5YmNkZDFmMUBlOGU2YTJhNS1iNmY1LTQxNzMtYjE2YS1lNDM3ODlkNjEwMWMifQ.SjsAk68hTqtHetXy2RFuqc_SEuX0mWjqMvTf0Sd-9F2XEpP85t_40yxFuD99mJkN3s1RcGN35nh10fYTyQYeHHLF5wmC0DHKRja2dJhQ1wITSXFXDCc1WDvpT7v1DR1EIlv-5l-Eg-eFmvVPPYvISROIObUb_Ci3UiFKrLixgovemrx8xhGkp722XPiPalxPPMask6saWx0e9_sfuMVno0MnEH8GyeDGzBiSmOjTQ9yvfKGPyYFBt2tGUda3BoES2IzMt7Qyc8axMz4xidy88TB1_oTzY8adguX_fxVPHDiFCSxropvjtLVG0KTgpnmQv6WYE4xP6RwaS61RtP9GdQ";
+		public string ADALJWT;
 
 		/// <summary>
 		/// Federated Authentication Token
@@ -28,52 +33,6 @@ namespace TDSClient.TDS.FedAuthMessage
 		protected byte[] m_nonce;
 
 		/// <summary>
-		/// Override of fedauth token length.
-		/// </summary>
-		protected int m_fedAuthTokenLengthOverride = -1;
-
-		/// <summary>
-		/// Zero Length data for the token
-		/// </summary>
-		protected bool m_fZeroLengthData;
-
-
-		/// <summary>
-		/// Public Getter on Token
-		/// </summary>
-		public byte[] Token 
-		{ 
-			get 
-			{ 
-				return m_token; 
-			}
-		}
-
-		/// <summary>
-		/// Public Getter on Nonce
-		/// </summary>
-		public byte[] Nonce 
-		{ 
-			get 
-			{ 
-				return m_nonce;
-			}
-		}
-
-		/// <summary>
-		/// The nature of FedauthToken to be sent to server, for testing the server
-		/// </summary>
-		public enum TDSFedAuthTokenTestType
-		{
-			Normal,
-			ZeroLength,
-			ZeroLengthAuthToken,
-			WrongTdsTokenType,
-			Fuzzed,
-			JsonWebTokenTests,
-		}
-
-		/// <summary>
 		/// Default Constructor.
 		/// </summary>
 		public TDSFedAuthToken()
@@ -84,29 +43,10 @@ namespace TDSClient.TDS.FedAuthMessage
 		/// Initialization constructor.
 		/// </summary>
 		/// <param name="token">Token</param>
-		public TDSFedAuthToken(byte[] token, byte[] nonce, bool fZeroLengthData, int lengthToOverwrite) :
+		public TDSFedAuthToken(string ADALJWT) :
 			this()
 		{
-			m_fZeroLengthData = fZeroLengthData;
-
-			if (token == null)
-			{
-				token = Encoding.Unicode.GetBytes(ADALJWT);
-			}
-
-			m_token = new byte[token.Length];
-			token.CopyTo(m_token, 0);
-
-			if (nonce != null)
-			{
-				m_nonce = new byte[nonce.Length];
-				nonce.CopyTo(m_nonce, 0);
-			}
-
-			if (lengthToOverwrite != -1)
-			{
-				m_fedAuthTokenLengthOverride = lengthToOverwrite;
-			}
+			m_token = Encoding.Unicode.GetBytes(ADALJWT);
 		}
 
 		/// <summary>
@@ -158,20 +98,15 @@ namespace TDSClient.TDS.FedAuthMessage
 		/// <param name="destination">Stream the token to deflate to.</param>
 		public override void Pack(MemoryStream destination)
 		{
-			if (m_fZeroLengthData)
-			{
-				LittleEndianUtilities.WriteUInt(destination, 0);
-				return;
-			}
 
 			// Write the total Length
 			uint totalLengthOfData = (uint)(sizeof(uint) + m_token.Length + ((m_nonce != null) ? m_nonce.Length : 0));
-			LittleEndianUtilities.WriteUInt(destination, m_fedAuthTokenLengthOverride != -1 ? (uint)m_fedAuthTokenLengthOverride : totalLengthOfData);
+			LittleEndianUtilities.WriteUInt(destination, totalLengthOfData);
 
 			// Write the Length of FedAuthToken
 			LittleEndianUtilities.WriteUInt(destination, (uint)m_token.Length);
 
-			// Write Fake Token
+			// Write Access Token
 			destination.Write(m_token, 0, m_token.Length);
 
 			// Write Nonce
@@ -180,5 +115,17 @@ namespace TDSClient.TDS.FedAuthMessage
 				destination.Write(m_nonce, 0, m_nonce.Length);
 			}
 		}
+
+		public override ushort Length() 
+        {
+            return (ushort)(sizeof(ushort) + (ushort)m_token.Length);
+        }
+
+		// override object.Equals
+		public override bool Equals(object obj)
+		{
+			return true;
+		}
+	
 	}
 }

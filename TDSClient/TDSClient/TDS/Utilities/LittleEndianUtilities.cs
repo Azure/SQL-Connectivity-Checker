@@ -7,11 +7,7 @@
 namespace TDSClient.TDS.Utilities
 {
 using System.IO;
-using System;
-using System.Reflection;
-using System.Security.Cryptography;
 using System.Text;
-
 
     /// <summary>
     /// Utility class used for read and write operations on a stream containing data in little-endian byte order

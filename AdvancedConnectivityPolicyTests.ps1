@@ -225,12 +225,12 @@ try {
 
     $TDSClientPath = Join-Path ((Get-Location).Path) "TDSClient.dll"
     if ($Local) {
-        Copy-Item -Path $($LocalPath + 'netstandard2.0\TDSClient.dll') -Destination $TDSClientPath
+        Copy-Item -Path $($LocalPath + 'net472\TDSClient.dll') -Destination $TDSClientPath
     }
-    else {
-        Invoke-WebRequest -Uri $('https://github.com/Azure/SQL-Connectivity-Checker/raw/' + $RepositoryBranch + '/netstandard2.0/TDSClient.dll') -OutFile $TDSClientPath -UseBasicParsing
-    }
-    $assembly = [System.IO.File]::ReadAllBytes("D:\Connectivity checker\SQL-Connectivity-Checker\netstandard2.0\TDSClient.dll")
+    # else {
+    #     Invoke-WebRequest -Uri $('https://github.com/Azure/SQL-Connectivity-Checker/raw/' + $RepositoryBranch + '/net472/TDSClient.dll') -OutFile $TDSClientPath -UseBasicParsing
+    # }
+    $assembly = [System.IO.File]::ReadAllBytes("D:\Connectivity checker\SQL-Connectivity-Checker\net472\TDSClient.dll")
     [System.Reflection.Assembly]::Load($assembly) | Out-Null
 
     $fullLogPath = Join-Path ((Get-Location).Path) 'AdvancedTests_FullLog.txt'
@@ -270,7 +270,7 @@ try {
             $log = [System.IO.File]::CreateText($logPath)
             [TDSClient.TDS.Utilities.LoggingUtilities]::SetVerboseLog($log)
 
-            $tdsClient.Connect()
+            $result = $tdsClient.Connect().GetAwaiter().GetResult()
             $tdsClient.Disconnect()
 
             $log.Close()

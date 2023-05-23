@@ -8,6 +8,7 @@ namespace TDSClient.TDS.Comms
 {
     using System;
     using System.IO;
+    
     using TDSClient.TDS.Header;
 
     /// <summary>

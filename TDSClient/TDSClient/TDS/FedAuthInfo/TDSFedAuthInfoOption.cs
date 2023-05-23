@@ -1,11 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-
-using TDSClient.TDS.Interfaces;
+﻿//  ---------------------------------------------------------------------------
+//  <copyright file="TDSFedAuthInfoOption.cs" company="Microsoft">
+//     Copyright (c) Microsoft Corporation.  All rights reserved.
+//  </copyright>
+//  ---------------------------------------------------------------------------
 
 namespace TDSClient.TDS.FedAuthInfo
 {
+    using System.IO;
+
+    using TDSClient.TDS.Interfaces;
+
     /// <summary>
     /// A single fedauth information option.
     /// </summary>

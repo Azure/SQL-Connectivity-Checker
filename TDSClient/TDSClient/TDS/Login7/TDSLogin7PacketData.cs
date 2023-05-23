@@ -11,8 +11,7 @@ namespace TDSClient.TDS.Login7
     using System.Diagnostics;
     using System.IO;
     using System.Linq;
-    using System.Runtime.CompilerServices;
-    using System.Text;
+
     using TDSClient.TDS.Interfaces;
     using TDSClient.TDS.Login7.Options;
     using TDSClient.TDS.Utilities;
@@ -345,9 +344,6 @@ namespace TDSClient.TDS.Login7
                 FeatureExt.Pack(featureExtension);
             }
 
-            LoggingUtilities.WriteLog("Total length:" + totalPacketLength.ToString());
-            LoggingUtilities.WriteLog("Length of stream:" + destination.Length.ToString());
-
             // Write packet length
             LittleEndianUtilities.WriteUInt(destination, totalPacketLength);
 
@@ -495,11 +491,8 @@ namespace TDSClient.TDS.Login7
                 }
                 else if (property.Property.Name == "FeatureExt")
                 {
-                    LoggingUtilities.WriteLog("Writing offset of feature extension");
                     // Property will be written at the offset immediately following all variable length data
                     property.Position = variableProperties.Last().Position + variableProperties.Last().Length;
-
-                    LoggingUtilities.WriteLog("Position of feature ext:" +property.Position.ToString());
 
                     // Write the position at which we'll be serializing the feature extension block
                     LittleEndianUtilities.WriteUInt(destination, property.Position);

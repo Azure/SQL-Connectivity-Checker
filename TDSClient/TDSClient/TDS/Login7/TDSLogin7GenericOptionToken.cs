@@ -6,9 +6,8 @@
 
 namespace TDSClient.TDS.Login7
 {
-    using System;
     using System.IO;
-    using TDSClient.TDS.Interfaces;
+    
     using TDSClient.TDS.Utilities;
 
     /// <summary>

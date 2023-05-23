@@ -3,7 +3,6 @@ using System.IO;
 using System.Text;
 
 using TDSClient.TDS.Login7;
-using TDSClient.TDS.Utilities;
 using TDSClient.TDS.Tokens;
 
 namespace TDSClient.TDS.LoginAck

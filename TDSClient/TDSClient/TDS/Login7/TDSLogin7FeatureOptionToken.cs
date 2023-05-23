@@ -6,10 +6,9 @@
 
 namespace TDSClient.TDS.Login7
 {
-    using System;
     using System.IO;
+    
     using TDSClient.TDS.Interfaces;
-    using TDSClient.TDS.Utilities;
 
     /// <summary>
     /// Class that defines a a feature option which is delivered in the login packet FeatureExt block

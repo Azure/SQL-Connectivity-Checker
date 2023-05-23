@@ -1,11 +1,17 @@
-﻿using System.IO;
-using System.Collections.Generic;
-using TDSClient.TDS.Utilities;
-
-using TDSClient.TDS.Tokens;
+﻿//  ---------------------------------------------------------------------------
+//  <copyright file="TDSFedAuthInfoToken.cs" company="Microsoft">
+//     Copyright (c) Microsoft Corporation.  All rights reserved.
+//  </copyright>
+//  ---------------------------------------------------------------------------
 
 namespace TDSClient.TDS.FedAuthInfo
 {
+    using System.IO;
+    using System.Collections.Generic;
+
+    using TDSClient.TDS.Utilities;
+    using TDSClient.TDS.Tokens;
+
     /// <summary>
     /// FeatureAck token definition.
     /// </summary>

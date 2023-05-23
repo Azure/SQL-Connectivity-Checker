@@ -8,9 +8,9 @@ namespace TDSClient.TDS.PreLogin
 {
     using System;
     using System.Collections.Generic;
-    using System.ComponentModel;
     using System.IO;
     using System.Linq;
+    
     using TDSClient.TDS.Client;
     using TDSClient.TDS.Header;
     using TDSClient.TDS.Interfaces;

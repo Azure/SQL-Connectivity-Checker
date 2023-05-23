@@ -14,6 +14,9 @@ namespace TDSClient.TDS.Client
     using System.Security.Authentication;
     using System.Collections.Generic;
     using System.Text;
+    using System.Threading.Tasks;
+
+    using System.Data.SqlClient;
 
     using TDSClient.TDS.Comms;
     using TDSClient.TDS.Header;
@@ -297,7 +300,7 @@ namespace TDSClient.TDS.Client
         /// <summary>
         /// Receive Login7 response from the server.
         /// </summary>
-        public void ReceiveLogin7Response()
+        public Tuple<string, string> ReceiveLogin7Response()
         {
             LoggingUtilities.AddEmptyLine();
             LoggingUtilities.WriteLog($" Waiting for Login7 response.");
@@ -317,26 +320,40 @@ namespace TDSClient.TDS.Client
                             this.reconnect = true;
                             LoggingUtilities.WriteLog($" Redirect to {this.Server}:{this.Port}", writeToSummaryLog: true, writeToVerboseLog: false);
                         }
+                        return null;
+
                     }
                     else if (token is TDSFedAuthInfoToken)
 				    {
-						LoggingUtilities.WriteLog($" Client received FedAuthInfo token");
+						LoggingUtilities.WriteLog($"   Client received FedAuthInfo token");
 					    TDSFedAuthInfoToken fedAuthInfoToken = token as TDSFedAuthInfoToken;
+                        
+                        string STSUrl = null;
+                        string SPN = null;
                         
                         foreach(KeyValuePair<int, TDSFedAuthInfoOption> option in fedAuthInfoToken.Options)
                         {
-                            if(option.Value.FedAuthInfoId == TDSFedAuthInfoId.STSURL)
+                            if (option.Value.FedAuthInfoId == TDSFedAuthInfoId.STSURL)
                             {
                                 TDSFedAuthInfoOptionSTSURL optionSTSURL = option.Value as TDSFedAuthInfoOptionSTSURL;
-                                LoggingUtilities.WriteLog("    Token endpoint URL from which to acquire Federated Authentication Token: " + Encoding.UTF8.GetString(optionSTSURL.m_stsUrl));
+                                var output = optionSTSURL.m_stsUrl.Where(b => b != 0).ToArray();
+
+                                STSUrl = (Encoding.UTF8.GetString(output));
+                                LoggingUtilities.WriteLog("    Token endpoint URL for acquiring Federated Authentication Token: " + STSUrl);
                             }
                             else if (option.Value.FedAuthInfoId == TDSFedAuthInfoId.SPN)
                             {
                                 TDSFedAuthInfoOptionSPN optionSPN = option.Value as TDSFedAuthInfoOptionSPN;
-                                LoggingUtilities.WriteLog("    Service Principal Name to use for acquiring Federated Authentication Token: " + Encoding.UTF8.GetString(optionSPN.m_spn));
+                                var output = optionSPN.m_spn.Where(b => b != 0).ToArray();
+
+                                SPN = (Encoding.UTF8.GetString(output));
+                                LoggingUtilities.WriteLog("    Service Principal Name to use for acquiring Federated Authentication Token: " + SPN);
                             }
                         }
-				    }
+
+                        Tuple<string, string> t = new Tuple<string, string>(STSUrl, SPN);
+                        return t;
+                    }
                     else if (token is TDSLoginAckToken)
                     {
                         // Cast to login acknowledgement
@@ -348,6 +365,8 @@ namespace TDSClient.TDS.Client
 					    LoggingUtilities.WriteLog(loginAck.TDSVersion.ToString());
 
 						LoggingUtilities.WriteLog("Logged in.");
+                        return null;
+
                     }
                     else if (token is TDSErrorToken)
                     {
@@ -360,11 +379,13 @@ namespace TDSClient.TDS.Client
                         LoggingUtilities.WriteLog($"  LineNumber: {errorToken.LineNumber}");
                         LoggingUtilities.WriteLog($"  State: {errorToken.State}");
 
-
                         if (errorToken.Number == 18456)
                         {
                             throw new Exception("Login failure.");
                         }
+
+                        return null;
+
                     }
                     else if (token is TDSInfoToken)
                     {
@@ -378,6 +399,9 @@ namespace TDSClient.TDS.Client
                         LoggingUtilities.WriteLog($"     ServerName: {infoToken.ServerName}");
                         LoggingUtilities.WriteLog($"     ProcName: {infoToken.ProcName}");
                         LoggingUtilities.WriteLog($"     LineNumber: {infoToken.LineNumber}");
+
+                        return null;
+
                     }
                 }
             }
@@ -387,12 +411,14 @@ namespace TDSClient.TDS.Client
             }
 
             LoggingUtilities.WriteLog($" Login7 response received.");
+            return null;
+
         }
 
         /// <summary>
         /// Connect to the server.
         /// </summary>
-        public void Connect()
+        public async Task<bool> Connect()
         {
             DateTime connectStartTime = DateTime.UtcNow;
             bool preLoginDone = false;
@@ -410,19 +436,17 @@ namespace TDSClient.TDS.Client
 
                     MeasureDNSResolutionTime();
                     this.Client = new TcpClient(this.Server, this.Port);
+
                     this.TdsCommunicator = new TDSCommunicator(this.Client.GetStream(), 4096);
+
                     LoggingUtilities.WriteLog($"  TCP connection open between local {this.Client.Client.LocalEndPoint} and remote {this.Client.Client.RemoteEndPoint}", writeToVerboseLog: false, writeToSummaryLog: true);
+                    
                     LoggingUtilities.WriteLog($"  TCP connection open");
                     LoggingUtilities.WriteLog($"   Local endpoint is {this.Client.Client.LocalEndPoint}");
                     LoggingUtilities.WriteLog($"   Remote endpoint is {this.Client.Client.RemoteEndPoint}");
                     connectStartTime = DateTime.UtcNow;
                     this.SendPreLogin();
                     TDSPreLoginPacketData preLoginResponse = (TDSPreLoginPacketData)this.ReceivePreLoginResponse();
-
-                    if (preLoginResponse.Options.Exists(opt => opt.Type == TDSPreLoginOptionTokenType.FedAuthRequired) && preLoginResponse.FedAuthRequired == TdsPreLoginFedAuthRequiredOption.FedAuthRequired)
-                    {
-                        LoggingUtilities.WriteLog($"  Server requires fed auth");
-                    }
 
                     preLoginDone = true;
                     LoggingUtilities.WriteLog($" PreLogin phase took {(int)(DateTime.UtcNow - connectStartTime).TotalMilliseconds} milliseconds.");
@@ -437,22 +461,35 @@ namespace TDSClient.TDS.Client
                         this.SendLogin7(true);
                     }
 
-                    this.ReceiveLogin7Response();
+                    Tuple<string, string> res = this.ReceiveLogin7Response();
 
+                    string authority = res.Item1;
+                    string resource = res.Item2;
+                    string clientID = "cba1fbbe-5d8f-4748-8c97-ba5638ca40ae";
+
+                    string accessToken = await GetSQLAccessTokenUsingUserCredentials(authority, resource, clientID);
+
+                    using (SqlConnection conn = GetSqlConnectionUsingAadAccessToken(accessToken, this.Server, this.Database))
+	                {       
+		                conn.Open();
+		                conn.Close();
+                    }
+                        
                     if (this.reconnect)
                     {
                         this.Disconnect();
                         LoggingUtilities.AddEmptyLine();
                         LoggingUtilities.WriteLog($" Routing to: {this.Server}:{this.Port}.");
                     }
+
+                    return true;
                 }
                 while (this.reconnect);
-
-                LoggingUtilities.WriteLog($" Connect done.", writeToSummaryLog: true);
             }
             catch (SocketException socketException)
             {
                 LoggingUtilities.WriteLog($" Networking error {socketException.NativeErrorCode} while trying to connect to {this.Server}:{this.Port}.", writeToSummaryLog: true);
+                return false;
             }
             catch (Exception ex)
             {
@@ -467,6 +504,8 @@ namespace TDSClient.TDS.Client
                     LoggingUtilities.WriteLog($"InnerException: {ex.InnerException.Message}");
                 }
                 //throw ex;
+                return false;
+
             }
             finally
             {
@@ -508,5 +547,36 @@ namespace TDSClient.TDS.Client
                 LoggingUtilities.WriteLog($" Disconnect done.");
             }
         }
+
+        /// <summary>
+        /// Gets AAD access token to Azure SQL using user credentials
+        /// </summary>
+	   public async Task<string> GetSQLAccessTokenUsingUserCredentials(string authority, string resource, string clientID)
+	   {
+	        try
+            {
+                AuthenticationContext authContext = new AuthenticationContext(authority);
+                UserPasswordCredential uc = new UserPasswordCredential(this.UserID, this.Password);
+                AuthenticationResult result = await authContext.AcquireTokenAsync(resource, clientID, uc);
+
+                return result.AccessToken;
+            }
+            catch (AdalException e)
+            {
+                LoggingUtilities.WriteLog(e.ErrorCode);
+                LoggingUtilities.WriteLog(e.Message);
+                return null;
+            }
+        }
+
+        
+	    public static SqlConnection GetSqlConnectionUsingAadAccessToken(string accessToken, string serverName, string databaseName = "master")
+	    {
+		    SqlConnection conn = new SqlConnection(string.Format("Data Source={0};Initial Catalog={1};TrustServerCertificate=true;Pooling=False;", serverName, databaseName));
+		    conn.AccessToken = accessToken;
+
+		    return conn;
+        }
+    
     }
 }

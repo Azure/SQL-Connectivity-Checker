@@ -10,6 +10,7 @@ namespace TDSClient.TDS.Tokens
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
+    
     using TDSClient.TDS.Interfaces;
 
     /// <summary>

@@ -6,11 +6,6 @@
 
 namespace TDSClient.TDS.Login7
 {
-    using System;
-    using System.IO;
-    using System.Collections.Generic;
-    using TDSClient.TDS.Interfaces;
-    using TDSClient.TDS.Utilities;
     using System.Reflection;
 
     /// <summary>

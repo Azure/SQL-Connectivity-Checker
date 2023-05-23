@@ -8,9 +8,8 @@ namespace TDSClient.TDS.Login7
 {
     using System;
     using System.IO;
-    using TDSClient.TDS.Interfaces;
 
-    /// TODO: maybe add more info on each feature
+    using TDSClient.TDS.Interfaces;
 
     /// <summary>
     /// TDS feature identifier

@@ -1,10 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
+﻿//  ---------------------------------------------------------------------------
+//  <copyright file="TDSFedAuthInfoOptionSPN.cs" company="Microsoft">
+//     Copyright (c) Microsoft Corporation.  All rights reserved.
+//  </copyright>
+//  ---------------------------------------------------------------------------
 
 namespace TDSClient.TDS.FedAuthInfo
 {
+    using System.IO;
+    using System.Text;
+
     /// <summary>
     /// TDS FedAuth Info Option for SPN
     /// </summary>

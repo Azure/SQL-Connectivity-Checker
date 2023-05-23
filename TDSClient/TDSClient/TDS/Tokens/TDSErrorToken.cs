@@ -9,6 +9,7 @@ namespace TDSClient.TDS.Tokens
     using System;
     using System.IO;
     using System.Text;
+    
     using TDSClient.TDS.Utilities;
 
     /// <summary>

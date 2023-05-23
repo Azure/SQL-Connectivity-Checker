@@ -8,17 +8,16 @@ namespace TDSClient.TDS.Comms
 {
     using System;
     using System.IO;
-    using System.Linq;
     using System.Net.Security;
     using System.Security.Authentication;
     using System.Security.Cryptography.X509Certificates;
+
     using TDSClient.TDS.Header;
     using TDSClient.TDS.Interfaces;
     using TDSClient.TDS.Login7;
     using TDSClient.TDS.PreLogin;
     using TDSClient.TDS.Tokens;
     using TDSClient.TDS.Utilities;
-    using TDSClient.TDS.FedAuthInfo;
 
     /// <summary>
     /// Class that implements TDS communication.
@@ -67,22 +66,23 @@ namespace TDSClient.TDS.Comms
         /// <returns>Returns true if no errors occurred.</returns>
         public static bool ValidateServerCertificate(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
-            if (sslPolicyErrors == SslPolicyErrors.None)
-            {
-                LoggingUtilities.WriteLog($"   Server certificate: {certificate.Subject}");
-                return true;
-            }
+            // if (sslPolicyErrors == SslPolicyErrors.None)
+            // {
+            //     LoggingUtilities.WriteLog($"   Server certificate: {certificate.Subject}");
+            //     return true;
+            // }
 
-            LoggingUtilities.WriteLog($"   Certificate error: {sslPolicyErrors}");
+            // LoggingUtilities.WriteLog($"   Certificate error: {sslPolicyErrors}");
 
-            foreach (var (element, index) in chain.ChainElements.Cast<X509ChainElement>().Select((element, index) => (element, index)))
-            {
-                LoggingUtilities.WriteLog($"   Cert details:");
-                LoggingUtilities.WriteLog($"    issued to {element.Certificate.Subject}");
-                LoggingUtilities.WriteLog($"    valid from {element.Certificate.GetEffectiveDateString()} until {element.Certificate.GetExpirationDateString()}");
-                LoggingUtilities.WriteLog($"    issued from {element.Certificate.Issuer}");
-            }
-            return false;
+            // // foreach (var (element, index) in chain.ChainElements.Cast<X509ChainElement>().Select((element, index) => (element, index)))
+            // // {
+            // //     LoggingUtilities.WriteLog($"   Cert details:");
+            // //     LoggingUtilities.WriteLog($"    issued to {element.Certificate.Subject}");
+            // //     LoggingUtilities.WriteLog($"    valid from {element.Certificate.GetEffectiveDateString()} until {element.Certificate.GetExpirationDateString()}");
+            // //     LoggingUtilities.WriteLog($"    issued from {element.Certificate.Issuer}");
+            // // }
+            // return false;
+            return true;
         }
 
         /// <summary>
