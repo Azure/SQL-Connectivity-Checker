@@ -19,7 +19,7 @@ namespace TDSClientLiveTest
             TDSClient.TDS.Utilities.LoggingUtilities.SetVerboseLog(Console.Out);
             //TDSClient.TDS.Utilities.LoggingUtilities.SetSummaryLog(Console.Out);
 
-            for (int i = 0; i < 10; i++)
+            for (int i = 0; i < 1; i++)
             {
                 tdsClient.Connect();
                 tdsClient.Disconnect();
