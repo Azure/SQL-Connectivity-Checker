@@ -6,11 +6,11 @@ namespace TDSClientLiveTest
 {
     class Program
     {
-        public static string Server = "azuresqlmi2.public.0d67f5456c3d.database.windows.net";
-        public static int Port = 3342;
-        public static string Username = "a";
-        public static string Password = "a";
-        public static string Database = "a";
+        public static string Server = "";
+        public static int Port = 1433;
+        public static string Username = "";
+        public static string Password = "";
+        public static string Database = "";
 
 
         static void Main(string[] args)
