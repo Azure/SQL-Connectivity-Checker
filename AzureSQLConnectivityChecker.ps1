@@ -761,7 +761,7 @@ function PrintSupportedCiphers() {
             Write-Host 'Client Tls Cipher Suites:'
             Write-Host $suites.Trim()
             Write-Host
-        
+
             $suites = Get-TlsCipherSuite
             $supportedSuites = @(
                 'TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384',
@@ -776,13 +776,13 @@ function PrintSupportedCiphers() {
                 'TLS_RSA_WITH_AES_128_CBC_SHA',
                 'TLS_RSA_WITH_3DES_EDE_CBC_SHA'
             )
-        
+
             if (($suites | Where-Object Name -in $supportedSuites | Measure-Object).Count -eq 0) {
                 Write-Host
                 $msg = "WARNING: Client machine may not have any supported cipher suite enabled!"
                 Write-Host $msg -Foreground Red
                 [void]$summaryLog.AppendLine($msg)
-                [void]$summaryRecommendedAction.AppendLine($msg)            
+                [void]$summaryRecommendedAction.AppendLine($msg)
                 Write-Host
                 Write-Host
                 $msg = 'Supported Tls Cipher Suites:'
@@ -1413,12 +1413,12 @@ try {
         Write-Host Warning: Cannot write log file -ForegroundColor Yellow
     }
 
-    TrackWarningAnonymously 'v1.47'
+    TrackWarningAnonymously 'v1.48'
     TrackWarningAnonymously ('PowerShell ' + $PSVersionTable.PSVersion + '|' + $PSVersionTable.Platform + '|' + $PSVersionTable.OS )
 
     try {
         Write-Host '******************************************' -ForegroundColor Green
-        Write-Host '  Azure SQL Connectivity Checker v1.47  ' -ForegroundColor Green
+        Write-Host '  Azure SQL Connectivity Checker v1.48  ' -ForegroundColor Green
         Write-Host '******************************************' -ForegroundColor Green
         Write-Host
         Write-Host 'Parameters' -ForegroundColor Yellow
