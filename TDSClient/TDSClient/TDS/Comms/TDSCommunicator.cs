@@ -12,12 +12,14 @@ namespace TDSClient.TDS.Comms
     using System.Net.Security;
     using System.Security.Authentication;
     using System.Security.Cryptography.X509Certificates;
+    using System.Xml.Linq;
     using TDSClient.TDS.Header;
     using TDSClient.TDS.Interfaces;
     using TDSClient.TDS.Login7;
     using TDSClient.TDS.PreLogin;
     using TDSClient.TDS.Tokens;
     using TDSClient.TDS.Utilities;
+    using static System.Net.Mime.MediaTypeNames;
 
     /// <summary>
     /// Class that implements TDS communication.
@@ -69,19 +71,71 @@ namespace TDSClient.TDS.Comms
             if (sslPolicyErrors == SslPolicyErrors.None)
             {
                 LoggingUtilities.WriteLog($"   Server certificate: {certificate.Subject}");
+                //PrintCertificateChain(chain);
                 return true;
             }
 
             LoggingUtilities.WriteLog($"   Certificate error: {sslPolicyErrors}");
+            if (chain.ChainStatus.Length > 0)
+            {
+                foreach (var chainStatus in chain.ChainStatus)
+                {
+                    LoggingUtilities.WriteLog($"   {chainStatus.StatusInformation}");
+                }
+            }
 
+            PrintCertificateChain(chain);
+            return false;
+        }
+
+        private static void PrintCertificateChain(X509Chain chain)
+        {
             foreach (var (element, index) in chain.ChainElements.Cast<X509ChainElement>().Select((element, index) => (element, index)))
             {
                 LoggingUtilities.WriteLog($"   Cert details:");
                 LoggingUtilities.WriteLog($"    issued to {element.Certificate.Subject}");
                 LoggingUtilities.WriteLog($"    valid from {element.Certificate.GetEffectiveDateString()} until {element.Certificate.GetExpirationDateString()}");
                 LoggingUtilities.WriteLog($"    issued from {element.Certificate.Issuer}");
+                LoggingUtilities.WriteLog($"    thumbprint {element.Certificate.Thumbprint}");
+                LoggingUtilities.WriteLog($"    valid: {element.Certificate.Verify()}");
+
+                var intendedPurposes = string.Empty;
+                var keyUsages = string.Empty;
+
+                foreach (var ext in element.Certificate.Extensions)
+                {
+                    var eku = ext as X509EnhancedKeyUsageExtension;
+                    if (eku != null)
+                    {
+                        foreach (var oid in eku.EnhancedKeyUsages)
+                        {
+                            intendedPurposes += oid.FriendlyName + ", ";
+                        }
+                    }
+
+                    var ku = ext as X509KeyUsageExtension;
+                    if (ku != null)
+                    {
+                        keyUsages = ku.KeyUsages.ToString();
+                    }
+
+                    var bc = ext as X509BasicConstraintsExtension;
+                    if (bc != null && bc.CertificateAuthority)
+                    {
+                        LoggingUtilities.WriteLog($"    this cert is CertificateAuthority");
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(keyUsages))
+                {
+                    LoggingUtilities.WriteLog($"    key usages: {keyUsages.Trim(new char[] { ',', ' ' })}");
+                }
+
+                if (!string.IsNullOrEmpty(intendedPurposes))
+                {
+                    LoggingUtilities.WriteLog($"    intended purposes: {intendedPurposes.Trim(new char[] { ',', ' ' })}");
+                }
             }
-            return false;
         }
 
         /// <summary>
