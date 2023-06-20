@@ -40,7 +40,7 @@ namespace TDSClient.TDS.Client
         /// <param name="password">User password</param>
         /// <param name="database">Database to connect to</param>
         /// <param name="encryptionProtocol">Encryption Protocol</param>
-        public TDSSQLTestClient(string server, int port, string userID, string password, string database, SslProtocols encryptionProtocol = SslProtocols.Tls12)
+        public TDSSQLTestClient(string server, int port, string userID, string password, string database, SslProtocols encryptionProtocol = SslProtocols.Tls12, TDSLogin7TypeFlagsReadOnlyIntent readOnlyIntent = TDSLogin7TypeFlagsReadOnlyIntent.Off)
         {
             if (string.IsNullOrEmpty(server) || string.IsNullOrEmpty(userID) || string.IsNullOrEmpty(password) || string.IsNullOrEmpty(database))
             {
@@ -55,6 +55,7 @@ namespace TDSClient.TDS.Client
             this.Password = password;
             this.Database = database;
             this.EncryptionProtocol = encryptionProtocol;
+            this.ReadOnlyIntent = readOnlyIntent;
             this.connectionAttempt = 0;
 
             LoggingUtilities.WriteLog($" Instantiating TDSSQLTestClient with the following parameters:");
@@ -111,6 +112,11 @@ namespace TDSClient.TDS.Client
         public SslProtocols EncryptionProtocol { get; set; }
 
         /// <summary>
+        /// Gets or sets the ReadOnly Intent Policy.
+        /// </summary>
+        public TDSLogin7TypeFlagsReadOnlyIntent ReadOnlyIntent {get; set;}
+
+        /// <summary>
         /// Sends PreLogin message to the server.
         /// </summary>
         public void SendPreLogin()
@@ -163,7 +169,7 @@ namespace TDSClient.TDS.Client
 
             tdsMessageBody.TypeFlags.OLEDB = TDSLogin7TypeFlagsOLEDB.On;
             tdsMessageBody.TypeFlags.SQLType = TDSLogin7TypeFlagsSQLType.DFLT;
-            tdsMessageBody.TypeFlags.ReadOnlyIntent = TDSLogin7TypeFlagsReadOnlyIntent.On;
+            tdsMessageBody.TypeFlags.ReadOnlyIntent = this.ReadOnlyIntent;
 
             this.TdsCommunicator.SendTDSMessage(tdsMessageBody);
 
