@@ -8,6 +8,7 @@ namespace TDSClient.TDS.Tokens
 {
     using System;
     using System.IO;
+    using TDSClient.TDS.Tokens.Cols;
     using TDSClient.TDS.Utilities;
 
     /// <summary>
@@ -46,6 +47,37 @@ namespace TDSClient.TDS.Tokens
                 case TDSTokenType.Info:
                     {
                         var token = new TDSInfoToken();
+                        token.Unpack(stream);
+
+                        return token;
+                    }
+                case TDSTokenType.ColMetadata:
+                    {
+                        var token = new TDSColMetadataToken();
+                        token.Unpack(stream);
+
+                        return token;
+                    }
+
+                case TDSTokenType.AltRow:
+                    {
+                        var token = new TDSAltRowToken();
+                        token.Unpack(stream);
+
+                        return token;
+                    }
+
+                case TDSTokenType.Row:
+                    {
+                        var token = new TDSRowToken();
+                        token.Unpack(stream);
+
+                        return token;
+                    }
+
+                case TDSTokenType.Done:
+                    {
+                        var token = new TDSRowToken();
                         token.Unpack(stream);
 
                         return token;
