@@ -372,9 +372,11 @@ namespace TDSClient.TDS.Client
         }
 
         public int queryCount = 0;
-        public void Query(string query)
+        public (string[], object[][]) Query(string query)
         {
             var id = Interlocked.Increment(ref queryCount);
+            string[] colNames = Array.Empty<string>();
+            List<object[]> result = new List<object[]>();
             try
             {
                 var request = new TDSSqlBatchPacketData(query);
@@ -388,6 +390,21 @@ namespace TDSClient.TDS.Client
                     foreach (var token in response.Tokens)
                     {
                         PrintTdsToken(token);
+
+                        if (token is TDSColMetadataToken colMetadataToken)
+                        {
+                            colNames = new string[colMetadataToken.Count];
+                            for (int i = 0; i < colMetadataToken.Metadata.Length; i++)
+                            {
+                                var metadata = colMetadataToken.Metadata[i];
+                                colNames[i] = metadata.ColumnName;
+                            }
+                        }
+                        else if (token is TDSRowToken rowToken)
+                        {
+                            LoggingUtilities.WriteLog($"  Client Row data token:");
+                            result.Add(rowToken.Values);
+                        }
                     }
                 }
                 else
@@ -404,6 +421,7 @@ namespace TDSClient.TDS.Client
                     LoggingUtilities.WriteLog($"InnerException: {ex.InnerException.Message}");
                 }
             }
+            return (colNames, result.ToArray());
         }
 
         private void MeasureDNSResolutionTime()
