@@ -32,11 +32,13 @@ namespace TDSClient.TDS.Query
             throw new NotImplementedException();
         }
 
-        public ushort Length() => (ushort)(AllHeaders.TotalLength + SqlText.Length * sizeof(char));
+        public ushort Length() => (ushort)(AllHeaders.TotalLength + SqlText.Length * sizeof(char) + sizeof(ulong));
 
         public void Pack(MemoryStream stream)
         {
             AllHeaders.Pack(stream);
+            //Enclave can be empty stream
+            //BigEndianUtilities.WriteULong(stream, 0UL);
             BigEndianUtilities.WriteUnicodeStream(stream, SqlText);
         }
 

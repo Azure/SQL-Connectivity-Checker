@@ -5,7 +5,7 @@ using System.Text;
 namespace TDSClient.TDS.Tokens.Type
 {
     [Flags]
-    public enum VarLenType: byte
+    public enum SqlTypes: byte
     {
         //Zero length data types
         NULLTYPE = 0x1F,

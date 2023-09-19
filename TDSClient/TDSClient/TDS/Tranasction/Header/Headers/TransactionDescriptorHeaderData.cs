@@ -17,8 +17,8 @@ namespace TDSClient.TDS.Tranasction.Header.Headers
 
         public TransactionDescriptorHeaderData(uint id)
         {
-            TransactionDescriptor = id;
-            OutstandingRequestCount = 0;
+            TransactionDescriptor = 0;
+            OutstandingRequestCount = id;
         }
 
         public ulong TransactionDescriptor { get; set; }
@@ -28,8 +28,8 @@ namespace TDSClient.TDS.Tranasction.Header.Headers
 
         public void Pack(MemoryStream stream)
         {
-            BigEndianUtilities.WriteULong(stream, TransactionDescriptor);
-            BigEndianUtilities.WriteUInt(stream, OutstandingRequestCount);
+            BigEndianUtilities.WriteULongLE(stream, TransactionDescriptor);
+            BigEndianUtilities.WriteUIntLE(stream, OutstandingRequestCount);
         }
 
         public bool Unpack(MemoryStream stream)

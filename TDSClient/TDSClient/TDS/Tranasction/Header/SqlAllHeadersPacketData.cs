@@ -15,7 +15,7 @@ namespace TDSClient.TDS.Tranasction.Headers
 
         public void Pack(MemoryStream stream)
         {
-            BigEndianUtilities.WriteUInt(stream, TotalLength);
+            BigEndianUtilities.WriteUIntLE(stream, TotalLength);
             foreach (var header in Headers)
             {
                 header.Pack(stream);

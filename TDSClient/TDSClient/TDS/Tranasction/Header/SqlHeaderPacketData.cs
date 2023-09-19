@@ -24,8 +24,8 @@ namespace TDSClient.TDS.Tranasction.Headers
 
         public void Pack(MemoryStream stream)
         {
-            BigEndianUtilities.WriteUInt(stream, Size);
-            BigEndianUtilities.WriteUShort(stream, (ushort)Data.HeaderType);
+            BigEndianUtilities.WriteUIntLE(stream, Size);
+            BigEndianUtilities.WriteUShortLE(stream, (ushort)Data.HeaderType);
             Data.Pack(stream);
         }
 

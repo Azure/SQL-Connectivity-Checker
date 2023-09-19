@@ -223,8 +223,17 @@ namespace TDSClient.TDS.Comms
 
                 case TDSCommunicatorState.SentLogin7RecordWithCompleteAuthToken:
                     {
-                        result = new TDSTokenStreamPacketData();
+                        var tokenStream = new TDSTokenStreamPacketData();
+                        result = tokenStream;
                         result.Unpack(new MemoryStream(resultBuffer));
+                        if (tokenStream.Tokens.Any( t=> t is TDSErrorToken err))
+                        {
+                            this.communicatorState = TDSCommunicatorState.LoginError;
+                        }
+                        else
+                        {
+                            this.communicatorState = TDSCommunicatorState.LoggedIn;
+                        }
                         break;
                     }
 
@@ -294,9 +303,11 @@ namespace TDSClient.TDS.Comms
             }
 
             var buffer = new byte[data.Length()];
-            data.Pack(new MemoryStream(buffer));
+            var memStream = new MemoryStream(buffer);
+            data.Pack(memStream);
 
             this.innerStream.Write(buffer, 0, buffer.Length);
+            var hex = BitConverter.ToString(buffer).Replace("-", " ");
 
             switch (this.communicatorState)
             {

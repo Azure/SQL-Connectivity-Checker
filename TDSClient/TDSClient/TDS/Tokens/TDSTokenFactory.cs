@@ -7,7 +7,9 @@
 namespace TDSClient.TDS.Tokens
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using TDSClient.TDS.Tokens.Cols;
     using TDSClient.TDS.Utilities;
 
@@ -21,7 +23,7 @@ namespace TDSClient.TDS.Tokens
         /// </summary>
         /// <param name="stream">Stream that contains the token</param>
         /// <returns>Returns read TDS Token</returns>
-        public static TDSToken ReadTokenFromStream(MemoryStream stream)
+        public static TDSToken ReadTokenFromStream(MemoryStream stream, List<TDSToken> oldTokens)
         {
             var tokenType = (TDSTokenType)stream.ReadByte();
 
@@ -58,7 +60,27 @@ namespace TDSClient.TDS.Tokens
 
                         return token;
                     }
+                case TDSTokenType.ReturnValue:
+                    {
+                        var token = new TDSSqlReturnValueToken();
+                        token.Unpack(stream);
 
+                        return token;
+                    }
+
+                case TDSTokenType.Row:
+                    {
+                        if(oldTokens.SingleOrDefault(t => t is TDSColMetadataToken) is TDSColMetadataToken colMetadata)
+                        {
+                            var token = new TDSRowToken(colMetadata);
+                            token.Unpack(stream);
+
+                            return token;
+                        }
+
+                        throw new Exception("No Column metadata found");
+                    }
+                /*
                 case TDSTokenType.AltRow:
                     {
                         var token = new TDSAltRowToken();
@@ -67,21 +89,16 @@ namespace TDSClient.TDS.Tokens
                         return token;
                     }
 
-                case TDSTokenType.Row:
-                    {
-                        var token = new TDSRowToken();
-                        token.Unpack(stream);
+                */
 
-                        return token;
-                    }
+                /*  case TDSTokenType.Done:
+                      {
+                          return null;
+                          //var token = new TDSRowToken();
+                          //token.Unpack(stream);
 
-                case TDSTokenType.Done:
-                    {
-                        var token = new TDSRowToken();
-                        token.Unpack(stream);
-
-                        return token;
-                    }
+                          //return token;
+                      }*/
 
                 default:
                     {

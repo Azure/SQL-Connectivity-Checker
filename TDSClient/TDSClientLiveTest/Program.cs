@@ -16,13 +16,13 @@ namespace TDSClientLiveTest
 
         static void Main(string[] args)
         {
-            TDSSQLTestClient tdsClient = new TDSSQLTestClient(Server, Port, Username, Password, Database, SslProtocols.None);
+            TDSSQLTestClient tdsClient = new TDSSQLTestClient(Server, Port, Username, Password, Database, SslProtocols.Tls12);
             TDSClient.TDS.Utilities.LoggingUtilities.SetVerboseLog(Console.Out);
 
             for (int i = 0; i < 1; i++)
             {
                 tdsClient.Connect();
-                tdsClient.Query("select 1");
+                tdsClient.Query("SELECT GETUTCDATE() AS CurrentUTCDateTime");
                 tdsClient.Disconnect();
                 Console.WriteLine();
                 Thread.Sleep(1000);
