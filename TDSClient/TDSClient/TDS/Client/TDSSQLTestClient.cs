@@ -366,7 +366,7 @@ namespace TDSClient.TDS.Client
         }
 
         public int queryCount = 0;
-        public Dictionary<object, object> Query(string query)
+        public void Query(string query)
         {
             var id = Interlocked.Increment(ref queryCount);
             try
@@ -398,7 +398,6 @@ namespace TDSClient.TDS.Client
                     LoggingUtilities.WriteLog($"InnerException: {ex.InnerException.Message}");
                 }
             }
-            return null;
         }
 
         private void MeasureDNSResolutionTime()
