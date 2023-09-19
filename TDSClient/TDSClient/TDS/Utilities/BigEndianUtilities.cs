@@ -7,6 +7,7 @@
 namespace TDSClient.TDS.Utilities
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
 
     /// <summary>
@@ -67,6 +68,20 @@ namespace TDSClient.TDS.Utilities
                 stream.WriteByte(array[i]);
             }
         }
+
+        /// <summary>
+        /// Used to write string to stream in big endian order.
+        /// </summary>
+        /// <param name="stream">MemoryStream to to write the value to.</param>
+        /// <param name="chars">Unicode chars to write to MemoryStream.</param>
+        public static void WriteUnicodeStream(MemoryStream stream, IEnumerable<char> chars)
+        {
+            foreach (char c in chars)
+            {
+                WriteUShort(stream, c);
+            }
+        }
+
 
         /// <summary>
         /// Used to read a UShort value from stream in big endian order.
@@ -131,6 +146,24 @@ namespace TDSClient.TDS.Utilities
             for (int i = 1; i <= length; i++)
             {
                 result[length - i] = Convert.ToByte(stream.ReadByte());
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Used to read a Unicode char array from stream in big endian order.
+        /// </summary>
+        /// <param name="stream">MemoryStream from which to read the unicode char array.</param>
+        /// <param name="length">Length of the unicode array to read.</param>
+        /// <returns>Unicode char array read from the stream.</returns>
+        public static char[] ReadUnicodeStream(MemoryStream stream, int length)
+        {
+            char[] result = new char[length];
+            //TODO: Check order to read in
+            for (int i = 1; i <= length; i++)
+            {
+                result[length - i] = (char)ReadUShort(stream);
             }
 
             return result;

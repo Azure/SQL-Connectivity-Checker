@@ -1,4 +1,6 @@
-﻿using System;
+using System;
+using System.Security.Authentication;
+using System.Text;
 using System.Threading;
 using TDSClient.TDS.Client;
 
@@ -12,16 +14,15 @@ namespace TDSClientLiveTest
         public static string Password = "";
         public static string Database = "";
 
-
         static void Main(string[] args)
         {
-            TDSSQLTestClient tdsClient = new TDSSQLTestClient(Server, Port, Username, Password, Database);
+            TDSSQLTestClient tdsClient = new TDSSQLTestClient(Server, Port, Username, Password, Database, SslProtocols.None);
             TDSClient.TDS.Utilities.LoggingUtilities.SetVerboseLog(Console.Out);
-            //TDSClient.TDS.Utilities.LoggingUtilities.SetSummaryLog(Console.Out);
 
             for (int i = 0; i < 1; i++)
             {
                 tdsClient.Connect();
+                tdsClient.Query("select 1");
                 tdsClient.Disconnect();
                 Console.WriteLine();
                 Thread.Sleep(1000);

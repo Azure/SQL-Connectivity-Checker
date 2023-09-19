@@ -29,6 +29,11 @@ namespace TDSClient.TDS.Comms
         /// <summary>
         /// LoggedIn Communicator State
         /// </summary>
-        LoggedIn
+        LoggedIn,
+
+        /// <summary>
+        /// Sent sql batch
+        /// </summary>
+        SentSqlBatch,
     }
 }

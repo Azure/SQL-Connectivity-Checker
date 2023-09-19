@@ -17,6 +17,7 @@ namespace TDSClient.TDS.Comms
     using TDSClient.TDS.Interfaces;
     using TDSClient.TDS.Login7;
     using TDSClient.TDS.PreLogin;
+    using TDSClient.TDS.Query;
     using TDSClient.TDS.Tokens;
     using TDSClient.TDS.Utilities;
     using static System.Net.Mime.MediaTypeNames;
@@ -227,6 +228,16 @@ namespace TDSClient.TDS.Comms
                         break;
                     }
 
+                case TDSCommunicatorState.SentSqlBatch:
+                    {
+                        result = new TDSTokenStreamPacketData();
+                        result.Unpack(new MemoryStream(resultBuffer));
+
+                        //Restore to base state
+                        this.communicatorState = TDSCommunicatorState.LoggedIn;
+                        break;
+                    }
+
                 default:
                     {
                         throw new InvalidOperationException();
@@ -268,9 +279,14 @@ namespace TDSClient.TDS.Comms
 
                 case TDSCommunicatorState.LoggedIn:
                     {
-                        throw new NotSupportedException();
-                    }
+                        if (!(data is TDSSqlBatchPacketData))
+                        {
+                            throw new InvalidDataException();
+                        }
 
+                        this.innerTdsStream.CurrentOutboundMessageType = TDSMessageType.SQLBatch;
+                        break;
+                    }
                 default:
                     {
                         throw new InvalidOperationException();
@@ -293,6 +309,11 @@ namespace TDSClient.TDS.Comms
                 case TDSCommunicatorState.SentInitialPreLogin:
                     {
                         this.communicatorState = TDSCommunicatorState.SentLogin7RecordWithCompleteAuthToken;
+                        break;
+                    }
+                case TDSCommunicatorState.LoggedIn:
+                    {
+                        this.communicatorState = TDSCommunicatorState.SentSqlBatch;
                         break;
                     }
             }

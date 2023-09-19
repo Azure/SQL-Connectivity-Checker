@@ -7,16 +7,21 @@
 namespace TDSClient.TDS.Client
 {
     using System;
+    using System.Collections.Generic;
     using System.Diagnostics;
     using System.Linq;
     using System.Net;
     using System.Net.Sockets;
     using System.Security.Authentication;
+    using System.Threading;
     using TDSClient.TDS.Comms;
     using TDSClient.TDS.Header;
     using TDSClient.TDS.Login7;
     using TDSClient.TDS.PreLogin;
+    using TDSClient.TDS.Query;
     using TDSClient.TDS.Tokens;
+    using TDSClient.TDS.Tranasction.Header.Headers;
+    using TDSClient.TDS.Tranasction.Headers;
     using TDSClient.TDS.Utilities;
 
     /// <summary>
@@ -212,46 +217,7 @@ namespace TDSClient.TDS.Client
             {
                 foreach (var token in response.Tokens)
                 {
-                    if (token is TDSEnvChangeToken)
-                    {
-                        var envChangeToken = token as TDSEnvChangeToken;
-                        if (envChangeToken.Type == Tokens.EnvChange.TDSEnvChangeType.Routing)
-                        {
-                            LoggingUtilities.WriteLog($" Client received EnvChange routing token, client is being routed.");
-                            this.Server = envChangeToken.Values["AlternateServer"];
-                            this.Port = int.Parse(envChangeToken.Values["ProtocolProperty"]);
-                            this.reconnect = true;
-                            LoggingUtilities.WriteLog($" Redirect to {this.Server}:{this.Port}", writeToSummaryLog: true, writeToVerboseLog: false);
-                        }
-                    }
-                    else if (token is TDSErrorToken)
-                    {
-                        var errorToken = token as TDSErrorToken;
-                        LoggingUtilities.WriteLog($" Client received Error token, Number: {errorToken.Number}, State: {errorToken.State}", writeToSummaryLog: true); ;
-                        LoggingUtilities.WriteLog($"  MsgText: {errorToken.MsgText}");
-                        LoggingUtilities.WriteLog($"  Class: {errorToken.Class}");
-                        LoggingUtilities.WriteLog($"  ServerName: {errorToken.ServerName}");
-                        LoggingUtilities.WriteLog($"  ProcName: {errorToken.ProcName}");
-                        LoggingUtilities.WriteLog($"  LineNumber: {errorToken.LineNumber}");
-
-                        if (errorToken.Number == 18456)
-                        {
-                            throw new Exception("Login failure.");
-                        }
-                    }
-                    else if (token is TDSInfoToken)
-                    {
-                        var infoToken = token as TDSInfoToken;
-                        LoggingUtilities.WriteLog($"  Client received Info token:");
-
-                        LoggingUtilities.WriteLog($"     Number: {infoToken.Number}");
-                        LoggingUtilities.WriteLog($"     State: {infoToken.State}");
-                        LoggingUtilities.WriteLog($"     Class: {infoToken.Class}");
-                        LoggingUtilities.WriteLog($"     MsgText: {infoToken.MsgText}");
-                        LoggingUtilities.WriteLog($"     ServerName: {infoToken.ServerName}");
-                        LoggingUtilities.WriteLog($"     ProcName: {infoToken.ProcName}");
-                        LoggingUtilities.WriteLog($"     LineNumber: {infoToken.LineNumber}");
-                    }
+                    PrintTdsToken(token);
                 }
             }
             else
@@ -260,6 +226,50 @@ namespace TDSClient.TDS.Client
             }
 
             LoggingUtilities.WriteLog($" Login7 response received.");
+        }
+
+        private void PrintTdsToken(TDSToken token)
+        {
+            if (token is TDSEnvChangeToken)
+            {
+                var envChangeToken = token as TDSEnvChangeToken;
+                if (envChangeToken.Type == Tokens.EnvChange.TDSEnvChangeType.Routing)
+                {
+                    LoggingUtilities.WriteLog($" Client received EnvChange routing token, client is being routed.");
+                    this.Server = envChangeToken.Values["AlternateServer"];
+                    this.Port = int.Parse(envChangeToken.Values["ProtocolProperty"]);
+                    this.reconnect = true;
+                    LoggingUtilities.WriteLog($" Redirect to {this.Server}:{this.Port}", writeToSummaryLog: true, writeToVerboseLog: false);
+                }
+            }
+            else if (token is TDSErrorToken)
+            {
+                var errorToken = token as TDSErrorToken;
+                LoggingUtilities.WriteLog($" Client received Error token, Number: {errorToken.Number}, State: {errorToken.State}", writeToSummaryLog: true); ;
+                LoggingUtilities.WriteLog($"  MsgText: {errorToken.MsgText}");
+                LoggingUtilities.WriteLog($"  Class: {errorToken.Class}");
+                LoggingUtilities.WriteLog($"  ServerName: {errorToken.ServerName}");
+                LoggingUtilities.WriteLog($"  ProcName: {errorToken.ProcName}");
+                LoggingUtilities.WriteLog($"  LineNumber: {errorToken.LineNumber}");
+
+                if (errorToken.Number == 18456)
+                {
+                    throw new Exception("Login failure.");
+                }
+            }
+            else if (token is TDSInfoToken)
+            {
+                var infoToken = token as TDSInfoToken;
+                LoggingUtilities.WriteLog($"  Client received Info token:");
+
+                LoggingUtilities.WriteLog($"     Number: {infoToken.Number}");
+                LoggingUtilities.WriteLog($"     State: {infoToken.State}");
+                LoggingUtilities.WriteLog($"     Class: {infoToken.Class}");
+                LoggingUtilities.WriteLog($"     MsgText: {infoToken.MsgText}");
+                LoggingUtilities.WriteLog($"     ServerName: {infoToken.ServerName}");
+                LoggingUtilities.WriteLog($"     ProcName: {infoToken.ProcName}");
+                LoggingUtilities.WriteLog($"     LineNumber: {infoToken.LineNumber}");
+            }
         }
 
         /// <summary>
@@ -330,6 +340,42 @@ namespace TDSClient.TDS.Client
                 this.Server = originalServerName;
                 this.Port = originalPort;
             }
+        }
+
+        public int queryCount = 0;
+        public Dictionary<object, object> Query(string query)
+        {
+            var id = Interlocked.Increment(ref queryCount);
+            try
+            {
+                var request = new TDSSqlBatchPacketData(query);
+                var header = new SqlHeaderPacketData(new TransactionDescriptorHeaderData((uint)id));
+                request.AllHeaders.Headers.Add(header);
+
+                TdsCommunicator.SendTDSMessage(request);
+               
+                if (this.TdsCommunicator.ReceiveTDSMessage() is TDSTokenStreamPacketData response)
+                {
+                    foreach (var token in response.Tokens)
+                    {
+                        PrintTdsToken(token);
+                    }
+                }
+                else
+                {
+                    throw new InvalidOperationException();
+                }
+            }
+            catch(Exception ex)
+            {
+                LoggingUtilities.WriteLog($"Exception:");
+                LoggingUtilities.WriteLog($"{ex.Message}");
+                if (ex.InnerException != null)
+                {
+                    LoggingUtilities.WriteLog($"InnerException: {ex.InnerException.Message}");
+                }
+            }
+            return null;
         }
 
         private void MeasureDNSResolutionTime()
