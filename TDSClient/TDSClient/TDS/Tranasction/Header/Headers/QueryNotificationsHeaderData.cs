@@ -24,11 +24,11 @@ namespace TDSClient.TDS.Tranasction.Header.Headers
         public bool Unpack(MemoryStream stream)
         {
             var notifyIdLen = BigEndianUtilities.ReadUShort(stream);
-            var notifyIdChars = BigEndianUtilities.ReadUnicodeStream(stream, notifyIdLen);
+            var notifyIdChars = BigEndianUtilities.ReadUnicodeStreamLE(stream, notifyIdLen);
             NotifyId = new string(notifyIdChars);
 
             var ssbDeploymentLen = BigEndianUtilities.ReadUShort(stream);
-            var ssbDeploymentChars = BigEndianUtilities.ReadUnicodeStream(stream, ssbDeploymentLen);
+            var ssbDeploymentChars = BigEndianUtilities.ReadUnicodeStreamLE(stream, ssbDeploymentLen);
             SSBDeployment = new string(ssbDeploymentChars);
 
             NotifyTimeout = BigEndianUtilities.ReadULong(stream);

@@ -20,6 +20,7 @@ namespace TDSClient.TDS.Client
     using TDSClient.TDS.PreLogin;
     using TDSClient.TDS.Query;
     using TDSClient.TDS.Tokens;
+    using TDSClient.TDS.Tokens.Cols;
     using TDSClient.TDS.Tranasction.Header.Headers;
     using TDSClient.TDS.Tranasction.Headers;
     using TDSClient.TDS.Utilities;
@@ -269,6 +270,28 @@ namespace TDSClient.TDS.Client
                 LoggingUtilities.WriteLog($"     ServerName: {infoToken.ServerName}");
                 LoggingUtilities.WriteLog($"     ProcName: {infoToken.ProcName}");
                 LoggingUtilities.WriteLog($"     LineNumber: {infoToken.LineNumber}");
+            }
+            else if (token is TDSColMetadataToken colMetadataToken)
+            {
+                LoggingUtilities.WriteLog($"  Client Column Metadata Info token:");
+
+                LoggingUtilities.WriteLog($"     Columns: {colMetadataToken.Count}");
+                for (int i = 0; i < colMetadataToken.Metadata.Length; i++)
+                {
+                    var metadata = colMetadataToken.Metadata[i];
+                    LoggingUtilities.WriteLog($"        Index: {i}");
+                    LoggingUtilities.WriteLog($"        Name: {metadata.ColumnName}");
+                    LoggingUtilities.WriteLog($"        Type: {metadata.Type.Type}");
+                    LoggingUtilities.WriteLog("");
+                }
+            }
+            else if (token is TDSRowToken rowToken)
+            {
+                LoggingUtilities.WriteLog($"  Client Row data token:");
+                for(int i = 0; i < rowToken.Values.Length; i++)
+                {
+                    LoggingUtilities.WriteLog($"    Row [{i}]: {rowToken.Values[i]?.ToString() ?? "NUll"}");
+                }
             }
         }
 

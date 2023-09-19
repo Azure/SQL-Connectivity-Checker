@@ -52,7 +52,7 @@ namespace TDSClient.TDS.Tokens.Cols
 
             var colNameLen = stream.ReadByte();
 
-            var colName = BigEndianUtilities.ReadUnicodeStream(stream, colNameLen);
+            var colName = BigEndianUtilities.ReadUnicodeStreamLE(stream, colNameLen);
             ColumnName = new string(colName);
 
             return true;

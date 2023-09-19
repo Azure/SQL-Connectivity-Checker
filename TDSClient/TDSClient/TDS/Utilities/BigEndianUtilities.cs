@@ -241,18 +241,18 @@ namespace TDSClient.TDS.Utilities
         }
 
         /// <summary>
-        /// Used to read a Unicode char array from stream in big endian order.
+        /// Used to read a Unicode char array from stream in little endian order.
         /// </summary>
         /// <param name="stream">MemoryStream from which to read the unicode char array.</param>
         /// <param name="length">Length of the unicode array to read.</param>
         /// <returns>Unicode char array read from the stream.</returns>
-        public static char[] ReadUnicodeStream(MemoryStream stream, int length)
+        public static char[] ReadUnicodeStreamLE(MemoryStream stream, int length)
         {
             char[] result = new char[length];
             //TODO: Check order to read in
-            for (int i = 1; i <= length; i++)
+            for (int i = 0; i < length; i++)
             {
-                result[length - i] = (char)ReadUShortLE(stream);
+                result[i] = (char)ReadUShortLE(stream);
             }
 
             return result;

@@ -41,7 +41,7 @@ namespace TDSClient.TDS.Tokens.Cols
         {
             Index = BigEndianUtilities.ReadUShortLE(stream);
             var paraeterNameLen = stream.ReadByte();
-            var paraeterName = BigEndianUtilities.ReadUnicodeStream(stream, paraeterNameLen);
+            var paraeterName = BigEndianUtilities.ReadUnicodeStreamLE(stream, paraeterNameLen);
             ParameterName = new string(paraeterName);
             Status = Convert.ToByte(stream.ReadByte());
 
