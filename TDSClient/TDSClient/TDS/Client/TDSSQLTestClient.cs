@@ -6,6 +6,7 @@
 
 namespace TDSClient.TDS.Client
 {
+    using DnsClient;
     using System;
     using System.Diagnostics;
     using System.Linq;
@@ -286,7 +287,7 @@ namespace TDSClient.TDS.Client
                     this.TdsCommunicator = new TDSCommunicator(this.Client.GetStream(), 4096);
                     LoggingUtilities.WriteLog($"  TCP connection open between local {this.Client.Client.LocalEndPoint} and remote {this.Client.Client.RemoteEndPoint}", writeToVerboseLog: false, writeToSummaryLog: true);
                     LoggingUtilities.WriteLog($"  TCP connection open");
-                    LoggingUtilities.WriteLog($"   Local endpoint is {this.Client.Client.LocalEndPoint}");
+                    LoggingUtilities.WriteLog($"   Client local endpoint is {this.Client.Client.LocalEndPoint}");
                     LoggingUtilities.WriteLog($"   Remote endpoint is {this.Client.Client.RemoteEndPoint}");
                     connectStartTime = DateTime.UtcNow;
                     this.SendPreLogin();
@@ -341,6 +342,13 @@ namespace TDSClient.TDS.Client
                 stopwatch.Stop();
                 var addressListString = string.Join(",", addresses.AsEnumerable());
                 LoggingUtilities.WriteLog($"  DNS resolution took {stopwatch.ElapsedMilliseconds} ms, ({addressListString})", writeToSummaryLog: true);
+
+                var client = new LookupClient();
+                var result = client.Query(this.Server, QueryType.A);
+                foreach (var record in result.Answers)
+                {
+                    LoggingUtilities.WriteLog($"  {record.DomainName} TTL:{record.TimeToLive}");
+                }
             }
             catch (SocketException socketException)
             {
