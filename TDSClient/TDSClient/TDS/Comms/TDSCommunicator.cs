@@ -17,6 +17,7 @@ namespace TDSClient.TDS.Comms
     using TDSClient.TDS.Interfaces;
     using TDSClient.TDS.Login7;
     using TDSClient.TDS.PreLogin;
+    using TDSClient.TDS.Query;
     using TDSClient.TDS.Tokens;
     using TDSClient.TDS.Utilities;
     using static System.Net.Mime.MediaTypeNames;
@@ -222,8 +223,27 @@ namespace TDSClient.TDS.Comms
 
                 case TDSCommunicatorState.SentLogin7RecordWithCompleteAuthToken:
                     {
+                        var tokenStream = new TDSTokenStreamPacketData();
+                        result = tokenStream;
+                        result.Unpack(new MemoryStream(resultBuffer));
+                        if (tokenStream.Tokens.Any( t=> t is TDSErrorToken err))
+                        {
+                            this.communicatorState = TDSCommunicatorState.LoginError;
+                        }
+                        else
+                        {
+                            this.communicatorState = TDSCommunicatorState.LoggedIn;
+                        }
+                        break;
+                    }
+
+                case TDSCommunicatorState.SentSqlBatch:
+                    {
                         result = new TDSTokenStreamPacketData();
                         result.Unpack(new MemoryStream(resultBuffer));
+
+                        //Restore to base state
+                        this.communicatorState = TDSCommunicatorState.LoggedIn;
                         break;
                     }
 
@@ -268,9 +288,14 @@ namespace TDSClient.TDS.Comms
 
                 case TDSCommunicatorState.LoggedIn:
                     {
-                        throw new NotSupportedException();
-                    }
+                        if (!(data is TDSSqlBatchPacketData))
+                        {
+                            throw new InvalidDataException();
+                        }
 
+                        this.innerTdsStream.CurrentOutboundMessageType = TDSMessageType.SQLBatch;
+                        break;
+                    }
                 default:
                     {
                         throw new InvalidOperationException();
@@ -278,9 +303,11 @@ namespace TDSClient.TDS.Comms
             }
 
             var buffer = new byte[data.Length()];
-            data.Pack(new MemoryStream(buffer));
+            var memStream = new MemoryStream(buffer);
+            data.Pack(memStream);
 
             this.innerStream.Write(buffer, 0, buffer.Length);
+            var hex = BitConverter.ToString(buffer).Replace("-", " ");
 
             switch (this.communicatorState)
             {
@@ -293,6 +320,11 @@ namespace TDSClient.TDS.Comms
                 case TDSCommunicatorState.SentInitialPreLogin:
                     {
                         this.communicatorState = TDSCommunicatorState.SentLogin7RecordWithCompleteAuthToken;
+                        break;
+                    }
+                case TDSCommunicatorState.LoggedIn:
+                    {
+                        this.communicatorState = TDSCommunicatorState.SentSqlBatch;
                         break;
                     }
             }

@@ -80,7 +80,7 @@ namespace TDSClient.TDS.Tokens
         {
             while (stream.Length > stream.Position)
             {
-                TDSToken token = TDSTokenFactory.ReadTokenFromStream(stream);
+                TDSToken token = TDSTokenFactory.ReadTokenFromStream(stream, this.Tokens);
                 if (token != null)
                 {
                     this.Tokens.Add(token);
