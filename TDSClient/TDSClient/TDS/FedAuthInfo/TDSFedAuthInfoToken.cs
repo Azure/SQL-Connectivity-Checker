@@ -15,7 +15,9 @@ namespace TDSClient.TDS.FedAuthInfo
     /// <summary>
     /// FeatureAck token definition.
     /// </summary>
+    #pragma warning disable CS0659
     public class TDSFedAuthInfoToken : TDSToken
+    #pragma warning restore CS0659
     {
         /// <summary>
         /// Collection of feature extension acknoeldged options
@@ -52,10 +54,8 @@ namespace TDSClient.TDS.FedAuthInfo
             // We skip the token identifier because it is read by token factory
             TDSFedAuthInfoId currentFeatureType = TDSFedAuthInfoId.Invalid;
 
-            uint infoDataLength = 0;
-            uint infoDataOffset = 0;
-
-            uint tokenLength = LittleEndianUtilities.ReadUInt(source);
+            uint infoDataLength;
+            _ = LittleEndianUtilities.ReadUInt(source);
             uint countOfIds = LittleEndianUtilities.ReadUInt(source);
 
             int i = 0;
@@ -72,7 +72,7 @@ namespace TDSClient.TDS.FedAuthInfo
                         {
                             // Create an STSURL option.
                             infoDataLength = LittleEndianUtilities.ReadUInt(source);
-                            infoDataOffset = LittleEndianUtilities.ReadUInt(source);
+                            _ = LittleEndianUtilities.ReadUInt(source);
                             Options.Add(i++, new TDSFedAuthInfoOptionSTSURL(infoDataLength));
                             break;
                         }
@@ -81,7 +81,7 @@ namespace TDSClient.TDS.FedAuthInfo
                         {
                             // Create SPN option.
                             infoDataLength = LittleEndianUtilities.ReadUInt(source);
-                            infoDataOffset = LittleEndianUtilities.ReadUInt(source);
+                            _ = LittleEndianUtilities.ReadUInt(source);
                             Options.Add(i++, new TDSFedAuthInfoOptionSPN(infoDataLength));
                             break;
                         }

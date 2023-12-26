@@ -190,6 +190,7 @@ $parameters = $args[0]
 $Server = $parameters['Server']
 $Port = $parameters['Port']
 $AuthenticationType = $parameters['AuthenticationType']
+$AuthenticationLibrary = $parameters['AuthenticationLibrary']
 $User = $parameters['User']
 $Password = $parameters['Password']
 $Database = $parameters['Database']
@@ -230,7 +231,7 @@ try {
     # else {
     #     Invoke-WebRequest -Uri $('https://github.com/Azure/SQL-Connectivity-Checker/raw/' + $RepositoryBranch + '/net472/TDSClient.dll') -OutFile $TDSClientPath -UseBasicParsing
     # }
-    $assembly = [System.IO.File]::ReadAllBytes("D:\Connectivity checker\SQL-Connectivity-Checker\net472\TDSClient.dll")
+    $assembly = [System.IO.File]::ReadAllBytes("D:\ConnectivityChecker\SQL-Connectivity-Checker\net472\TDSClient.dll")
     [System.Reflection.Assembly]::Load($assembly) | Out-Null
 
     $fullLogPath = Join-Path ((Get-Location).Path) 'AdvancedTests_FullLog.txt'
@@ -264,14 +265,14 @@ try {
                 $encryption = [System.Security.Authentication.SslProtocols]::Tls12 -bor [System.Security.Authentication.SslProtocols]::Tls11 -bor [System.Security.Authentication.SslProtocols]::Default
             }
         }
-        $tdsClient = [TDSClient.TDS.Client.TDSSQLTestClient]::new($Server, $Port, $AuthenticationType, $User, $Password, $Database, $encryption)
+        $tdsClient = [TDSClient.TDS.Client.TDSSQLTestClient]::new($Server, $Port, $AuthenticationType, $AuthenticationLibrary, $User, $Password, $Database, $encryption)
 
         for ($i = 1; $i -le $ConnectionAttempts; ++$i) {
             $log = [System.IO.File]::CreateText($logPath)
             [TDSClient.TDS.Utilities.LoggingUtilities]::SetVerboseLog($log)
 
             $result = $tdsClient.Connect().GetAwaiter().GetResult()
-            $tdsClient.Disconnect()
+            #$tdsClient.Disconnect()
 
             $log.Close()
             [TDSClient.TDS.Utilities.LoggingUtilities]::ClearVerboseLog()
@@ -279,10 +280,12 @@ try {
             Write-Host $result
             Add-Content -Path $fullLogPath -Value $result
 
-            if ($i -lt $ConnectionAttempts) {
-                Write-Host ('Waiting ' + $DelayBetweenConnections + ' second(s)...')
-                Start-Sleep -Seconds $DelayBetweenConnections
-            }
+            # if ($i -lt $ConnectionAttempts) {
+            #     Write-Host ('Waiting ' + $DelayBetweenConnections + ' second(s)...')
+            #     Start-Sleep -Seconds $DelayBetweenConnections
+            # }
+
+
         }
         TrackWarningAnonymously ('Advanced|TDSClient|ConnectAndDisconnect')
     }

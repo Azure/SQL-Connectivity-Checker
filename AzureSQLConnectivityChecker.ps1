@@ -20,10 +20,11 @@ using namespace Microsoft.Data.SqlClient
 # Supports Azure Synapse / Azure SQL Data Warehouse (*.sql.azuresynapse.net / *.database.windows.net)
 # Supports Public Cloud (*.database.windows.net), Azure China (*.database.chinacloudapi.cn), Azure Germany (*.database.cloudapi.de) and Azure Government (*.database.usgovcloudapi.net)
 $AuthenticationType = 'Azure Active Directory Password' # Set the type of authentication you wish to use: 'Azure Active Directory Password', 'Azure Active Directory Integrated', 'SQL Server Authentication' (SQL Authentication will be used by default if nothing is set)
-$Server = 'akvtest.public.10fbf4e79f04.database.windows.net,3342' # or any other supported FQDN
+$AuthenticationLibrary = 'ADAL' # Set the authentication library you wish to use: 'ADAL' or 'MSAL'. Default is 'ADAL'.
+$Server = 'tde-akv-active-runner-mi.public.75be698df605.database.windows.net,3342' # or any other supported FQDN
 $Database = ''  # Set the name of the database you wish to test, 'master' will be used by default if nothing is set
-$User = 'CloudSAe1499661'  # Set the login username you wish to use, 'AzSQLConnCheckerUser' will be used by default if nothing is set
-$Password = 'bogdanius 999000#'  # Set the login password you wish to use, 'AzSQLConnCheckerPassword' will be used by default if nothing is set
+$User = 'tdeakvactiverunner@aadsqlmi.onmicrosoft.com'  # Set the login username you wish to use, 'AzSQLConnCheckerUser' will be used by default if nothing is set
+$Password = 'Turnideason999999'  # Set the login password you wish to use, 'AzSQLConnCheckerPassword' will be used by default if nothing is set
 # In case you want to hide the password (like during a remote session), uncomment the 2 lines below (by removing leading #) and password will be asked during execution
 # $Credentials = Get-Credential -Message "Credentials to test connections to the database (optional)" -User $User
 # $Password = $Credentials.GetNetworkCredential().password
@@ -34,17 +35,18 @@ $RunAdvancedConnectivityPolicyTests = $true  # Set as $true (default) or $false#
 $ConnectionAttempts = 1
 $DelayBetweenConnections = 1
 $CollectNetworkTrace = $true  # Set as $true (default) or $false
-$EncryptionProtocol = ''  # Supported values: 'Tls 1.0', 'Tls 1.1', 'Tls 1.2'; Without this parameter operating system will choose the best protocol to use
+$EncryptionProtocol = 'Tls 1.2'  # Supported values: 'Tls 1.0', 'Tls 1.1', 'Tls 1.2'; Without this parameter operating system will choose the best protocol to use
 
 # Parameter region when Invoke-Command -ScriptBlock is used
 $parameters = $args[0]
 if ($null -ne $parameters) {
     $AuthenticationType = $parameters['AuthenticationType']
+    $AuthenticationLibrary = $parameters['AuthenticationLibrary']
     $Server = $parameters['Server']
     $Database = $parameters['Database']
     $User = $parameters['User']
     $Password = $parameters['Password']
-    $LocalPath = "D:\Connectivity checker\SQL-Connectivity-Checker\"
+    $LocalPath = "D:\ConnectivityChecker\SQL-Connectivity-Checker\"
     if ($null -ne $parameters['SendAnonymousUsageData']) {
         $SendAnonymousUsageData = $parameters['SendAnonymousUsageData']
     }
@@ -76,6 +78,10 @@ if ($null -ne $parameters) {
 
 if ($null -eq $AuthenticationType -or '' -eq $AuthenticationType) {
     $AuthenticationType = 'SQL Server Authentication'
+}
+
+if ($null -eq $AuthenticationLibrary -or '' -eq $AuthenticationLibrary) {
+    $AuthenticationLibrary = 'ADAL'
 }
 
 if ($null -eq $User -or '' -eq $User) {
@@ -598,7 +604,7 @@ function FilterTranscript() {
     }
 }
 
-function TestConnectionToDatabase($Server, $gatewayPort, $Database, $AuthenticationType, $User, $Password) {
+function TestConnectionToDatabase($Server, $gatewayPort, $Database, $AuthenticationLibrary, $User, $Password) {
     Write-Host
     [void]$summaryLog.AppendLine()
     Write-Host ([string]::Format("Testing connecting to {0} database (please wait):", $Database)) -ForegroundColor Green
@@ -606,9 +612,10 @@ function TestConnectionToDatabase($Server, $gatewayPort, $Database, $Authenticat
         $masterDbConnection = [System.Data.SqlClient.SQLConnection]::new()
         Write-Host $Database
         Write-Host $AuthenticationType
+        Write-Host $AuthenticationLibrary
         Write-Host $User
         Write-Host $Password
-        $masterDbConnection.ConnectionString = GetConnectionString $Server $gatewayPort $Database $AuthenticationType $User $Password # here we can use both AAD and non-AAD
+        $masterDbConnection.ConnectionString = GetConnectionString $Server $gatewayPort $Database $AuthenticationType $User $Password
         $masterDbConnection.Open()
         Write-Host ([string]::Format(" The connection attempt succeeded", $Database))
         [void]$summaryLog.AppendLine([string]::Format(" The connection attempt to {0} database succeeded", $Database))
@@ -878,7 +885,7 @@ function RunSqlMIPublicEndpointConnectivityTests($resolvedAddress) {
             $msg = ' Gateway connectivity to ' + $resolvedAddress + ':3342 succeed'
             [void]$summaryLog.AppendLine($msg)
             TrackWarningAnonymously 'SQLMI|PublicEndpoint|GatewayTestSucceeded'
-            RunConnectionToDatabaseTestsAndAdvancedTests $Server '3342' $Database $AuthenticationType $User $Password
+            RunConnectionToDatabaseTestsAndAdvancedTests $Server '3342' $Database $AuthenticationType $AuthenticationLibrary $User $Password
         }
         else {
             Write-Host ' -> TCP test FAILED' -ForegroundColor Red
@@ -1209,6 +1216,7 @@ function RunConnectivityPolicyTests($port) {
             Database                = $Database
             Port                    = $port
             AuthenticationType      = $AuthenticationType
+            AuthenticationLibrary   = $AuthenticationLibrary
             User                    = $User
             Password                = $Password
             EncryptionProtocol      = $EncryptionProtocol
@@ -1224,7 +1232,7 @@ function RunConnectivityPolicyTests($port) {
         }
 
         if ($Local) {
-            Copy-Item -Path $('D:\Connectivity checker\SQL-Connectivity-Checker\AdvancedConnectivityPolicyTests.ps1') -Destination ".\AdvancedConnectivityPolicyTests.ps1"
+            Copy-Item -Path $('D:\ConnectivityChecker\SQL-Connectivity-Checker\AdvancedConnectivityPolicyTests.ps1') -Destination ".\AdvancedConnectivityPolicyTests.ps1"
         }
         # else {
         #     try {
@@ -1244,7 +1252,7 @@ function RunConnectivityPolicyTests($port) {
         # }
 
         TrackWarningAnonymously 'Advanced|Invoked'
-        $job = Start-Job -ArgumentList $jobParameters -FilePath "D:\Connectivity checker\SQL-Connectivity-Checker\AdvancedConnectivityPolicyTests.ps1"
+        $job = Start-Job -ArgumentList $jobParameters -FilePath "D:\ConnectivityChecker\SQL-Connectivity-Checker\AdvancedConnectivityPolicyTests.ps1"
         Wait-Job $job | Out-Null
         Receive-Job -Job $job
 
@@ -1252,7 +1260,6 @@ function RunConnectivityPolicyTests($port) {
         Set-Location $logsFolderName
         Set-Location $outFolderName
         $logPath = Join-Path ((Get-Location).Path) 'AdvancedTests_LastRunLog.txt'
-        Write-Host "Reading from conn checker " + $logPath
         $result = $([System.IO.File]::ReadAllText($logPath))
         $routingMatch = [Regex]::Match($result, "Routing to: (.*)\.")
 
@@ -1328,7 +1335,7 @@ function LookupDatabaseInSysDatabases($Server, $dbPort, $Database, $User, $Passw
     }
 }
 
-function RunConnectionToDatabaseTestsAndAdvancedTests($Server, $dbPort, $Database, $AuthenticationType, $User, $Password) {
+function RunConnectionToDatabaseTestsAndAdvancedTests($Server, $dbPort, $Database, $AuthenticationType, $AuthenticationLibrary, $User, $Password) {
     try {
         $customDatabaseNameWasSet = $Database -and $Database.Length -gt 0 -and $Database -ne 'master'
 
@@ -1487,8 +1494,8 @@ try {
 
         $Server = $Server.Trim()
 
-        $isManagedInstance = (IsManagedInstance $Server);
-        $isManagedInstancePublicEndpoint = (IsManagedInstancePublicEndpoint $Server);
+         $isManagedInstance = (IsManagedInstance $Server);
+         $isManagedInstancePublicEndpoint = (IsManagedInstancePublicEndpoint $Server);
 
         if ($isManagedInstancePublicEndpoint -and !($Server -match ',3342')) {
             $msg = ' You seem to be trying to connect using SQL MI Public Endpoint but port 3342 was not specified'
@@ -1592,8 +1599,8 @@ try {
             }
             Write-Error '' -ErrorAction Stop
         }
-        $resolvedAddress = $dnsResult.AddressList[0].IPAddressToString
-        $dbPort = 1433
+         $resolvedAddress = $dnsResult.AddressList[0].IPAddressToString
+         $dbPort = 1433
 
         #Run connectivity tests
         Write-Host

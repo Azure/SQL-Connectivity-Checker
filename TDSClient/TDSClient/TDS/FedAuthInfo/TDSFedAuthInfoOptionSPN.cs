@@ -17,23 +17,23 @@ namespace TDSClient.TDS.FedAuthInfo
         /// <summary>
         /// Information Data Length
         /// </summary>
-        public uint m_infoDataLength;
+        public uint InfoDataLength;
 
         /// <summary>
         /// STS URL
         /// </summary>
-        public byte[] m_spn;
+        public byte[] SPN;
 
         /// <summary>
         /// Return the SPN as a unicode string.
         /// </summary>
-        public string SPN
+        public string GetSPNString
         {
             get
             {
-                if (m_spn != null)
+                if (SPN != null)
                 {
-                    return Encoding.Unicode.GetString(m_spn);
+                    return Encoding.Unicode.GetString(SPN);
                 }
 
                 return null;
@@ -65,7 +65,7 @@ namespace TDSClient.TDS.FedAuthInfo
         public TDSFedAuthInfoOptionSPN(uint infoDataLength)
             : this()
         {
-            m_infoDataLength = infoDataLength;
+            InfoDataLength = infoDataLength;
         }
 
         /// <summary>
@@ -75,8 +75,8 @@ namespace TDSClient.TDS.FedAuthInfo
         public TDSFedAuthInfoOptionSPN(string spn)
             : this()
         {
-            m_spn = Encoding.Unicode.GetBytes(spn);
-            m_infoDataLength = (uint)m_spn.Length;
+            SPN = Encoding.Unicode.GetBytes(spn);
+            InfoDataLength = (uint)SPN.Length;
         }
 
         /// <summary>
@@ -86,10 +86,10 @@ namespace TDSClient.TDS.FedAuthInfo
         {
             // Read the information data
             // 
-            if (m_infoDataLength > 0)
+            if (InfoDataLength > 0)
             {
-                m_spn = new byte[m_infoDataLength];
-                source.Read(m_spn, 0, m_spn.Length);
+                SPN = new byte[InfoDataLength];
+                source.Read(SPN, 0, SPN.Length);
             }
 
             return true;
@@ -101,9 +101,9 @@ namespace TDSClient.TDS.FedAuthInfo
         /// <param name="source"></param>
         public override void Pack(MemoryStream source)
         {
-            if (m_infoDataLength > 0)
+            if (InfoDataLength > 0)
             {
-                source.Write(m_spn, 0, m_spn.Length);
+                source.Write(SPN, 0, SPN.Length);
             }
         }
     }

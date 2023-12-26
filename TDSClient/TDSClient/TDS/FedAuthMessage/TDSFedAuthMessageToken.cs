@@ -10,27 +10,29 @@ namespace TDSClient.TDS.FedAuthMessage
 	using System.Text;
 
 	using TDSClient.TDS.Utilities;
-	using TDSClient.TDS.Tokens;
+	using TDSClient.TDS.Interfaces;
 
-	/// <summary>
-	/// FedAuthToken Message definition.
-	/// </summary>
-	public class TDSFedAuthToken : TDSToken
-	{
-		/// <summary>
-		/// ADAL Access Token
-		/// </summary>
-		public string ADALJWT;
+	using System.IdentityModel.Tokens.Jwt;
+    using System.Linq;
+    using System;
+    using TDSClient.TDS.Login7;
 
-		/// <summary>
-		/// Federated Authentication Token
-		/// </summary>
-		protected byte[] m_token;
+    /// <summary>
+    /// FedAuthToken Message definition.
+    /// </summary>
+	#pragma warning disable CS0659
+    public class TDSFedAuthToken : ITDSPacketData, IEquatable<TDSFedAuthToken>
+	#pragma warning restore CS0659
+    {
+        /// <summary>
+        /// Federated Authentication Token
+        /// </summary>
+        private byte[] Token;
 
 		/// <summary>
 		/// Nonce
 		/// </summary>
-		protected byte[] m_nonce;
+		private byte[] Nonce;
 
 		/// <summary>
 		/// Default Constructor.
@@ -43,10 +45,12 @@ namespace TDSClient.TDS.FedAuthMessage
 		/// Initialization constructor.
 		/// </summary>
 		/// <param name="token">Token</param>
-		public TDSFedAuthToken(string ADALJWT) :
+		public TDSFedAuthToken(string ADALJWTToken) :
 			this()
 		{
-			m_token = Encoding.Unicode.GetBytes(ADALJWT);
+			byte[] tokenBytes = Encoding.Unicode.GetBytes(ADALJWTToken);
+			Token = new byte[tokenBytes.Length];
+			tokenBytes.CopyTo(Token, 0);
 		}
 
 		/// <summary>
@@ -65,7 +69,7 @@ namespace TDSClient.TDS.FedAuthMessage
 		/// </summary>
 		/// <param name="source">Stream to inflate the token from.</param>
 		/// <returns>True in case of success, false otherwise.</returns>
-		public override bool Unpack(MemoryStream source)
+		public bool Unpack(MemoryStream source)
 		{
 			// Read length of entire message
 			uint totalLengthOfData = LittleEndianUtilities.ReadUInt(source);
@@ -74,14 +78,14 @@ namespace TDSClient.TDS.FedAuthMessage
 			uint tokenLength = LittleEndianUtilities.ReadUInt(source);
 
 			// Read the fedauth token
-			m_token = new byte[tokenLength];
-			source.Read(m_token, 0, (int)tokenLength);
+			Token = new byte[tokenLength];
+			source.Read(Token, 0, (int)tokenLength);
 
 			// Read nonce if it exists
 			if (totalLengthOfData > tokenLength)
 			{
-				m_nonce = new byte[totalLengthOfData - tokenLength];
-				source.Read(m_nonce, 0, (int)(totalLengthOfData - tokenLength));
+				Nonce = new byte[totalLengthOfData - tokenLength];
+				source.Read(Nonce, 0, (int)(totalLengthOfData - tokenLength));
 			}
 			else if (tokenLength > totalLengthOfData)
 			{
@@ -96,35 +100,36 @@ namespace TDSClient.TDS.FedAuthMessage
 		/// Deflate the token.
 		/// </summary>
 		/// <param name="destination">Stream the token to deflate to.</param>
-		public override void Pack(MemoryStream destination)
+		public void Pack(MemoryStream destination)
 		{
-
 			// Write the total Length
-			uint totalLengthOfData = (uint)(sizeof(uint) + m_token.Length + ((m_nonce != null) ? m_nonce.Length : 0));
+			uint totalLengthOfData = sizeof(uint) + (uint)(Token.Length);
+			
 			LittleEndianUtilities.WriteUInt(destination, totalLengthOfData);
 
-			// Write the Length of FedAuthToken
-			LittleEndianUtilities.WriteUInt(destination, (uint)m_token.Length);
+			LittleEndianUtilities.WriteUInt(destination, (uint)(Token.Length));
 
 			// Write Access Token
-			destination.Write(m_token, 0, m_token.Length);
-
-			// Write Nonce
-			if (m_nonce != null)
-			{
-				destination.Write(m_nonce, 0, m_nonce.Length);
-			}
+			destination.Write(Token, 0, Token.Length);
 		}
 
-		public override ushort Length() 
+		public ushort Length() 
         {
-            return (ushort)(sizeof(ushort) + (ushort)m_token.Length);
+            return (ushort)(sizeof(uint) + sizeof(uint) + (ushort)Token.Length);
         }
 
-		// override object.Equals
-		public override bool Equals(object obj)
+        public override bool Equals(object obj)
+        {
+            return this.Equals(obj as TDSLogin7PacketData);
+        }
+
+        public bool Equals(TDSFedAuthToken obj)
 		{
-			return true;
+			return this.Length() == obj.Length()
+					&& this.Token.Length == obj.Token.Length
+					&& this.Token.SequenceEqual(obj.Token)
+					&& this.Nonce.Length == obj.Nonce.Length
+                    && this.Token.SequenceEqual(obj.Token);
 		}
 	
 	}

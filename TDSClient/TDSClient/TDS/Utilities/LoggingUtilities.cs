@@ -169,7 +169,6 @@ namespace TDSClient.TDS.Utilities
                 return;
             }
 
-
             // Check declaring type
             if (objectType.IsGenericType || (objectType.BaseType != null && objectType.BaseType.IsGenericType))  // IList<T>
             {

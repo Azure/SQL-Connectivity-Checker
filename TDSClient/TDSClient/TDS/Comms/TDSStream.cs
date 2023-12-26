@@ -49,7 +49,7 @@ namespace TDSClient.TDS.Comms
         /// <param name="negotiatedPacketSize">Packet size</param>
         public TDSStream(Stream innerStream, TimeSpan timeout, int negotiatedPacketSize)
         {
-            this.InnerStream = innerStream;
+            InnerStream = innerStream;
             this.timeout = timeout;
             this.negotiatedPacketSize = negotiatedPacketSize;
         }
@@ -66,7 +66,7 @@ namespace TDSClient.TDS.Comms
         {
             get
             {
-                return this.currentInboundTDSHeader == null;
+                return currentInboundTDSHeader == null;
             }
         }
         
@@ -83,34 +83,34 @@ namespace TDSClient.TDS.Comms
         /// <summary>
         /// Gets or sets CanRead Flag.
         /// </summary>
-        public override bool CanRead => this.InnerStream.CanRead;
+        public override bool CanRead => InnerStream.CanRead;
 
         /// <summary>
         /// Gets or sets CanSeek Flag.
         /// </summary>
-        public override bool CanSeek => this.InnerStream.CanSeek;
+        public override bool CanSeek => InnerStream.CanSeek;
 
         /// <summary>
         /// Gets or sets CanWrite Flag.
         /// </summary>
-        public override bool CanWrite => this.InnerStream.CanWrite;
+        public override bool CanWrite => InnerStream.CanWrite;
 
         /// <summary>
         /// Gets or sets Stream Length.
         /// </summary>
-        public override long Length => this.InnerStream.Length;
+        public override long Length => InnerStream.Length;
 
         /// <summary>
         /// Gets or sets Stream Position.
         /// </summary>
-        public override long Position { get => this.InnerStream.Position; set => this.InnerStream.Position = value; }
+        public override long Position { get => InnerStream.Position; set => this.InnerStream.Position = value; }
 
         /// <summary>
         /// Flushes stream output.
         /// </summary>
         public override void Flush()
         {
-            this.InnerStream.Flush();
+            InnerStream.Flush();
         }
 
         /// <summary>
@@ -133,7 +133,8 @@ namespace TDSClient.TDS.Comms
                     int curPos = 0;
                     do
                     {
-                        curPos += this.InnerStream.Read(headerBuffer, curPos, 8 - curPos);
+                        curPos += InnerStream.Read(headerBuffer, curPos, 8 - curPos);
+                        
 
                         if (curPos == 0)
                         {
@@ -156,7 +157,7 @@ namespace TDSClient.TDS.Comms
 
                 do
                 {
-                    var bytesRead = this.InnerStream.Read(buffer, offset + bytesReadTotal, bytesToReadFromCurrentPacket);
+                    var bytesRead = InnerStream.Read(buffer, offset + bytesReadTotal, bytesToReadFromCurrentPacket);
 
                     if (bytesRead == 0)
                     {
@@ -210,9 +211,9 @@ namespace TDSClient.TDS.Comms
                 this.currentOutboundTDSHeader.Pack(new MemoryStream(packetBuffer));
                 Array.Copy(buffer, offset + bytesSent, packetBuffer, 8, bufferSize - 8);
 
-                this.InnerStream.Write(packetBuffer, 0, bufferSize);
+                InnerStream.Write(packetBuffer, 0, bufferSize);
                 bytesSent += bufferSize - 8;
-
+                
                 this.currentOutboundTDSHeader.Packet = (byte)((this.currentOutboundTDSHeader.Packet + 1) % 256);
             }
         }
@@ -225,7 +226,7 @@ namespace TDSClient.TDS.Comms
         /// <returns>The new position within current stream.</returns>
         public override long Seek(long offset, SeekOrigin origin)
         {
-            return this.InnerStream.Seek(offset, origin);
+            return InnerStream.Seek(offset, origin);
         }
 
         /// <summary>
@@ -234,7 +235,7 @@ namespace TDSClient.TDS.Comms
         /// <param name="value">New length.</param>
         public override void SetLength(long value)
         {
-            this.InnerStream.SetLength(value);
+            InnerStream.SetLength(value);
         }
 
         /// <summary>
@@ -242,7 +243,7 @@ namespace TDSClient.TDS.Comms
         /// </summary>
         public override void Close()
         {
-            this.InnerStream.Close();
+            InnerStream.Close();
             base.Close();
         }
     }

@@ -99,7 +99,7 @@ namespace TDSClient.TDS.Tokens
                             throw new NotSupportedException();
                         }
 
-                        ushort length = LittleEndianUtilities.ReadUShort(stream);
+                        ushort length = tokenType == TDSTokenType.FeatureExtAck ? (ushort)6 : LittleEndianUtilities.ReadUShort(stream);
                         for (int i = 0; i < length; i++)
                         {
                             stream.ReadByte();

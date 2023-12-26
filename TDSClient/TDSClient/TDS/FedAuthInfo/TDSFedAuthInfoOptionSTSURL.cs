@@ -17,12 +17,12 @@ namespace TDSClient.TDS.FedAuthInfo
         /// <summary>
         /// Information Data Length
         /// </summary>
-        public uint m_infoDataLength;
+        public uint InfoDataLength;
 
         /// <summary>
         /// STS URL
         /// </summary>
-        public byte[] m_stsUrl;
+        public byte[] StsUrl;
 
         /// <summary>
         /// Return the FedAuthInfo Id.
@@ -42,9 +42,9 @@ namespace TDSClient.TDS.FedAuthInfo
         {
             get
             {
-                if (m_stsUrl != null)
+                if (StsUrl != null)
                 {
-                    return Encoding.Unicode.GetString(m_stsUrl);
+                    return Encoding.Unicode.GetString(StsUrl);
                 }
 
                 return null;
@@ -64,7 +64,7 @@ namespace TDSClient.TDS.FedAuthInfo
         /// <param name="infoDataLength">Info Data Length</param>
         public TDSFedAuthInfoOptionSTSURL(uint infoDataLength) : this()
         {
-            m_infoDataLength = infoDataLength;
+            InfoDataLength = infoDataLength;
         }
 
         /// <summary>
@@ -74,8 +74,8 @@ namespace TDSClient.TDS.FedAuthInfo
         public TDSFedAuthInfoOptionSTSURL(string stsurl)
             : this()
         {
-            m_stsUrl = Encoding.Unicode.GetBytes(stsurl);
-            m_infoDataLength = (uint)m_stsUrl.Length;
+            StsUrl = Encoding.Unicode.GetBytes(stsurl);
+            InfoDataLength = (uint)StsUrl.Length;
         }
 
         /// <summary>
@@ -85,10 +85,10 @@ namespace TDSClient.TDS.FedAuthInfo
         {
             // Read the information data
             // 
-            if (m_infoDataLength > 0)
+            if (InfoDataLength > 0)
             {
-                m_stsUrl = new byte[m_infoDataLength];
-                source.Read(m_stsUrl, 0, m_stsUrl.Length);
+                StsUrl = new byte[InfoDataLength];
+                source.Read(StsUrl, 0, StsUrl.Length);
             }
 
             return true;
@@ -100,9 +100,9 @@ namespace TDSClient.TDS.FedAuthInfo
         /// <param name="source"></param>
         public override void Pack(MemoryStream source)
         {
-            if (m_infoDataLength > 0)
+            if (InfoDataLength > 0)
             {
-                source.Write(m_stsUrl, 0, m_stsUrl.Length);
+                source.Write(StsUrl, 0, StsUrl.Length);
             }
         }
     }

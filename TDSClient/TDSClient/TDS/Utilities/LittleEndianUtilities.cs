@@ -14,8 +14,6 @@ using System.Text;
     /// </summary>
     public static class LittleEndianUtilities
     {
-
-
         /// <summary>
         /// Used to write value to stream in little endian order.
         /// </summary>
@@ -77,10 +75,8 @@ using System.Text;
         /// </summary>
         internal static string ReadPasswordString(Stream source, ushort length)
         {
-            // Allocate buffer
             byte[] byteString = new byte[length];
 
-            // Read into a byte buffer
             source.Read(byteString, 0, byteString.Length);
 
             // Perform password decryption
@@ -102,20 +98,15 @@ using System.Text;
         /// </summary>
         internal static string ReadString(Stream source, ushort length)
         {
-            // Check if any data will be read
             if (length == 0)
             {
-                // Instead of returning an empty string later we just return NULL
                 return null;
             }
 
-            // Allocate buffer
             byte[] byteString = new byte[length];
 
-            // Read into a byte buffer
             source.Read(byteString, 0, byteString.Length);
 
-            // Convert
             return Encoding.Unicode.GetString(byteString, 0, byteString.Length);
         }
 
@@ -124,14 +115,11 @@ using System.Text;
         /// </summary>
         internal static void WritePasswordString(Stream destination, string value)
         {
-            // Check if value is null
             if (string.IsNullOrEmpty(value))
             {
-                // There's nothing to write
                 return;
             }
 
-            // Convert
             byte[] byteString = Encoding.Unicode.GetBytes(value);
 
             // Perform password decryption
@@ -144,26 +132,21 @@ using System.Text;
                 byteString[i] ^= 0xA5;
             }
 
-            // Write into a the stream
             destination.Write(byteString, 0, byteString.Length);
         }
 
-                /// <summary>
+        /// <summary>
         /// Write string from into the packet
         /// </summary>
         internal static void WriteString(Stream destination, string value)
         {
-            // Check if value is null
             if (string.IsNullOrEmpty(value))
             {
-                // There's nothing to write
                 return;
             }
 
-            // Convert
             byte[] byteString = Encoding.Unicode.GetBytes(value);
 
-            // Write into a the stream
             destination.Write(byteString, 0, byteString.Length);
         }
 
@@ -172,10 +155,10 @@ using System.Text;
         /// </summary>
         internal static int ReadInt(Stream source)
         {
-            return (int)(source.ReadByte())
-                + (int)(source.ReadByte() << 8)
-                + (int)(source.ReadByte() << 16)
-                + (int)(source.ReadByte() << 24);
+            return source.ReadByte()
+                + source.ReadByte() << 8
+                + source.ReadByte() << 16
+                + source.ReadByte() << 24;
         }
 
         /// <summary>

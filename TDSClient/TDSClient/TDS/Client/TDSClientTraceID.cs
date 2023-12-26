@@ -34,25 +34,25 @@ namespace TDSClient.TDS.Client
         /// <param name="activitySequence">Activity Sequence</param>
         public TDSClientTraceID(byte[] traceID, byte[] activityID, uint activitySequence)
         {
-            this.TraceID = traceID;
-            this.ActivityID = activityID;
-            this.ActivitySequence = activitySequence;
+            TraceID = traceID;
+            ActivityID = activityID;
+            ActivitySequence = activitySequence;
         }
 
         /// <summary>
         /// Gets or sets the TDS Client Application Trace ID
         /// </summary>
-        public byte[] TraceID { get; set; }
+        public byte[] TraceID { get; }
 
         /// <summary>
         /// Gets or sets the TDS Client Application Activity ID
         /// </summary>
-        public byte[] ActivityID { get; set; }
+        public byte[] ActivityID { get; }
 
         /// <summary>
         /// Gets or sets the TDS Client Application Activity Sequence
         /// </summary>
-        public uint ActivitySequence { get; set; }
+        public uint ActivitySequence { get; set;  }
 
         /// <summary>
         /// Determines whether the specified object is equal to the current object.
@@ -61,7 +61,7 @@ namespace TDSClient.TDS.Client
         /// <returns>true if the specified object is equal to the current object; otherwise, false</returns>
         public override bool Equals(object obj)
         {
-            return this.Equals(obj as TDSClientTraceID);
+            return Equals(obj as TDSClientTraceID);
         }
 
         /// <summary>
@@ -72,9 +72,9 @@ namespace TDSClient.TDS.Client
         public bool Equals(TDSClientTraceID other)
         {
             return other != null &&
-                   (this.TraceID != null && this.TraceID.SequenceEqual(other.TraceID)) &&
-                   (this.ActivityID != null && this.ActivityID.SequenceEqual(other.ActivityID)) &&
-                   this.ActivitySequence == other.ActivitySequence;
+                   (TraceID != null && TraceID.SequenceEqual(other.TraceID)) &&
+                   (ActivityID != null && ActivityID.SequenceEqual(other.ActivityID)) &&
+                   ActivitySequence == other.ActivitySequence;
         }
 
         /// <summary>
@@ -83,9 +83,9 @@ namespace TDSClient.TDS.Client
         /// <param name="stream">MemoryStream in which IPackageable is packet into.</param>
         public void Pack(MemoryStream stream)
         {
-            stream.Write(this.TraceID, 0, this.TraceID.Length);
-            stream.Write(this.ActivityID, 0, this.ActivityID.Length);
-            LittleEndianUtilities.WriteUInt(stream, this.ActivitySequence);
+            stream.Write(TraceID, 0, TraceID.Length);
+            stream.Write(ActivityID, 0, ActivityID.Length);
+            LittleEndianUtilities.WriteUInt(stream, ActivitySequence);
         }
 
         /// <summary>
@@ -95,9 +95,9 @@ namespace TDSClient.TDS.Client
         /// <returns>Returns true if successful.</returns>
         public bool Unpack(MemoryStream stream)
         {
-            stream.Read(this.TraceID, 0, 16);
-            stream.Read(this.ActivityID, 0, 16);
-            this.ActivitySequence = LittleEndianUtilities.ReadUInt(stream);
+            stream.Read(TraceID, 0, 16);
+            stream.Read(ActivityID, 0, 16);
+            ActivitySequence = LittleEndianUtilities.ReadUInt(stream);
             
             return true;
         }
