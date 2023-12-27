@@ -1,0 +1,95 @@
+using System;
+using System.Threading.Tasks;
+using Microsoft.IdentityModel.Clients.ActiveDirectory;
+using TDSClient.TDS.Utilities;
+
+namespace TDSClient.ADALHelper
+{
+    public class ADALHelper
+    {
+        /// <summary>
+        /// Gets AAD access token using ADAL with username and password.
+        /// </summary>
+        public static async Task<string> GetSQLAccessTokenFromADALUsingUsernamePassword(string authority, string resource, string clientId, string userId, string password)
+        {
+            try
+            {
+                LoggingUtilities.WriteLog($"  Acquiring access token using username and password.");
+                AuthenticationContext authContext = new AuthenticationContext(authority);
+                UserPasswordCredential userCredentials = new UserPasswordCredential(userId, password);
+
+                AuthenticationResult result = await authContext.AcquireTokenAsync(resource, clientId, userCredentials);
+
+                LoggingUtilities.WriteLog($"  Successfully acquired access token.");
+
+                return result.AccessToken;
+            }
+            catch (AdalServiceException ex)
+            {
+                Console.WriteLine($"Service exception: {ex.Message}");
+
+                Console.WriteLine($"Error code: {ex.ErrorCode}");
+                Console.WriteLine($"HTTP status code: {ex.StatusCode}");
+
+                throw;
+            }
+            catch (AdalException ex)
+            {
+                // Handle client-related exceptions
+                Console.WriteLine($"Client exception: {ex.Message}");
+                Console.WriteLine($"Error code: {ex.ErrorCode}");
+
+                throw;
+            }
+            catch (Exception ex)
+            {
+                // An unexpected error occurred
+                Console.WriteLine($"An unexpected error occurred: {ex.Message}");
+
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Gets AAD access token using ADAL with integrated authentication.
+        /// </summary>
+        public static async Task<string> GetSQLAccessTokenFromADALUsingIntegratedAuth(string authority, string resource, string clientId)
+        {
+            try
+            {
+                LoggingUtilities.WriteLog($"  Acquiring access token using integrated authentication.");
+                AuthenticationContext authContext = new AuthenticationContext(authority);
+
+                AuthenticationResult result = await authContext.AcquireTokenAsync(resource, clientId, new UserCredential());
+
+                LoggingUtilities.WriteLog($"  Successfully acquired access token.");
+
+                return result.AccessToken;
+            }
+            catch (AdalServiceException ex)
+            {
+                Console.WriteLine($"Service exception: {ex.Message}");
+
+                Console.WriteLine($"Error code: {ex.ErrorCode}");
+                Console.WriteLine($"HTTP status code: {ex.StatusCode}");
+
+                throw;
+            }
+            catch (AdalException ex)
+            {
+                // Handle client-related exceptions
+                Console.WriteLine($"Client exception: {ex.Message}");
+                Console.WriteLine($"Error code: {ex.ErrorCode}");
+
+                throw;
+            }
+            catch (Exception ex)
+            {
+                // An unexpected error occurred
+                Console.WriteLine($"An unexpected error occurred: {ex.Message}");
+
+                throw;
+            }
+        }
+    }
+}
