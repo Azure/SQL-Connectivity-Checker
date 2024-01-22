@@ -226,7 +226,6 @@ namespace TDSClient.TDS.Comms
                         InnerTdsStream.CurrentOutboundMessageType = TDSMessageType.TDS7Login;
 
                         break;
-
                     }
 
                 case TDSCommunicatorState.SentLogin7RecordWithFederatedAuthenticationInformationRequest:
@@ -278,6 +277,7 @@ namespace TDSClient.TDS.Comms
                         {
                             CommunicatorState = TDSCommunicatorState.SentLogin7RecordWithCompleteAuthenticationToken;
                         }
+                        
                         break;
                     }
 

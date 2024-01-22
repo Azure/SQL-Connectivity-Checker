@@ -10,7 +10,12 @@ namespace TDSClient.ADALHelper
         /// <summary>
         /// Gets AAD access token using ADAL with username and password.
         /// </summary>
-        public static async Task<string> GetSQLAccessTokenFromADALUsingUsernamePassword(string authority, string resource, string clientId, string userId, string password)
+        public static async Task<string> GetSQLAccessTokenFromADALUsingUsernamePassword(
+            string authority,
+            string resource,
+            string clientId,
+            string userId,
+            string password)
         {
             try
             {
@@ -26,25 +31,25 @@ namespace TDSClient.ADALHelper
             }
             catch (AdalServiceException ex)
             {
-                Console.WriteLine($"Service exception: {ex.Message}");
+                LoggingUtilities.WriteLog($"Service exception occurred when trying to acquire a JWT token: {ex.Message}");
 
-                Console.WriteLine($"Error code: {ex.ErrorCode}");
-                Console.WriteLine($"HTTP status code: {ex.StatusCode}");
+                LoggingUtilities.WriteLog($"Error code: {ex.ErrorCode}");
+                LoggingUtilities.WriteLog($"HTTP status code: {ex.StatusCode}");
 
                 throw;
             }
             catch (AdalException ex)
             {
                 // Handle client-related exceptions
-                Console.WriteLine($"Client exception: {ex.Message}");
-                Console.WriteLine($"Error code: {ex.ErrorCode}");
+                LoggingUtilities.WriteLog($"Client exception occurred when trying to acquire a JWT token: {ex.Message}");
+                LoggingUtilities.WriteLog($"Error code: {ex.ErrorCode}");
 
                 throw;
             }
             catch (Exception ex)
             {
                 // An unexpected error occurred
-                Console.WriteLine($"An unexpected error occurred: {ex.Message}");
+                LoggingUtilities.WriteLog($"An unexpected error occurred when trying to acquire a JWT token: {ex.Message}");
 
                 throw;
             }
@@ -68,25 +73,25 @@ namespace TDSClient.ADALHelper
             }
             catch (AdalServiceException ex)
             {
-                Console.WriteLine($"Service exception: {ex.Message}");
+                LoggingUtilities.WriteLog($"Service exception: {ex.Message}");
 
-                Console.WriteLine($"Error code: {ex.ErrorCode}");
-                Console.WriteLine($"HTTP status code: {ex.StatusCode}");
+                LoggingUtilities.WriteLog($"Error code: {ex.ErrorCode}");
+                LoggingUtilities.WriteLog($"HTTP status code: {ex.StatusCode}");
 
                 throw;
             }
             catch (AdalException ex)
             {
                 // Handle client-related exceptions
-                Console.WriteLine($"Client exception: {ex.Message}");
-                Console.WriteLine($"Error code: {ex.ErrorCode}");
+                LoggingUtilities.WriteLog($"Client exception: {ex.Message}");
+                LoggingUtilities.WriteLog($"Error code: {ex.ErrorCode}");
 
                 throw;
             }
             catch (Exception ex)
             {
                 // An unexpected error occurred
-                Console.WriteLine($"An unexpected error occurred: {ex.Message}");
+                LoggingUtilities.WriteLog($"An unexpected error occurred: {ex.Message}");
 
                 throw;
             }

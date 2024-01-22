@@ -225,8 +225,10 @@ try {
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls11 -bor [Net.SecurityProtocolType]::Tls
 
     $TDSClientPath = Join-Path ((Get-Location).Path) "TDSClient.dll"
+    Write-Host $TDSClientPath
+    Write-Host $Local
     if ($Local) {
-        Copy-Item -Path $($LocalPath + 'net472\TDSClient.dll') -Destination $TDSClientPath
+        Copy-Item -Path $($LocalPath + '\net472\TDSClient.dll') -Destination $TDSClientPath
     }
     # else {
     #     Invoke-WebRequest -Uri $('https://github.com/Azure/SQL-Connectivity-Checker/raw/' + $RepositoryBranch + '/net472/TDSClient.dll') -OutFile $TDSClientPath -UseBasicParsing
@@ -272,7 +274,8 @@ try {
             [TDSClient.TDS.Utilities.LoggingUtilities]::SetVerboseLog($log)
 
             $result = $tdsClient.Connect().GetAwaiter().GetResult()
-            #$tdsClient.Disconnect()
+            Write-Host 
+            $tdsClient.Disconnect()
 
             $log.Close()
             [TDSClient.TDS.Utilities.LoggingUtilities]::ClearVerboseLog()
@@ -284,8 +287,6 @@ try {
             #     Write-Host ('Waiting ' + $DelayBetweenConnections + ' second(s)...')
             #     Start-Sleep -Seconds $DelayBetweenConnections
             # }
-
-
         }
         TrackWarningAnonymously ('Advanced|TDSClient|ConnectAndDisconnect')
     }

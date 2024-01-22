@@ -12,7 +12,6 @@ namespace TDSClient.TDS.FedAuthMessage
 	using TDSClient.TDS.Utilities;
 	using TDSClient.TDS.Interfaces;
 
-	using System.IdentityModel.Tokens.Jwt;
     using System.Linq;
     using System;
     using TDSClient.TDS.Login7;
@@ -103,11 +102,11 @@ namespace TDSClient.TDS.FedAuthMessage
 		public void Pack(MemoryStream destination)
 		{
 			// Write the total Length
-			uint totalLengthOfData = sizeof(uint) + (uint)(Token.Length);
+			uint totalLengthOfData = sizeof(uint) + (uint)Token.Length;
 			
 			LittleEndianUtilities.WriteUInt(destination, totalLengthOfData);
 
-			LittleEndianUtilities.WriteUInt(destination, (uint)(Token.Length));
+			LittleEndianUtilities.WriteUInt(destination, (uint)Token.Length);
 
 			// Write Access Token
 			destination.Write(Token, 0, Token.Length);
@@ -120,16 +119,16 @@ namespace TDSClient.TDS.FedAuthMessage
 
         public override bool Equals(object obj)
         {
-            return this.Equals(obj as TDSLogin7PacketData);
+            return Equals(obj as TDSLogin7PacketData);
         }
 
         public bool Equals(TDSFedAuthToken obj)
 		{
-			return this.Length() == obj.Length()
-					&& this.Token.Length == obj.Token.Length
-					&& this.Token.SequenceEqual(obj.Token)
-					&& this.Nonce.Length == obj.Nonce.Length
-                    && this.Token.SequenceEqual(obj.Token);
+			return Length() == obj.Length()
+					&& Token.Length == obj.Token.Length
+					&& Token.SequenceEqual(obj.Token)
+					&& Nonce.Length == obj.Nonce.Length
+                    && Token.SequenceEqual(obj.Token);
 		}
 	
 	}

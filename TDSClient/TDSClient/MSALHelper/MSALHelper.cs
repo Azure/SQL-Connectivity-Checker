@@ -29,24 +29,24 @@ namespace TDSClient.MSALHelper
             }
             catch (MsalServiceException ex)
             {
-                Console.WriteLine($"Service exception: {ex.Message}");
+               LoggingUtilities.WriteLog($"Service exception: {ex.Message}");
 
-                Console.WriteLine($"Error code: {ex.ErrorCode}");
-                Console.WriteLine($"HTTP status code: {ex.StatusCode}");
+                LoggingUtilities.WriteLog($"Error code: {ex.ErrorCode}");
+                LoggingUtilities.WriteLog($"HTTP status code: {ex.StatusCode}");
 
                 throw;
             }
             catch (MsalClientException ex)
             {
                 // MSAL client exception occurred
-                Console.WriteLine($"Client exception: {ex.Message}");
+                LoggingUtilities.WriteLog($"Client exception: {ex.Message}");
 
                 throw;
             }
             catch (Exception ex)
             {
                 // An unexpected error occurred
-                Console.WriteLine($"An unexpected error occurred: {ex.Message}");
+                LoggingUtilities.WriteLog($"An unexpected error occurred: {ex.Message}");
 
                 throw;
             }
@@ -74,24 +74,24 @@ namespace TDSClient.MSALHelper
             }
             catch (MsalServiceException ex)
             {
-                Console.WriteLine($"Service exception: {ex.Message}");
+                LoggingUtilities.WriteLog($"Service exception: {ex.Message}");
 
-                Console.WriteLine($"Error code: {ex.ErrorCode}");
-                Console.WriteLine($"HTTP status code: {ex.StatusCode}");
+                LoggingUtilities.WriteLog($"Error code: {ex.ErrorCode}");
+                LoggingUtilities.WriteLog($"HTTP status code: {ex.StatusCode}");
 
                 throw;
             }
             catch (MsalClientException ex)
             {
                 // MSAL client exception occurred
-                Console.WriteLine($"Client exception: {ex.Message}");
+                LoggingUtilities.WriteLog($"Client exception: {ex.Message}");
 
                 throw;
             }
             catch (Exception ex)
             {
                 // An unexpected error occurred
-                Console.WriteLine($"An unexpected error occurred: {ex.Message}");
+                LoggingUtilities.WriteLog($"An unexpected error occurred: {ex.Message}");
 
                 throw;
             }

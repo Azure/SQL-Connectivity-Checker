@@ -87,29 +87,17 @@ namespace TDSClient.TDS.Client
         }
 
         private bool Reconnect;
-
         private int ConnectionAttempt;
-
         private readonly string AuthenticationType;
-
         private readonly string AuthenticationLibrary;
-
         private string Server;
-
         private int Port;
-
         private readonly string UserID;
-
         private readonly string Password;
-
         private readonly string Database;
-
         private TDSCommunicator TdsCommunicator;
-
         private TcpClient Client;
-
         private readonly TDSClientVersion Version;
-
         private readonly SslProtocols EncryptionProtocol;
 
         /// <summary>
@@ -196,9 +184,9 @@ namespace TDSClient.TDS.Client
 
                 return preLoginResponse;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw ex;
+                throw;
             }
         }
 
@@ -239,13 +227,12 @@ namespace TDSClient.TDS.Client
                     preLoginResponse.FedAuthRequired == TdsPreLoginFedAuthRequiredOption.FedAuthRequired &&
                     IsAADAuthRequired())
                 {
-                    Tuple<string, string> fedAuthInfoMessage = ReceiveFedAuthInfoMessage();
-
+                    Tuple<string, string> fedAuthInfoMessage = ReceiveFedAuthInfoMessage() ?? throw new Exception("Server didn't return a proper Fed Auth Info message.");
                     string authority = fedAuthInfoMessage.Item1;
                     string resource = fedAuthInfoMessage.Item2;
                     string clientID = "4d079b4c-cab7-4b7c-a115-8fd51b6f8239"; // ado client id
 
-                    string accessToken = await GetAccessToken(authority, resource, clientID);
+                    string accessToken = await GetJWTAccessToken(authority, resource, clientID);
 
                     SendFedAuthMessage(accessToken);
                 }
@@ -267,7 +254,7 @@ namespace TDSClient.TDS.Client
         /// <param name="resource"></param>
         /// <param name="clientID"></param>
         /// <returns></returns>
-        private async Task<string> GetAccessToken(string authority, string resource, string clientID)
+        private async Task<string> GetJWTAccessToken(string authority, string resource, string clientID)
         {
             string accessToken = AuthenticationType.Contains("Integrated") ?
                     await GetAccessTokenForIntegratedAuth(authority, resource, clientID) :
@@ -369,43 +356,51 @@ namespace TDSClient.TDS.Client
             //
             if (!IsAADAuthRequired())
             {
-                LoggingUtilities.WriteLog($"  Adding option UserID with value [{UserID}]");
-                tdsMessageBody.UserID = UserID;
-                
-                LoggingUtilities.WriteLog($"  Adding option Password");
-                tdsMessageBody.Password = Password;
-
-                tdsMessageBody.OptionFlags3.Extension = TDSLogin7OptionFlags3Extension.DoesntExist;
-                tdsMessageBody.OptionFlags2.IntSecurity = TDSLogin7OptionFlags2IntSecurity.IntegratedSecurityOff;
+                AddLogin7SQLAuthenticationOptions(tdsMessageBody);
             }
             else
             {
-                TDSFedAuthADALWorkflow adalWorkflow;
-
-                // If Integrated AAD authentication is used, IntegratedSecurity flag should be on.
-                //
-                if (AuthenticationType.Contains("Integrated"))
-                {
-                    adalWorkflow = TDSFedAuthADALWorkflow.Integrated;
-
-                    tdsMessageBody.OptionFlags2.IntSecurity = TDSLogin7OptionFlags2IntSecurity.IntegratedSecurityOn;
-                }
-                else
-                {
-                    adalWorkflow = TDSFedAuthADALWorkflow.UserPassword;
-
-                    tdsMessageBody.OptionFlags2.IntSecurity = TDSLogin7OptionFlags2IntSecurity.IntegratedSecurityOff;
-                }
-
-                tdsMessageBody.OptionFlags3.Extension = TDSLogin7OptionFlags3Extension.Exists;
-
-                TDSLogin7FedAuthOptionToken featureOption = CreateLogin7FederatedAuthenticationFeatureExt(TDSFedAuthLibraryType.ADAL, adalWorkflow);
-
-                tdsMessageBody.FeatureExt ??= new TDSLogin7FeatureOptionsToken();
-
-                tdsMessageBody.FeatureExt.Add(featureOption);
+                AddLogin7AADAuthenticationOptions(tdsMessageBody);
             }
 
+            AddLogin7CommonOptions(tdsMessageBody);
+
+            TdsCommunicator.SendTDSMessage(tdsMessageBody);
+
+            LoggingUtilities.WriteLog($" Login7 message sent.");
+        }
+
+        private void AddLogin7SQLAuthenticationOptions(TDSLogin7PacketData tdsMessageBody)
+        {
+            LoggingUtilities.WriteLog($"  Adding option UserID with value [{UserID}]");
+            tdsMessageBody.UserID = UserID;
+
+            LoggingUtilities.WriteLog($"  Adding option Password");
+            tdsMessageBody.Password = Password;
+
+            tdsMessageBody.OptionFlags3.Extension = TDSLogin7OptionFlags3Extension.DoesntExist;
+            tdsMessageBody.OptionFlags2.IntSecurity = TDSLogin7OptionFlags2IntSecurity.IntegratedSecurityOff;
+        }
+
+        private void AddLogin7AADAuthenticationOptions(TDSLogin7PacketData tdsMessageBody)
+        {
+            TDSFedAuthADALWorkflow adalWorkflow = AuthenticationType.Contains("Integrated") ?
+                TDSFedAuthADALWorkflow.Integrated : TDSFedAuthADALWorkflow.UserPassword;
+
+            tdsMessageBody.OptionFlags3.Extension = TDSLogin7OptionFlags3Extension.Exists;
+
+            TDSLogin7FedAuthOptionToken featureOption = CreateLogin7FederatedAuthenticationFeatureExt(TDSFedAuthLibraryType.ADAL, adalWorkflow);
+
+            tdsMessageBody.FeatureExt ??= new TDSLogin7FeatureOptionsToken();
+
+            tdsMessageBody.FeatureExt.Add(featureOption);
+
+            tdsMessageBody.OptionFlags2.IntSecurity = adalWorkflow == TDSFedAuthADALWorkflow.Integrated ?
+                TDSLogin7OptionFlags2IntSecurity.IntegratedSecurityOn : TDSLogin7OptionFlags2IntSecurity.IntegratedSecurityOff;
+        }
+
+        private void AddLogin7CommonOptions(TDSLogin7PacketData tdsMessageBody)
+        {
             tdsMessageBody.OptionFlags1.Char = TDSLogin7OptionFlags1Char.CharsetASCII;
             tdsMessageBody.OptionFlags1.Database = TDSLogin7OptionFlags1Database.InitDBFatal;
             tdsMessageBody.OptionFlags1.DumpLoad = TDSLogin7OptionFlags1DumpLoad.DumploadOn;
@@ -425,12 +420,7 @@ namespace TDSClient.TDS.Client
             tdsMessageBody.TypeFlags.OLEDB = TDSLogin7TypeFlagsOLEDB.On;
             tdsMessageBody.TypeFlags.SQLType = TDSLogin7TypeFlagsSQLType.DFLT;
             tdsMessageBody.TypeFlags.ReadOnlyIntent = TDSLogin7TypeFlagsReadOnlyIntent.On;
-
-            TdsCommunicator.SendTDSMessage(tdsMessageBody);
-
-            LoggingUtilities.WriteLog($" Login7 message sent.");
         }
-
 
         /// <summary>
         /// Receives and handles a federated authentication info response from server.
@@ -583,10 +573,12 @@ namespace TDSClient.TDS.Client
         /// <param name="loginAck"></param>
         private void ProcessLoginAckToken(TDSLoginAckToken loginAck)
         {
+            LoggingUtilities.WriteLog($"  Client received LoginAck token:");
             LoggingUtilities.WriteLog(loginAck.ServerName);
             LoggingUtilities.WriteLog(loginAck.ServerVersion.ToString());
             LoggingUtilities.WriteLog(loginAck.TDSVersion.ToString());
-            LoggingUtilities.WriteLog("Logged in.");
+
+            LoggingUtilities.WriteLog("Logged in successfully.");
         }
 
         /// <summary>

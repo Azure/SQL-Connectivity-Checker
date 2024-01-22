@@ -12,6 +12,7 @@ namespace TDSClient.TDS.Tokens
     using System.Linq;
     
     using TDSClient.TDS.Interfaces;
+    using TDSClient.TDS.Utilities;
 
     /// <summary>
     /// Class describing data portion of a TDS Token Stream
@@ -25,7 +26,7 @@ namespace TDSClient.TDS.Tokens
         /// </summary>
         public TDSTokenStreamPacketData()
         {
-            this.Tokens = new List<TDSToken>();
+            Tokens = new List<TDSToken>();
         }
 
         /// <summary>
@@ -40,7 +41,7 @@ namespace TDSClient.TDS.Tokens
         /// <returns>true if the specified object is equal to the current object; otherwise, false</returns>
         public override bool Equals(object obj)
         {
-            return this.Equals(obj as TDSTokenStreamPacketData);
+            return Equals(obj as TDSTokenStreamPacketData);
         }
 
         /// <summary>
@@ -51,7 +52,7 @@ namespace TDSClient.TDS.Tokens
         public bool Equals(TDSTokenStreamPacketData other)
         {
             return other != null &&
-                   this.Tokens.SequenceEqual(other.Tokens);
+                   Tokens.SequenceEqual(other.Tokens);
         }
 
         /// <summary>
@@ -84,7 +85,7 @@ namespace TDSClient.TDS.Tokens
                 TDSToken token = TDSTokenFactory.ReadTokenFromStream(stream);
                 if (token != null)
                 {
-                    this.Tokens.Add(token);
+                    Tokens.Add(token);
                 }
             }
 
