@@ -12,6 +12,7 @@ namespace TDSClient.TDS.Tokens
     using TDSClient.TDS.Utilities;
     using TDSClient.TDS.FedAuthInfo;
 
+
     /// <summary>
     /// Factory used to read different tokens from a stream
     /// </summary>

@@ -72,8 +72,8 @@ namespace TDSClient.TDS.Client
         public bool Equals(TDSClientTraceID other)
         {
             return other != null &&
-                   (TraceID != null && TraceID.SequenceEqual(other.TraceID)) &&
-                   (ActivityID != null && ActivityID.SequenceEqual(other.ActivityID)) &&
+                   TraceID != null && TraceID.SequenceEqual(other.TraceID) &&
+                   ActivityID != null && ActivityID.SequenceEqual(other.ActivityID) &&
                    ActivitySequence == other.ActivitySequence;
         }
 

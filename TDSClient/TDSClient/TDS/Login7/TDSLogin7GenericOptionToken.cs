@@ -32,7 +32,6 @@ namespace TDSClient.TDS.Login7
         /// </summary>
         public TDSLogin7GenericOptionToken(TDSFeatureID featureID)
         {
-            // Save feature identifier
             FeatureID = featureID;
         }
 
@@ -42,7 +41,6 @@ namespace TDSClient.TDS.Login7
         public TDSLogin7GenericOptionToken(TDSFeatureID featureID, byte[] data) :
             this(featureID)
         {
-            // Save data
             Data = data;
         }
 
@@ -52,7 +50,6 @@ namespace TDSClient.TDS.Login7
         public TDSLogin7GenericOptionToken(MemoryStream source) :
             this()
         {
-            // Inflate feature extension data
             Unpack(source);
         }
 
@@ -64,27 +61,18 @@ namespace TDSClient.TDS.Login7
         /// <returns>TRUE if inflation is complete</returns>
         public override bool Unpack(MemoryStream source)
         {
-            // Reset inflation size
-            InflationSize = 0;
+            Size = 0;
 
-            // Skip feature ID inflation because it was read by options collection
-
-            // Read the length
             int length = (int)BigEndianUtilities.ReadUInt(source);
 
-            // Update inflation size
-            InflationSize += sizeof(int);
+            Size += sizeof(int);
 
-            // Allocate a container for the specified length
             Data = new byte[length];
 
-            // Read the data
             source.Read(Data, 0, Data.Length);
 
-            // Update inflation size
-            InflationSize += (uint)length;
+            Size += (uint)length;
 
-            // We've inflated the token option
             return true;
         }
 
@@ -94,21 +82,16 @@ namespace TDSClient.TDS.Login7
         /// <param name="destination">Stream the token to deflate to.</param>
         public override void Pack(MemoryStream destination)
         {
-            // Write feature ID
             destination.WriteByte((byte)FeatureID);
 
-            // Check if feature data is available
             if (Data == null)
             {
-                // Length is zero
                 BigEndianUtilities.WriteUInt(destination, 0);
             }
             else
             {
-                // Write the length
                 BigEndianUtilities.WriteUInt(destination, (uint)Data.Length);
 
-                // Write the data itself
                 destination.Write(Data, 0, Data.Length);
             }
         }

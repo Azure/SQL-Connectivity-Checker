@@ -3,21 +3,19 @@ using System.IO;
 using System.Text;
 
 using TDSClient.TDS.Login7;
-using TDSClient.TDS.Tokens;
-
-namespace TDSClient.TDS.LoginAck
+namespace TDSClient.TDS.Tokens
 {
     /// <summary>
-    /// Login acknowledgement packet
+    /// Login acknowledgement token.
     /// </summary>
     #pragma warning disable CS0659
     public class TDSLoginAckToken : TDSToken
     #pragma warning restore CS0659
     {
         /// <summary>
-        /// TDS Version used by the server
+        /// The type of interface with which the server will accept client requests
         /// </summary>
-        public Version TDSVersion { get; set; }
+        public ushort TokenLength { get; set; }
 
         /// <summary>
         /// The type of interface with which the server will accept client requests
@@ -25,9 +23,14 @@ namespace TDSClient.TDS.LoginAck
         public TDSLogin7TypeFlagsSQLType Interface { get; set; }
 
         /// <summary>
+        /// TDS Version used by the server
+        /// </summary>
+        public Version TDSVersion { get; set; }
+
+        /// <summary>
         /// Name of the server (e.g. "Microsoft SQL Server")
         /// </summary>
-        public string ServerName { get; set; }
+        public string ProgName { get; set; }
 
         /// <summary>
         /// Server version
@@ -73,7 +76,7 @@ namespace TDSClient.TDS.LoginAck
         public TDSLoginAckToken(Version serverVersion, Version tdsVersion, TDSLogin7TypeFlagsSQLType interfaceFlags, string serverName) :
             this(serverVersion, tdsVersion, interfaceFlags)
         {
-            ServerName = serverName;
+            ProgName = serverName;
         }
 
         /// <summary>
@@ -84,15 +87,15 @@ namespace TDSClient.TDS.LoginAck
         public override bool Unpack(MemoryStream source)
         {
             // We skip the token identifier because it is read by token factory
-
-            ushort tokenLength = (ushort)(source.ReadByte() + (source.ReadByte() << 8));
+            
+            TokenLength = (ushort)(source.ReadByte() + (source.ReadByte() << 8));
 
             Interface = (TDSLogin7TypeFlagsSQLType)source.ReadByte();
 
-            string tdsVersion = String.Format("{0:X}", (uint)(source.ReadByte() << 24)
+            string tdsVersion = string.Format("{0:X}", (uint)(source.ReadByte() << 24)
                 + (uint)(source.ReadByte() << 16)
                 + (uint)(source.ReadByte() << 8)
-                + (uint)(source.ReadByte()));
+                + (uint)source.ReadByte());
 
             // Consturct TDS version
             // See tds.h for TDSXX clarifications
@@ -104,7 +107,7 @@ namespace TDSClient.TDS.LoginAck
 
             source.Read(serverNameBytes, 0, serverNameBytes.Length);
 
-            ServerName = Encoding.Unicode.GetString(serverNameBytes);
+            ProgName = Encoding.Unicode.GetString(serverNameBytes);
 
             ServerVersion = new Version(source.ReadByte(), source.ReadByte(), (source.ReadByte() << 8) + source.ReadByte());
 
@@ -117,11 +120,11 @@ namespace TDSClient.TDS.LoginAck
         /// <param name="destination">Stream to deflate token to</param>
         public override void Pack(MemoryStream destination)
         {
-            destination.WriteByte((byte)TDSTokenType.LoginAcknowledgement);
+            destination.WriteByte((byte)TDSTokenType.LoginAck);
 
             // Calculate the length of the token
             // The total length, in bytes, of the following fields: Interface, TDSVersion, Progname, and ProgVersion.
-            ushort tokenLength = (ushort)(sizeof(byte) + sizeof(uint) + sizeof(byte) + (string.IsNullOrEmpty(ServerName) ? 0 : ServerName.Length * 2) + sizeof(uint));
+            ushort tokenLength = (ushort)(sizeof(byte) + sizeof(uint) + sizeof(byte) + (string.IsNullOrEmpty(ProgName) ? 0 : ProgName.Length * 2) + sizeof(uint));
 
             destination.WriteByte((byte)(tokenLength & 0xff));
             destination.WriteByte((byte)((tokenLength >> 8) & 0xff));
@@ -135,9 +138,9 @@ namespace TDSClient.TDS.LoginAck
             destination.WriteByte((byte)((tdsVersion >> 8) & 0xff));
             destination.WriteByte((byte)(tdsVersion & 0xff));
 
-            destination.WriteByte((byte)(string.IsNullOrEmpty(ServerName) ? 0 : ServerName.Length));
+            destination.WriteByte((byte)(string.IsNullOrEmpty(ProgName) ? 0 : ProgName.Length));
 
-            byte[] serverNameBytes = Encoding.Unicode.GetBytes(ServerName);
+            byte[] serverNameBytes = Encoding.Unicode.GetBytes(ProgName);
 
             destination.Write(serverNameBytes, 0, serverNameBytes.Length);
 
@@ -148,19 +151,36 @@ namespace TDSClient.TDS.LoginAck
         }
 
         /// <summary>
-        /// TDS Token length
+        /// LoginAck token length
         /// </summary>
-        /// <returns>Returns TDS Token length</returns>
+        /// <returns>Returns LoginAck length</returns>
         public override ushort Length() 
         {
-            return 1;
+            return (ushort)(sizeof(byte) + sizeof(ushort) + TokenLength);
         }
 
-        public override bool Equals(object obj) 
+        /// <summary>
+		/// Compares.
+		/// </summary>
+		/// <param name="obj"></param>
+		/// <returns></returns>
+        public override bool Equals(object obj)
         {
-            return true;
+            return Equals(obj as TDSLoginAckToken);
         }
 
-
+		/// <summary>
+		/// Compares.
+		/// </summary>
+		/// <param name="obj"></param>
+		/// <returns></returns>
+        public bool Equals(TDSLoginAckToken obj)
+		{
+			return Length() == obj.Length()
+					&& TokenLength == obj.TokenLength
+					&& Interface.Equals(obj.TokenLength)
+                    && TDSVersion.Equals(obj.TDSVersion)
+                    && ProgName.Equals(obj.ProgName);
+		}
     }
 }

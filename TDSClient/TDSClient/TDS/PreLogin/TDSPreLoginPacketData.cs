@@ -47,14 +47,14 @@ namespace TDSClient.TDS.PreLogin
         }
 
         /// <summary>
-        /// Gets or sets TDS PreLogin Options
-        /// </summary>
-        public List<TDSPreLoginOptionToken> Options { get; set; }
-
-        /// <summary>
         /// Gets or sets TDS Client Version
         /// </summary>
         public TDSClientVersion ClientVersion { get; set; }
+
+        /// <summary>
+        /// Gets or sets TDS PreLogin Options
+        /// </summary>
+        public List<TDSPreLoginOptionToken> Options { get; set; }
 
         /// <summary>
         /// Gets or sets TDS Encryption Option

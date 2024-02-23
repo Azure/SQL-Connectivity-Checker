@@ -15,11 +15,6 @@ namespace TDSClient.TDS.FedAuthInfo
     public class TDSFedAuthInfoOptionSTSURL : TDSFedAuthInfoOption
     {
         /// <summary>
-        /// Information Data Length
-        /// </summary>
-        public uint InfoDataLength;
-
-        /// <summary>
         /// STS URL
         /// </summary>
         public byte[] StsUrl;
@@ -42,12 +37,7 @@ namespace TDSClient.TDS.FedAuthInfo
         {
             get
             {
-                if (StsUrl != null)
-                {
-                    return Encoding.Unicode.GetString(StsUrl);
-                }
-
-                return null;
+                return StsUrl != null ? Encoding.Unicode.GetString(StsUrl) : null;
             }
         }
 
@@ -79,12 +69,10 @@ namespace TDSClient.TDS.FedAuthInfo
         }
 
         /// <summary>
-        /// Inflate the data from the stream, when receiving this token.
+        /// Unpack the data from the stream, when receiving this token.
         /// </summary>
         public override bool Unpack(MemoryStream source)
         {
-            // Read the information data
-            // 
             if (InfoDataLength > 0)
             {
                 StsUrl = new byte[InfoDataLength];
@@ -95,7 +83,7 @@ namespace TDSClient.TDS.FedAuthInfo
         }
 
         /// <summary>
-        /// Deflate the data to the stream, when writing this token.
+        /// Pack the data to the stream, when writing this token.
         /// </summary>
         /// <param name="source"></param>
         public override void Pack(MemoryStream source)

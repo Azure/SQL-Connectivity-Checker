@@ -115,7 +115,7 @@ namespace TDSClient.TDS.Login7
         /// <returns>true if the specified object is equal to the current object; otherwise, false</returns>
         public override bool Equals(object obj)
         {
-            return this.Equals(obj as TDSLogin7TypeFlags);
+            return Equals(obj as TDSLogin7TypeFlags);
         }
 
         /// <summary>
@@ -126,9 +126,9 @@ namespace TDSClient.TDS.Login7
         public bool Equals(TDSLogin7TypeFlags other)
         {
             return other != null &&
-                   this.SQLType == other.SQLType &&
-                   this.OLEDB == other.OLEDB &&
-                   this.ReadOnlyIntent == other.ReadOnlyIntent;
+                   SQLType == other.SQLType &&
+                   OLEDB == other.OLEDB &&
+                   ReadOnlyIntent == other.ReadOnlyIntent;
         }
 
         /// <summary>
@@ -137,9 +137,9 @@ namespace TDSClient.TDS.Login7
         /// <param name="stream">MemoryStream in which IPackageable is packet into.</param>
         public void Pack(MemoryStream stream)
         {
-            byte packedByte = (byte)((byte)this.SQLType
-                | ((byte)this.OLEDB << 4)
-                | ((byte)this.ReadOnlyIntent << 5));
+            byte packedByte = (byte)((byte)SQLType
+                | ((byte)OLEDB << 4)
+                | ((byte)ReadOnlyIntent << 5));
             stream.WriteByte(packedByte);
         }
 
@@ -151,9 +151,9 @@ namespace TDSClient.TDS.Login7
         public bool Unpack(MemoryStream stream)
         {
             byte flagByte = Convert.ToByte(stream.ReadByte());
-            this.SQLType = (TDSLogin7TypeFlagsSQLType)(flagByte & 0x0F);
-            this.OLEDB = (TDSLogin7TypeFlagsOLEDB)((flagByte >> 4) & 0x01);
-            this.ReadOnlyIntent = (TDSLogin7TypeFlagsReadOnlyIntent)((flagByte >> 5) & 0x01);
+            SQLType = (TDSLogin7TypeFlagsSQLType)(flagByte & 0x0F);
+            OLEDB = (TDSLogin7TypeFlagsOLEDB)((flagByte >> 4) & 0x01);
+            ReadOnlyIntent = (TDSLogin7TypeFlagsReadOnlyIntent)((flagByte >> 5) & 0x01);
             
             return true;
         }

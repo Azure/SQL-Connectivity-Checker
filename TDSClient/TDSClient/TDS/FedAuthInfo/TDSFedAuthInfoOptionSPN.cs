@@ -15,14 +15,9 @@ namespace TDSClient.TDS.FedAuthInfo
     public class TDSFedAuthInfoOptionSPN : TDSFedAuthInfoOption
     {
         /// <summary>
-        /// Information Data Length
+        /// Service Principal Name (SPN)
         /// </summary>
-        public uint InfoDataLength;
-
-        /// <summary>
-        /// STS URL
-        /// </summary>
-        public byte[] SPN;
+        public byte[] ServicePrincipalName;
 
         /// <summary>
         /// Return the SPN as a unicode string.
@@ -31,12 +26,7 @@ namespace TDSClient.TDS.FedAuthInfo
         {
             get
             {
-                if (SPN != null)
-                {
-                    return Encoding.Unicode.GetString(SPN);
-                }
-
-                return null;
+                return ServicePrincipalName != null ? Encoding.Unicode.GetString(ServicePrincipalName) : null;
             }
         }
 
@@ -75,35 +65,33 @@ namespace TDSClient.TDS.FedAuthInfo
         public TDSFedAuthInfoOptionSPN(string spn)
             : this()
         {
-            SPN = Encoding.Unicode.GetBytes(spn);
-            InfoDataLength = (uint)SPN.Length;
+            ServicePrincipalName = Encoding.Unicode.GetBytes(spn);
+            InfoDataLength = (uint)ServicePrincipalName.Length;
         }
 
         /// <summary>
-        /// Inflate the data from the stream, when receiving this token.
+        /// Unpack the data from the stream, when receiving this token.
         /// </summary>
         public override bool Unpack(MemoryStream source)
         {
-            // Read the information data
-            // 
             if (InfoDataLength > 0)
             {
-                SPN = new byte[InfoDataLength];
-                source.Read(SPN, 0, SPN.Length);
+                ServicePrincipalName = new byte[InfoDataLength];
+                source.Read(ServicePrincipalName, 0, ServicePrincipalName.Length);
             }
 
             return true;
         }
 
         /// <summary>
-        /// Deflate the data to the stream, when writing this token.
+        /// Pack the data to the stream, when writing this token.
         /// </summary>
         /// <param name="source"></param>
         public override void Pack(MemoryStream source)
         {
             if (InfoDataLength > 0)
             {
-                source.Write(SPN, 0, SPN.Length);
+                source.Write(ServicePrincipalName, 0, ServicePrincipalName.Length);
             }
         }
     }

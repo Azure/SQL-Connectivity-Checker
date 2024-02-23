@@ -207,7 +207,6 @@ namespace TDSClient.TDS.Login7
         /// </summary>
         public TDSLogin7OptionFlags1(byte flags)
         {
-            // Parse bytes as per TDS specification, section 2.2.6.3 LOGIN 7
             ByteOrder = (TDSLogin7OptionFlags1ByteOrder)(flags & 0x1);
             Char = (TDSLogin7OptionFlags1Char)((flags >> 1) & 0x1);
             Float = (TDSLogin7OptionFlags1Float)((flags >> 2) & 0x3);
@@ -225,13 +224,13 @@ namespace TDSClient.TDS.Login7
         public bool Equals(TDSLogin7OptionFlags1 other)
         {
             return other != null &&
-                   this.ByteOrder == other.ByteOrder &&
-                   this.Char == other.Char &&
-                   this.Float == other.Float &&
-                   this.DumpLoad == other.DumpLoad &&
-                   this.UseDB == other.UseDB &&
-                   this.Database == other.Database &&
-                   this.SetLang == other.SetLang;
+                   ByteOrder == other.ByteOrder &&
+                   Char == other.Char &&
+                   Float == other.Float &&
+                   DumpLoad == other.DumpLoad &&
+                   UseDB == other.UseDB &&
+                   Database == other.Database &&
+                   SetLang == other.SetLang;
         }
 
         /// <summary>
@@ -240,13 +239,13 @@ namespace TDSClient.TDS.Login7
         /// <param name="stream">MemoryStream in which IPackageable is packet into.</param>
         public void Pack(MemoryStream stream)
         {
-            byte packedByte = (byte)((byte)this.ByteOrder
-                | ((byte)this.Char << 1)
-                | ((byte)this.Float << 2)
-                | ((byte)this.DumpLoad << 4)
-                | ((byte)this.UseDB << 5)
-                | ((byte)this.Database << 6)
-                | ((byte)this.SetLang << 7));
+            byte packedByte = (byte)((byte)ByteOrder
+                | ((byte)Char << 1)
+                | ((byte)Float << 2)
+                | ((byte)DumpLoad << 4)
+                | ((byte)UseDB << 5)
+                | ((byte)Database << 6)
+                | ((byte)SetLang << 7));
             stream.WriteByte(packedByte);
         }
 
@@ -258,13 +257,13 @@ namespace TDSClient.TDS.Login7
         public bool Unpack(MemoryStream stream)
         {
             byte flagByte = Convert.ToByte(stream.ReadByte());
-            this.ByteOrder = (TDSLogin7OptionFlags1ByteOrder)(flagByte & 0x01);
-            this.Char = (TDSLogin7OptionFlags1Char)((flagByte >> 1) & 0x01);
-            this.Float = (TDSLogin7OptionFlags1Float)((flagByte >> 2) & 0x03);
-            this.DumpLoad = (TDSLogin7OptionFlags1DumpLoad)((flagByte >> 4) & 0x01);
-            this.UseDB = (TDSLogin7OptionFlags1UseDB)((flagByte >> 5) & 0x01);
-            this.Database = (TDSLogin7OptionFlags1Database)((flagByte >> 6) & 0x01);
-            this.SetLang = (TDSLogin7OptionFlags1SetLang)((flagByte >> 7) & 0x01);
+            ByteOrder = (TDSLogin7OptionFlags1ByteOrder)(flagByte & 0x01);
+            Char = (TDSLogin7OptionFlags1Char)((flagByte >> 1) & 0x01);
+            Float = (TDSLogin7OptionFlags1Float)((flagByte >> 2) & 0x03);
+            DumpLoad = (TDSLogin7OptionFlags1DumpLoad)((flagByte >> 4) & 0x01);
+            UseDB = (TDSLogin7OptionFlags1UseDB)((flagByte >> 5) & 0x01);
+            Database = (TDSLogin7OptionFlags1Database)((flagByte >> 6) & 0x01);
+            SetLang = (TDSLogin7OptionFlags1SetLang)((flagByte >> 7) & 0x01);
             return true;
         }
     }

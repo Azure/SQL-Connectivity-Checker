@@ -19,27 +19,27 @@ namespace TDSClient.TDS.Comms
         /// <summary>
         /// TDS Packet Size used for communication
         /// </summary>
-        private readonly int negotiatedPacketSize;
+        private readonly int NegotiatedPacketSize;
 
         /// <summary>
         /// Current Inbound TDS Packet Header
         /// </summary>
-        private TDSPacketHeader currentInboundTDSHeader;
+        private TDSPacketHeader CurrentInboundTDSHeader;
 
         /// <summary>
         /// Current position within the Inbound TDS Packet
         /// </summary>
-        private int currentInboundPacketPosition;
+        private int CurrentInboundPacketPosition;
 
         /// <summary>
         /// Current Outbound TDS Packet Header
         /// </summary>
-        private TDSPacketHeader currentOutboundTDSHeader;
+        private TDSPacketHeader CurrentOutboundTDSHeader;
 
         /// <summary>
         /// TDS Connection Timeout
         /// </summary>
-        private TimeSpan timeout;
+        private TimeSpan Timeout;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TDSStream"/> class.
@@ -50,8 +50,8 @@ namespace TDSClient.TDS.Comms
         public TDSStream(Stream innerStream, TimeSpan timeout, int negotiatedPacketSize)
         {
             InnerStream = innerStream;
-            this.timeout = timeout;
-            this.negotiatedPacketSize = negotiatedPacketSize;
+            Timeout = timeout;
+            NegotiatedPacketSize = negotiatedPacketSize;
         }
 
         /// <summary>
@@ -66,7 +66,7 @@ namespace TDSClient.TDS.Comms
         {
             get
             {
-                return currentInboundTDSHeader == null;
+                return CurrentInboundTDSHeader == null;
             }
         }
         
@@ -103,7 +103,7 @@ namespace TDSClient.TDS.Comms
         /// <summary>
         /// Gets or sets Stream Position.
         /// </summary>
-        public override long Position { get => InnerStream.Position; set => this.InnerStream.Position = value; }
+        public override long Position { get => InnerStream.Position; set => InnerStream.Position = value; }
 
         /// <summary>
         /// Flushes stream output.
@@ -125,9 +125,9 @@ namespace TDSClient.TDS.Comms
             var startTime = DateTime.Now;
             var bytesReadTotal = 0;
 
-            while (bytesReadTotal < count && DateTime.Now - this.timeout < startTime)
+            while (bytesReadTotal < count && DateTime.Now - Timeout < startTime)
             {
-                if (this.currentInboundTDSHeader == null || this.currentInboundPacketPosition >= this.currentInboundTDSHeader.ConvertedPacketLength)
+                if (CurrentInboundTDSHeader == null || CurrentInboundPacketPosition >= CurrentInboundTDSHeader.ConvertedPacketLength)
                 {
                     byte[] headerBuffer = new byte[8];
                     int curPos = 0;
@@ -141,19 +141,19 @@ namespace TDSClient.TDS.Comms
                             throw new Exception("Failure to read from network stream.");
                         }
                     } 
-                    while (curPos < 8 && DateTime.Now - this.timeout < startTime);
+                    while (curPos < 8 && DateTime.Now - Timeout < startTime);
 
-                    if (DateTime.Now - this.timeout >= startTime)
+                    if (DateTime.Now - Timeout >= startTime)
                     {
                         throw new TimeoutException("Reading from network stream timed out.");
                     }
 
-                    this.currentInboundTDSHeader = new TDSPacketHeader();
-                    this.currentInboundTDSHeader.Unpack(new MemoryStream(headerBuffer));
-                    this.currentInboundPacketPosition = 8;
+                    CurrentInboundTDSHeader = new TDSPacketHeader();
+                    CurrentInboundTDSHeader.Unpack(new MemoryStream(headerBuffer));
+                    CurrentInboundPacketPosition = 8;
                 }
 
-                var bytesToReadFromCurrentPacket = Math.Min(count - bytesReadTotal, this.currentInboundTDSHeader.ConvertedPacketLength - this.currentInboundPacketPosition);
+                var bytesToReadFromCurrentPacket = Math.Min(count - bytesReadTotal, CurrentInboundTDSHeader.ConvertedPacketLength - CurrentInboundPacketPosition);
 
                 do
                 {
@@ -165,19 +165,19 @@ namespace TDSClient.TDS.Comms
                     }
 
                     bytesToReadFromCurrentPacket -= bytesRead;
-                    this.currentInboundPacketPosition += bytesRead;
+                    CurrentInboundPacketPosition += bytesRead;
                     bytesReadTotal += bytesRead;
                 } 
-                while (bytesToReadFromCurrentPacket > 0 && DateTime.Now - this.timeout < startTime);
+                while (bytesToReadFromCurrentPacket > 0 && DateTime.Now - Timeout < startTime);
 
-                if (this.currentInboundTDSHeader != null && this.currentInboundPacketPosition >= this.currentInboundTDSHeader.ConvertedPacketLength && (this.currentInboundTDSHeader.Status & TDSMessageStatus.EndOfMessage) == TDSMessageStatus.EndOfMessage)
+                if (CurrentInboundTDSHeader != null && CurrentInboundPacketPosition >= CurrentInboundTDSHeader.ConvertedPacketLength && (CurrentInboundTDSHeader.Status & TDSMessageStatus.EndOfMessage) == TDSMessageStatus.EndOfMessage)
                 {
-                    this.currentInboundTDSHeader = null;
+                    CurrentInboundTDSHeader = null;
                     return bytesReadTotal;
                 }
             }
 
-            if (DateTime.Now - this.timeout >= startTime)
+            if (DateTime.Now - Timeout >= startTime)
             {
                 throw new TimeoutException("Reading from network stream timed out.");
             }
@@ -193,28 +193,28 @@ namespace TDSClient.TDS.Comms
         /// <param name="count">Number of bytes to write.</param>
         public override void Write(byte[] buffer, int offset, int count)
         {
-            this.currentOutboundTDSHeader = new TDSPacketHeader(this.CurrentOutboundMessageType, TDSMessageStatus.Normal, 0, 1);
+            CurrentOutboundTDSHeader = new TDSPacketHeader(CurrentOutboundMessageType, TDSMessageStatus.Normal, 0, 1);
 
             var bytesSent = 0;
 
             while (bytesSent < count)
             {
-                if (count - bytesSent + 8 < this.negotiatedPacketSize)
+                if (count - bytesSent + 8 < NegotiatedPacketSize)
                 {
-                    this.currentOutboundTDSHeader.Status = TDSMessageStatus.EndOfMessage;
+                    CurrentOutboundTDSHeader.Status = TDSMessageStatus.EndOfMessage;
                 }
 
-                var bufferSize = Math.Min(count - bytesSent + 8, this.negotiatedPacketSize);
+                var bufferSize = Math.Min(count - bytesSent + 8, NegotiatedPacketSize);
                 byte[] packetBuffer = new byte[bufferSize];
 
-                this.currentOutboundTDSHeader.Length = Convert.ToUInt16(bufferSize);
-                this.currentOutboundTDSHeader.Pack(new MemoryStream(packetBuffer));
+                CurrentOutboundTDSHeader.Length = Convert.ToUInt16(bufferSize);
+                CurrentOutboundTDSHeader.Pack(new MemoryStream(packetBuffer));
                 Array.Copy(buffer, offset + bytesSent, packetBuffer, 8, bufferSize - 8);
 
                 InnerStream.Write(packetBuffer, 0, bufferSize);
                 bytesSent += bufferSize - 8;
                 
-                this.currentOutboundTDSHeader.Packet = (byte)((this.currentOutboundTDSHeader.Packet + 1) % 256);
+                CurrentOutboundTDSHeader.Packet = (byte)((CurrentOutboundTDSHeader.Packet + 1) % 256);
             }
         }
 

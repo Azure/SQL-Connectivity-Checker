@@ -21,14 +21,13 @@ namespace TDSClient.TDS.Client
     using TDSClient.TDS.Header;
     using TDSClient.TDS.Login7;
     using TDSClient.TDS.PreLogin;
-    using TDSClient.TDS.Tokens;
     using TDSClient.TDS.Utilities;
     using TDSClient.TDS.Interfaces;
-    using TDSClient.TDS.LoginAck;
     using TDSClient.TDS.FedAuthInfo;
     using TDSClient.TDS.FedAuthMessage;
     using TDSClient.MSALHelper;
     using TDSClient.ADALHelper;
+    using TDSClient.TDS.Tokens;
 
     /// <summary>
     /// SQL Test Client used to run diagnostics on SQL Server using TDS protocol.
@@ -130,11 +129,7 @@ namespace TDSClient.TDS.Client
                 }
                 while (Reconnect);
             }
-            catch (SocketException socketException)
-            {
-                LoggingUtilities.WriteLog($" Networking error {socketException.NativeErrorCode} while trying to connect to {Server}:{Port}.", writeToSummaryLog: true);
-                return false;
-            }
+
             catch (Exception ex)
             {
                 if (!preLoginDone && DateTime.UtcNow >= connectStartTime.AddSeconds(5))
@@ -167,27 +162,20 @@ namespace TDSClient.TDS.Client
         /// <returns></returns>
         private TDSPreLoginPacketData PerformPreLogin(ref bool preLoginDone)
         {
-            try
-            {
-                Reconnect = false;
+            Reconnect = false;
 
-                EstablishTCPConnection();
+            EstablishTCPConnection();
 
-                DateTime connectStartTime = DateTime.UtcNow;
+            DateTime connectStartTime = DateTime.UtcNow;
 
-                SendPreLoginRequest();
-                TDSPreLoginPacketData preLoginResponse = (TDSPreLoginPacketData)ReceivePreLoginResponse();
+            SendPreLoginRequest();
+            TDSPreLoginPacketData preLoginResponse = (TDSPreLoginPacketData)ReceivePreLoginResponse();
 
-                preLoginDone = true;
-                LoggingUtilities.AddEmptyLine();
-                LoggingUtilities.WriteLog($" PreLogin phase took {(int)(DateTime.UtcNow - connectStartTime).TotalMilliseconds} milliseconds.") ;
+            preLoginDone = true;
+            LoggingUtilities.AddEmptyLine();
+            LoggingUtilities.WriteLog($" PreLogin phase took {(int)(DateTime.UtcNow - connectStartTime).TotalMilliseconds} milliseconds.") ;
 
-                return preLoginResponse;
-            }
-            catch (Exception)
-            {
-                throw;
-            }
+            return preLoginResponse;
         }
 
         /// <summary>
@@ -212,39 +200,32 @@ namespace TDSClient.TDS.Client
         /// <param name="preLoginResponse"></param>
         private async Task PerformLogin(TDSPreLoginPacketData preLoginResponse)
         {
-            try
+            DateTime connectStartTime = DateTime.UtcNow;
+
+            SendLogin7();
+
+            // 1. If AAD authentication is used, client should receive a fed auth message from the server.
+            //    After that, the client tries to acquire an access token from AAD using ADAL/MSAL.
+            //    If it acquires it, it sends it to the server, and receives a Login response.
+            // 2. Else if SQL authentication is used, the client should receive a Login response.
+            //
+            if (preLoginResponse.Options.Exists(opt => opt.Type == TDSPreLoginOptionTokenType.FedAuthRequired) &&
+                preLoginResponse.FedAuthRequired == TdsPreLoginFedAuthRequiredOption.FedAuthRequired &&
+                IsAADAuthRequired())
             {
-                DateTime connectStartTime = DateTime.UtcNow;
+                Tuple<string, string> fedAuthInfoMessage = ReceiveFedAuthInfoMessage() ?? throw new Exception("Server didn't return a proper Fed Auth Info message.");
+                string authority = fedAuthInfoMessage.Item1;
+                string resource = fedAuthInfoMessage.Item2;
+                string clientID = "4d079b4c-cab7-4b7c-a115-8fd51b6f8239"; // ado client id
 
-                SendLogin7();
+                string accessToken = await GetJWTAccessToken(authority, resource, clientID);
 
-                // 1. If AAD authentication is used, client should receive a fed auth message from the server.
-                //    After that, the client tries to acquire an access token from AAD using ADAL/MSAL.
-                //    If it acquires it, it sends it to the server, and receives a Login response.
-                // 2. Else if SQL authentication is used, the client should receive a Login response.
-                //
-                if (preLoginResponse.Options.Exists(opt => opt.Type == TDSPreLoginOptionTokenType.FedAuthRequired) &&
-                    preLoginResponse.FedAuthRequired == TdsPreLoginFedAuthRequiredOption.FedAuthRequired &&
-                    IsAADAuthRequired())
-                {
-                    Tuple<string, string> fedAuthInfoMessage = ReceiveFedAuthInfoMessage() ?? throw new Exception("Server didn't return a proper Fed Auth Info message.");
-                    string authority = fedAuthInfoMessage.Item1;
-                    string resource = fedAuthInfoMessage.Item2;
-                    string clientID = "4d079b4c-cab7-4b7c-a115-8fd51b6f8239"; // ado client id
-
-                    string accessToken = await GetJWTAccessToken(authority, resource, clientID);
-
-                    SendFedAuthMessage(accessToken);
-                }
-
-                ReceiveLogin7Response();
-
-                LoggingUtilities.WriteLog($" Login phase took {(int)(DateTime.UtcNow - connectStartTime).TotalMilliseconds} milliseconds.");
+                SendFedAuthMessage(accessToken);
             }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
+
+            ReceiveLogin7Response();
+
+            LoggingUtilities.WriteLog($" Login phase took {(int)(DateTime.UtcNow - connectStartTime).TotalMilliseconds} milliseconds.");
         }
 
         /// <summary>
@@ -273,7 +254,7 @@ namespace TDSClient.TDS.Client
         private async Task<string> GetAccessTokenForIntegratedAuth(string authority, string resource, string clientID)
         {
             return AuthenticationLibrary.Contains("MSAL") ?
-                await MSALHelper.GetSQLAccessTokenFromMSALUsingIntegratedAuth(authority, resource, clientID) :
+                await MSALHelper.GetSQLAccessTokenFromMSALUsingIntegratedAuth(authority, clientID) :
                 await ADALHelper.GetSQLAccessTokenFromADALUsingIntegratedAuth(authority, resource, clientID);
         }
 
@@ -287,45 +268,51 @@ namespace TDSClient.TDS.Client
         private async Task<string> GetAccessTokenForUsernamePassword(string authority, string resource, string clientID)
         {
              return AuthenticationLibrary.Contains("MSAL") ?
-                await MSALHelper.GetSQLAccessTokenFromMSALUsingUsernamePassword(authority, resource, clientID, UserID, Password) :
+                await MSALHelper.GetSQLAccessTokenFromMSALUsingUsernamePassword(authority, clientID, UserID, Password) :
                 await ADALHelper.GetSQLAccessTokenFromADALUsingUsernamePassword(authority, resource, clientID, UserID, Password);
         }
+
+        // private async Task<string> GetAccessTokenForMultiFactorAuthentication(string authority, string resource, string clientID)
+        // {
+        //     var cca = ConfidentialClientApplicationBuilder.Create(clientId)
+        //         .WithClientSecret(clientSecret)
+        //         .WithAuthority(new Uri(authority))
+        //         .Build();
+
+        //     var result = await cca.AcquireTokenForClient(scopes)
+        //         .ExecuteAsync();
+
+        //     Console.WriteLine($"Token: {result.AccessToken}");
+        // }
 
         /// <summary>
         /// Sends PreLogin request message to the server.
         /// </summary>
         private void SendPreLoginRequest()
         {
-            try
+            LoggingUtilities.AddEmptyLine();
+            LoggingUtilities.WriteLog($" Building PreLogin message.");
+
+            var tdsMessageBody = new TDSPreLoginPacketData(Version);
+
+            tdsMessageBody.AddOption(TDSPreLoginOptionTokenType.Encryption,
+                                    TDSEncryptionOption.EncryptOff);
+
+            tdsMessageBody.AddOption(TDSPreLoginOptionTokenType.TraceID,
+                                    new TDSClientTraceID(Guid.NewGuid().ToByteArray(),
+                                                        Guid.NewGuid().ToByteArray(),
+                                                        0));
+
+            if (IsAADAuthRequired())
             {
-                LoggingUtilities.AddEmptyLine();
-                LoggingUtilities.WriteLog($" Building PreLogin message.");
-
-                var tdsMessageBody = new TDSPreLoginPacketData(Version);
-
-                tdsMessageBody.AddOption(TDSPreLoginOptionTokenType.Encryption,
-                                        TDSEncryptionOption.EncryptOff);
-
-                tdsMessageBody.AddOption(TDSPreLoginOptionTokenType.TraceID,
-                                        new TDSClientTraceID(Guid.NewGuid().ToByteArray(),
-                                                            Guid.NewGuid().ToByteArray(),
-                                                            0));
-
-                if (IsAADAuthRequired())
-                {
-                    tdsMessageBody.AddOption(TDSPreLoginOptionTokenType.FedAuthRequired,
-                                            TdsPreLoginFedAuthRequiredOption.FedAuthRequired);
-                }
-
-                tdsMessageBody.Terminate();
-
-                TdsCommunicator.SendTDSMessage(tdsMessageBody);
-                LoggingUtilities.WriteLog($" PreLogin message sent.");
+                tdsMessageBody.AddOption(TDSPreLoginOptionTokenType.FedAuthRequired,
+                                        TdsPreLoginFedAuthRequiredOption.FedAuthRequired);
             }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
+
+            tdsMessageBody.Terminate();
+
+            TdsCommunicator.SendTDSMessage(tdsMessageBody);
+            LoggingUtilities.WriteLog($" PreLogin message sent.");
         }
 
         /// <summary>
@@ -433,37 +420,29 @@ namespace TDSClient.TDS.Client
             LoggingUtilities.AddEmptyLine();
             LoggingUtilities.WriteLog($" Waiting for FedAuthInfoMessage response.");
 
-            try
+            if (TdsCommunicator.ReceiveTDSMessage() is TDSTokenStreamPacketData response)
             {
-                if (TdsCommunicator.ReceiveTDSMessage() is TDSTokenStreamPacketData response)
+                foreach (var token in response.Tokens)
                 {
-                    foreach (var token in response.Tokens)
+                    if (token is TDSEnvChangeToken)
                     {
-                        if (token is TDSEnvChangeToken)
-                        {
-                            ProcessEnvChangeToken(token as TDSEnvChangeToken);
-                        }
-                        else if (token is TDSFedAuthInfoToken)
-                        {
-                            return ProcessFedAuthInfoToken(token as TDSFedAuthInfoToken);
-                        }
-                        else if (token is TDSErrorToken)
-                        {
-                            ProcessErrorToken(token as TDSErrorToken);
-                        }
+                        ProcessEnvChangeToken(token as TDSEnvChangeToken);
                     }
+                    else if (token is TDSFedAuthInfoToken)
+                    {
+                        return ProcessFedAuthInfoToken(token as TDSFedAuthInfoToken);
+                    }
+                    else if (token is TDSErrorToken)
+                    {
+                        ProcessErrorToken(token as TDSErrorToken);
+                    }
+                }
 
-                    return null;
-                }
-                else
-                {
-                    throw new InvalidOperationException();
-                }
+                return null;
             }
-            catch (Exception ex)
+            else
             {
-                LoggingUtilities.WriteLog($"Exception while receiving FedAuthInfoMessage: {ex.Message}");
-                throw ex; // or rethrow
+                throw new InvalidOperationException();
             }
         }
 
@@ -571,10 +550,11 @@ namespace TDSClient.TDS.Client
         /// 
         /// </summary>
         /// <param name="loginAck"></param>
+        /// 
         private void ProcessLoginAckToken(TDSLoginAckToken loginAck)
         {
             LoggingUtilities.WriteLog($"  Client received LoginAck token:");
-            LoggingUtilities.WriteLog(loginAck.ServerName);
+            LoggingUtilities.WriteLog(loginAck.ProgName);
             LoggingUtilities.WriteLog(loginAck.ServerVersion.ToString());
             LoggingUtilities.WriteLog(loginAck.TDSVersion.ToString());
 
@@ -671,7 +651,7 @@ namespace TDSClient.TDS.Client
             else if (option.Value.FedAuthInfoId == TDSFedAuthInfoId.SPN)
             {
                 TDSFedAuthInfoOptionSPN optionSPN = option.Value as TDSFedAuthInfoOptionSPN;
-                var output = optionSPN.SPN.Where(b => b != 0).ToArray();
+                var output = optionSPN.ServicePrincipalName.Where(b => b != 0).ToArray();
                 SPN = Encoding.UTF8.GetString(output);
             }
         }

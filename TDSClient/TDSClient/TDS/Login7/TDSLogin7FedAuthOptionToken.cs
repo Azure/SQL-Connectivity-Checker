@@ -30,7 +30,7 @@ namespace TDSClient.TDS.Login7
 	{
 		UserPassword = 0x01,
 		Integrated = 0X02,
-		EMPTY = 0xff, //present NULL 
+		EMPTY = 0xff, // NULL 
 	}
 
 	/// <summary>
@@ -60,8 +60,8 @@ namespace TDSClient.TDS.Login7
 		{
 			get
 			{
-				return (uint)(6*sizeof(byte) // Option (library + echo)
-					+ (sizeof(byte)));
+				return 6*sizeof(byte) // Option (library + echo)
+					+ sizeof(byte);
 
 			}
 		}
@@ -158,78 +158,58 @@ namespace TDSClient.TDS.Login7
 		}
 
 		/// <summary>
-		/// Inflating constructor
+		/// Unpacking constructor
 		/// </summary>		
 		public TDSLogin7FedAuthOptionToken(MemoryStream source)
 			: this()
 		{
-			// Inflate feature extension data
 			Unpack(source);
 		}
 
 		/// <summary>
-		/// Inflate the token
+		/// Unpack the token
 		/// </summary>
 		/// <param name="source">Stream to inflate the token from</param>
 		/// <returns>TRUE if inflation is complete</returns>
 		public override bool Unpack(MemoryStream source)
 		{
-			// Reset inflation size
-			InflationSize = 0;
+			Size = 0;
 
-			// We skip option identifier because it was read by construction factory
-			// Read the length of the data for the option
 			uint optionDataLength = BigEndianUtilities.ReadUInt(source);
 
-			// Update inflation offset
-			InflationSize += sizeof(uint);
+			Size += sizeof(uint);
 
-			// Read one byte for the flags
 			byte temp = (byte)source.ReadByte();
 
-			// Update inflation offset
-			InflationSize += sizeof(byte);
+			Size += sizeof(byte);
 
-			// Get the bit and set as a fedauth echo bit
 			Echo = (TdsPreLoginFedAuthRequiredOption)(temp & 0x01);
 
-			// Get the remaining 7 bits and set as a library.
 			Library = (TDSFedAuthLibraryType)(temp >> 1);
 
 			// When using the ADAL library, a FedAuthToken is never included, nor is its length included
 			if (Library != TDSFedAuthLibraryType.ADAL)
 			{
-				// Length of the FedAuthToken
 				uint fedauthTokenLen = BigEndianUtilities.ReadUInt(source);
 
-				// Update inflation offset
-				InflationSize += sizeof(uint);
+				Size += sizeof(uint);
 
-				// Check if the fedauth token is in the login7
 				if (fedauthTokenLen > 0)
 				{
-					// Allocate a container
 					Token = new byte[fedauthTokenLen];
 
-					// Read the Fedauth token.
 					source.Read(Token, 0, (int)fedauthTokenLen);
 
-					// Update inflation offset
-					InflationSize += fedauthTokenLen;
+					Size += fedauthTokenLen;
 				}
 			}
 			else
 			{
-				// Instead the workflow is included
 				Workflow = (TDSFedAuthADALWorkflow)source.ReadByte();
 			}
 
 			switch (Library)
 			{
-				case TDSFedAuthLibraryType.IDCRL:
-					IsRequestingAuthenticationInfo = false;
-					return ReadIDCRLLogin(source, optionDataLength);
-
 				case TDSFedAuthLibraryType.SECURITY_TOKEN:
 					IsRequestingAuthenticationInfo = false;
 					return ReadSecurityTokenLogin(source, optionDataLength);
@@ -244,15 +224,13 @@ namespace TDSClient.TDS.Login7
 		}
 
 		/// <summary>
-		/// Deflate the token
+		/// Pack the token
 		/// </summary>
 		/// <param name="destination">Stream to deflate token to</param>
 		public override void Pack(MemoryStream destination)
 		{
-			// Write option identifier
 			destination.WriteByte((byte)FeatureID);
 
-			// Calculate Feature Data length
 			uint optionDataLength = (uint)(sizeof(byte) // Options size (library and Echo)
 									+ (WorkflowType == TDSFedAuthADALWorkflow.EMPTY ? 0 : (sizeof(byte))) //ADAL workflow type
 									+ ((Token == null && IsRequestingAuthenticationInfo) ? 0 : sizeof(uint)) // Fedauth token length
@@ -261,41 +239,32 @@ namespace TDSClient.TDS.Login7
 									+ (ChannelBingingToken == null ? 0 : (uint)ChannelBingingToken.Length) // Channel binding
 									+ (Signature == null ? 0 : SignatureDataLength)); // Signature
 
-			// Write the cache length into the destination
 			LittleEndianUtilities.WriteUInt(destination, optionDataLength);
 
-			// Construct a byte from fedauthlibrary and fedauth echo.
-			byte temp = (byte)((((byte)(Library) << 1) | (byte)(Echo)));
+			byte temp = (byte)(((byte)Library << 1) | (byte)Echo);
 			destination.WriteByte(temp);
 
-			//write ADAL workflow type 
 			if (Library == TDSFedAuthLibraryType.ADAL && WorkflowType != TDSFedAuthADALWorkflow.EMPTY)
 			{
 				destination.WriteByte((byte)WorkflowType);
 			}
 
-			// Write FederatedAuthenticationRequired token.
 			if (Token == null && !IsRequestingAuthenticationInfo)
 			{
-				// Write the length of the token is 0
 				BigEndianUtilities.WriteUInt(destination, 0);
 			}
 			else if (Token != null)
 			{
-				// Write the FederatedAuthenticationRequired token length.
 				BigEndianUtilities.WriteUInt(destination, (uint)Token.Length);
 
-				// Write the token.
 				destination.Write(Token, 0, Token.Length);
 			}
 
 			if (Nonce != null)
 			{
-				// Write the nonce
 				destination.Write(Nonce, 0, Nonce.Length);
 			}
 
-			// Write the Channel Binding length
 			if (ChannelBingingToken != null)
 			{
 				destination.Write(ChannelBingingToken, 0, ChannelBingingToken.Length);
@@ -303,59 +272,8 @@ namespace TDSClient.TDS.Login7
 
 			if (Signature != null)
 			{
-				// Write Signature
 				destination.Write(Signature, 0, (int)SignatureDataLength);
 			}
-		}
-
-		/// <summary>
-		/// Read the stream for IDCRL based login
-		/// </summary>
-		/// <param name="source">source</param>
-		/// <param name="optionDataLength">option data length</param>
-		/// <returns></returns>
-		private bool ReadIDCRLLogin(Stream source, uint optionDataLength)
-		{
-			// Allocate a container
-			Nonce = new byte[NonceDataLength];
-
-			// Read the nonce
-			source.Read(Nonce, 0, (int)NonceDataLength);
-
-			// Update inflation offset
-			InflationSize += NonceDataLength;
-
-			// Calculate the Channel binding data length.
-			uint channelBindingTokenLength = optionDataLength
-											- sizeof(byte) // Options size (library and Echo)
-											- sizeof(uint) // Token size
-											- (Token == null ? 0 : (uint)Token.Length) // Token
-											- NonceDataLength // Nonce length
-											- SignatureDataLength; // Signature Length
-
-			// Read the channelBindingToken
-			if (channelBindingTokenLength > 0)
-			{
-				// Allocate a container
-				ChannelBingingToken = new byte[channelBindingTokenLength];
-
-				// Read the channel binding part.
-				source.Read(ChannelBingingToken, 0, (int)channelBindingTokenLength);
-
-				// Update inflation offset
-				InflationSize += channelBindingTokenLength;
-			}
-
-			// Allocate Signature
-			Signature = new byte[SignatureDataLength];
-
-			// Read the Signature
-			source.Read(Signature, 0, (int)SignatureDataLength);
-
-			// Update inflation offset
-			InflationSize += SignatureDataLength;
-
-			return true;
 		}
 
 		/// <summary>
@@ -366,17 +284,13 @@ namespace TDSClient.TDS.Login7
 		/// <returns></returns>
 		private bool ReadSecurityTokenLogin(Stream source, uint optionDataLength)
 		{
-			// Check if any data is available
-			if (optionDataLength > InflationSize)
+			if (optionDataLength > Size)
 			{
-				// Allocate a container
 				Nonce = new byte[NonceDataLength];
 
-				// Read the nonce
 				source.Read(Nonce, 0, (int)NonceDataLength);
 
-				// Update inflation offset
-				InflationSize += NonceDataLength;
+				Size += NonceDataLength;
 			}
 
 			return true;
@@ -392,7 +306,6 @@ namespace TDSClient.TDS.Login7
 			byte[] randomBytes = new byte[count];
 
 			RNGCryptoServiceProvider gen = new RNGCryptoServiceProvider();
-			// Generate bytes
 			gen.GetBytes(randomBytes);
 
 			return randomBytes;

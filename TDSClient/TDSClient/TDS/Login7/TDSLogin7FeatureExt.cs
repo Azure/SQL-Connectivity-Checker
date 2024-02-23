@@ -73,7 +73,7 @@ namespace TDSClient.TDS.Login7
         /// <summary>
         /// Size of the data read during inflation operation. It is needed to properly parse the option stream.
         /// </summary>
-        internal uint unpackSize { get; set; }
+        internal uint UnpackSize { get; set; }
 
         /// <summary>
         /// Feature type

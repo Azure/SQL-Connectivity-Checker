@@ -9,7 +9,9 @@ namespace TDSClient.TDS.FedAuthInfo
     public enum TDSFedAuthInfoId
     {
         /// <summary>
-        /// STS URL as Token Endpoint
+        /// STS URL - A Unicode string that represents 
+        /// the token endpoint URL from which to
+        /// acquire a Fed Auth Token
         /// </summary>
         STSURL = 0x01,
 

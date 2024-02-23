@@ -64,7 +64,7 @@ namespace TDSClient.TDS.Login7
         /// <summary>
         /// Length of the fixed portion of the packet
         /// </summary>
-        private static ushort FixedPacketLength = 
+        private static readonly ushort FixedLength = 
                   sizeof(uint)  // Length
                 + sizeof(uint)  // TDSVersion
                 + sizeof(uint)  // PacketSize
@@ -119,7 +119,7 @@ namespace TDSClient.TDS.Login7
                 notFixed += (uint)(sizeof(uint) + featureExtension.Length); 
             }
 
-            return (ushort)(FixedPacketLength + notFixed);
+            return (ushort)(FixedLength + notFixed);
         }
 
         /// <summary>
@@ -364,13 +364,13 @@ namespace TDSClient.TDS.Login7
 
         private void WriteLoginDataPositionAndOffsetToStream(IList<TDSLogin7TokenOffsetProperty> variableProperties, string propertyName, MemoryStream destination, string property = null)
         {
-            ushort position = 0;
+            ushort position;
             ushort length = (ushort)(string.IsNullOrEmpty(property) ? 0 : property.Length);
             bool isOffsetOffset = false;
 
             if (propertyName.Equals("HostName"))
             {
-                position = FixedPacketLength;
+                position = FixedLength;
             }
             else if (propertyName.Equals("FeatureExt"))
             {
@@ -528,11 +528,8 @@ namespace TDSClient.TDS.Login7
                 }
                 else if (property.Property.Name == "SSPI")
                 {
-                    // If cbSSPI < USHRT_MAX, then this length MUST be used for SSPI and cbSSPILong MUST be ignored.
-                    // If cbSSPI == USHRT_MAX, then cbSSPILong MUST be checked.
                     if (property.Length == ushort.MaxValue)
                     {
-                        // If cbSSPILong > 0, then that value MUST be used. If cbSSPILong ==0, then cbSSPI (USHRT_MAX) MUST be used.
                         if (sspiLength > 0)
                         {
                             // We don't know how to handle SSPI packets that exceed TDS packet size
@@ -540,7 +537,6 @@ namespace TDSClient.TDS.Login7
                         }
                     }
 
-                    // Use short length instead
                     sspiLength = property.Length;
 
                     SSPI = new byte[sspiLength];
@@ -573,14 +569,14 @@ namespace TDSClient.TDS.Login7
 
                         FeatureExt.Unpack(stream);
 
-                        inflationOffset += FeatureExt.InflationSize;
+                        inflationOffset += FeatureExt.Size;
                     }
                 }
                 else
                 {
                     property.Property.SetValue(this, LittleEndianUtilities.ReadString(stream, (ushort)(property.Length * 2)), null);
 
-                    inflationOffset += (property.Length * 2);
+                    inflationOffset += property.Length * 2;
                 }
 
                 iCurrentProperty++;

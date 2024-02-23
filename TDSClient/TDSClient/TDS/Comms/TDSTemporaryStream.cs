@@ -19,7 +19,7 @@ namespace TDSClient.TDS.Comms
         /// <param name="innerStream">Inner stream used for communication</param>
         public TDSTemporaryStream(Stream innerStream)
         {
-            this.InnerStream = innerStream;
+            InnerStream = innerStream;
         }
      
         /// <summary>
@@ -30,34 +30,34 @@ namespace TDSClient.TDS.Comms
         /// <summary>
         /// Gets or sets a value indicating whether you can read from this stream.
         /// </summary>
-        public override bool CanRead => this.InnerStream.CanRead;
+        public override bool CanRead => InnerStream.CanRead;
 
         /// <summary>
         /// Gets or sets a value indicating whether you can seek throughout this stream.
         /// </summary>
-        public override bool CanSeek => this.InnerStream.CanSeek;
+        public override bool CanSeek => InnerStream.CanSeek;
 
         /// <summary>
         /// Gets or sets a value indicating whether you can write to this stream.
         /// </summary>
-        public override bool CanWrite => this.InnerStream.CanWrite;
+        public override bool CanWrite => InnerStream.CanWrite;
 
         /// <summary>
         /// Gets or sets the length of this stream, in bytes.
         /// </summary>
-        public override long Length => this.InnerStream.Length;
+        public override long Length => InnerStream.Length;
 
         /// <summary>
         /// Gets or sets the current position within this stream.
         /// </summary>
-        public override long Position { get => this.InnerStream.Position; set => this.InnerStream.Position = value; }
+        public override long Position { get => InnerStream.Position; set => InnerStream.Position = value; }
 
         /// <summary>
         /// Flush stream output.
         /// </summary>
         public override void Flush()
         {
-            this.InnerStream.Flush();
+            InnerStream.Flush();
         }
 
         /// <summary>
@@ -69,7 +69,7 @@ namespace TDSClient.TDS.Comms
         /// <returns>Returns number of successfully read bytes.</returns>
         public override int Read(byte[] buffer, int offset, int count)
         {
-            return this.InnerStream.Read(buffer, offset, count);
+            return InnerStream.Read(buffer, offset, count);
         }
 
         /// <summary>
@@ -80,7 +80,7 @@ namespace TDSClient.TDS.Comms
         /// <returns>THe new position within current stream.</returns>
         public override long Seek(long offset, SeekOrigin origin)
         {
-            return this.InnerStream.Seek(offset, origin);
+            return InnerStream.Seek(offset, origin);
         }
 
         /// <summary>
@@ -89,7 +89,7 @@ namespace TDSClient.TDS.Comms
         /// <param name="value">New length.</param>
         public override void SetLength(long value)
         {
-            this.InnerStream.SetLength(value);
+            InnerStream.SetLength(value);
         }
 
         /// <summary>
@@ -100,7 +100,7 @@ namespace TDSClient.TDS.Comms
         /// <param name="count">Number of bytes to write.</param>
         public override void Write(byte[] buffer, int offset, int count)
         {
-            this.InnerStream.Write(buffer, offset, count);
+            InnerStream.Write(buffer, offset, count);
         }
     }
 }

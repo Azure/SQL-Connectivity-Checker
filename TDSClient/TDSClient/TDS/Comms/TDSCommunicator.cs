@@ -57,10 +57,10 @@ namespace TDSClient.TDS.Comms
         /// <param name="packetSize">TDS packet size</param>
         public TDSCommunicator(Stream stream, ushort packetSize, string authenticationType)
         {
-            this.PacketSize = packetSize;
+            PacketSize = packetSize;
             InnerTdsStream = new TDSStream(stream, new TimeSpan(0, 0, 30), packetSize);
             InnerStream = InnerTdsStream;
-            this.AuthenticationType = authenticationType;
+            AuthenticationType = authenticationType;
         }
 
         /// <summary>
@@ -89,6 +89,7 @@ namespace TDSClient.TDS.Comms
             // //     LoggingUtilities.WriteLog($"    issued from {element.Certificate.Issuer}");
             // // }
             // return false;
+
             return true;
         }
 
@@ -252,11 +253,8 @@ namespace TDSClient.TDS.Comms
             }
 
             var buffer = new byte[data.Length()];
-
             MemoryStream ms = new MemoryStream(buffer);
-
             data.Pack(ms);
-            
             InnerStream.Write(buffer, 0, buffer.Length);
 
             switch (CommunicatorState)
@@ -269,7 +267,7 @@ namespace TDSClient.TDS.Comms
 
                 case TDSCommunicatorState.SentInitialPreLogin:
                     {
-                        if (AuthenticationType.Contains("Azure Active Directory"))
+                        if (AuthenticationType.Contains("Active Directory"))
                         {
                             CommunicatorState = TDSCommunicatorState.SentLogin7RecordWithFederatedAuthenticationInformationRequest;
                         }

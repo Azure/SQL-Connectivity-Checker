@@ -19,7 +19,7 @@ namespace TDSClient.TDS.Utilities
         /// <summary>
         /// Object lock for log writer
         /// </summary>
-        private static Object logWriterLock = new Object();
+        private static readonly object logWriterLock = new object();
 
         /// <summary>
         /// Summary log output.
@@ -140,7 +140,7 @@ namespace TDSClient.TDS.Utilities
             // Check if null
             if (instance == null)
             {
-                SerializedWriteLineToLog(log, String.Format("{0}: <null>", prefix));
+                SerializedWriteLineToLog(log, string.Format("{0}: <null>", prefix));
 
                 return;
             }
@@ -164,7 +164,7 @@ namespace TDSClient.TDS.Utilities
                 || instance is float
                 || instance is Version)
             {
-                SerializedWriteLineToLog(log, String.Format("{0}: {1}", prefix, instance));
+                SerializedWriteLineToLog(log, string.Format("{0}: {1}", prefix, instance));
 
                 return;
             }
@@ -175,7 +175,7 @@ namespace TDSClient.TDS.Utilities
                 int index = 0;
 
                 // Log values
-                foreach (object o in (instance as System.Collections.IEnumerable))
+                foreach (object o in instance as System.Collections.IEnumerable)
                 {
                     Log(log, string.Format("{0}[{1}]", prefix, index++), o);
                 }
@@ -183,18 +183,18 @@ namespace TDSClient.TDS.Utilities
                 // Check if we logged anything
                 if (index == 0)
                 {
-                    SerializedWriteLineToLog(log, String.Format("{0}: <empty>", prefix));
+                    SerializedWriteLineToLog(log, string.Format("{0}: <empty>", prefix));
                 }
             }
             else if (objectType.IsArray)
             {
                 // Prepare prefix
-                string preparedLine = String.Format("{0}: [", prefix);
+                string preparedLine = string.Format("{0}: [", prefix);
 
                 // Log values
-                foreach (object o in (instance as Array))
+                foreach (object o in instance as Array)
                 {
-                    preparedLine += String.Format("{0:X} ", o);
+                    preparedLine += string.Format("{0:X} ", o);
                 }
 
                 // Finish the line

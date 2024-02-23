@@ -19,7 +19,15 @@ using namespace Microsoft.Data.SqlClient
 # Supports Single, Elastic Pools and Managed Instance (please provide FQDN, MI public endpoint is supported)
 # Supports Azure Synapse / Azure SQL Data Warehouse (*.sql.azuresynapse.net / *.database.windows.net)
 # Supports Public Cloud (*.database.windows.net), Azure China (*.database.chinacloudapi.cn), Azure Germany (*.database.cloudapi.de) and Azure Government (*.database.usgovcloudapi.net)
-$AuthenticationType = 'SQL Server Authentication' # Set the type of authentication you wish to use: 'Azure Active Directory Password', 'Azure Active Directory Integrated', 'SQL Server Authentication' (SQL Authentication will be used by default if nothing is set)
+$AuthenticationType = 'SQL Server Authentication'
+# Set the type of authentication you wish to use:
+    # 'SQL Server Authentication' (default),
+    # 'Active Directory Password',
+    # 'Active Directory Integrated',
+    # 'Active Directory Interactive',
+    # 'Active Directory Service Principal',
+    # 'Active Directory Device Code Flow',
+    # 'Active Directory Managed Identity' ('Active Directory MSI')
 $AuthenticationLibrary = 'ADAL' # Set the authentication library you wish to use: 'ADAL' or 'MSAL'. Default is 'ADAL'.
 $Server = 'tde-akv-active-runner-mi.public.75be698df605.database.windows.net,3342' # or any other supported FQDN
 $Database = ''  # Set the name of the database you wish to test, 'master' will be used by default if nothing is set
@@ -777,12 +785,19 @@ function TestConnectionToDatabase($Server, $gatewayPort, $Database, $Authenticat
 function GetConnectionString ($Server, $gatewayPort, $Database, $AuthenticationType, $User, $Password) {
     if (($null -eq $AuthenticationType) -or ('SQL Server Authentication' -eq $AuthenticationType) -or ('' -eq $AuthenticationType)) {
         return [string]::Format("Server=tcp:{0},{1};Initial Catalog={2};Persist Security Info=False;User ID='{3}';Password='{4}';MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;Application Name=Azure-SQL-Connectivity-Checker;",
-        $Server, $gatewayPort, $Database, $User, $Password)
-    }
-
-    if ('Azure Active Directory Password' -eq $AuthenticationType) { 
-            return [string]::Format("Server=tcp:{0},{1};Initial Catalog={2};Persist Security Info=False;User ID='{3}';Password='{4}';MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Application Name=Azure-SQL-Connectivity-Checker;Authentication='Active Directory Password'",
             $Server, $gatewayPort, $Database, $User, $Password)
+    }
+    if ('Azure Active Directory Password' -eq $AuthenticationType) { 
+        return [string]::Format("Server=tcp:{0},{1};Initial Catalog={2};Persist Security Info=False;User ID='{3}';Password='{4}';MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Application Name=Azure-SQL-Connectivity-Checker;Authentication='Active Directory Password'",
+            $Server, $gatewayPort, $Database, $User, $Password)
+    }
+    if ('Azure Active Directory Password' -eq $AuthenticationType) { 
+        return [string]::Format("Server=tcp:{0},{1};Initial Catalog={2};Persist Security Info=False;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Application Name=Azure-SQL-Connectivity-Checker;Authentication='Active Directory Integrated'",
+            $Server, $gatewayPort, $Database)
+    }
+    if ('Azure Active Directory Interactive' -eq $AuthenticationType) { 
+        return [string]::Format("Server=tcp:{0},{1};Initial Catalog={2};Persist Security Info=False;User ID='{3}';MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Application Name=Azure-SQL-Connectivity-Checker;Authentication='Active Directory Interactive'",
+            $Server, $gatewayPort, $Database, $User)
     }
 }
 

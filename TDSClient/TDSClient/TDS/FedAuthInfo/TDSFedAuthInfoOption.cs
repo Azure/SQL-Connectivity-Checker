@@ -16,6 +16,11 @@ namespace TDSClient.TDS.FedAuthInfo
     public abstract class TDSFedAuthInfoOption : IPackageable
     {
         /// <summary>
+        /// Information Data Length
+        /// </summary>
+        public uint InfoDataLength;
+
+        /// <summary>
         /// FedAuth Info Identifier.
         /// </summary>
         public abstract TDSFedAuthInfoId FedAuthInfoId { get; }
@@ -28,12 +33,12 @@ namespace TDSClient.TDS.FedAuthInfo
         }
 
         /// <summary>
-        /// Inflate the token
+        /// Unpack the token
         /// </summary>
         public abstract bool Unpack(MemoryStream source);
 
         /// <summary>
-        /// Deflate the token.
+        /// Pack the token.
         /// </summary>
         public abstract void Pack(MemoryStream destination);
     }
