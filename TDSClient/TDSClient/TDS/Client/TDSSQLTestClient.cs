@@ -34,6 +34,20 @@ namespace TDSClient.TDS.Client
     /// </summary>
     public class TDSSQLTestClient
     {
+        private bool Reconnect;
+        private int ConnectionAttempt;
+        private readonly string AuthenticationType;
+        private readonly string AuthenticationLibrary;
+        private string Server;
+        private int Port;
+        private readonly string UserID;
+        private readonly string Password;
+        private readonly string Database;
+        private TDSCommunicator TdsCommunicator;
+        private TcpClient Client;
+        private readonly TDSClientVersion Version;
+        private readonly SslProtocols EncryptionProtocol;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="TDSSQLTestClient"/> class.
         /// </summary>
@@ -46,7 +60,7 @@ namespace TDSClient.TDS.Client
         /// <param name="encryptionProtocol">Encryption Protocol</param>
         public TDSSQLTestClient(string server, int port, string authenticationType, string authenticationLibrary, string userID, string password, string database, SslProtocols encryptionProtocol = SslProtocols.Tls12)
         {
-             ValidateInputParameters(server, userID, password, database, authenticationType);
+            ValidateInputParameters(server, userID, password, database, authenticationType);
 
             Client = null;
             Version = new TDSClientVersion(1, 0, 0, 0);
@@ -70,6 +84,15 @@ namespace TDSClient.TDS.Client
             LoggingUtilities.WriteLog($"     Authentication type: {authenticationType}.");
         }
 
+        /// <summary>
+        /// Helper method for validating input parameters for client.
+        /// </summary>
+        /// <param name="server"></param>
+        /// <param name="userID"></param>
+        /// <param name="password"></param>
+        /// <param name="database"></param>
+        /// <param name="authenticationType"></param>
+        /// <exception cref="ArgumentNullException"></exception>
         private void ValidateInputParameters(string server, string userID, string password, string database, string authenticationType)
         {
             if (string.IsNullOrEmpty(server) || string.IsNullOrEmpty(database) || string.IsNullOrEmpty(authenticationType))
@@ -84,20 +107,6 @@ namespace TDSClient.TDS.Client
                 }
             }
         }
-
-        private bool Reconnect;
-        private int ConnectionAttempt;
-        private readonly string AuthenticationType;
-        private readonly string AuthenticationLibrary;
-        private string Server;
-        private int Port;
-        private readonly string UserID;
-        private readonly string Password;
-        private readonly string Database;
-        private TDSCommunicator TdsCommunicator;
-        private TcpClient Client;
-        private readonly TDSClientVersion Version;
-        private readonly SslProtocols EncryptionProtocol;
 
         /// <summary>
         /// Connect to the server.
@@ -129,12 +138,12 @@ namespace TDSClient.TDS.Client
                 }
                 while (Reconnect);
             }
-
             catch (Exception ex)
             {
                 if (!preLoginDone && DateTime.UtcNow >= connectStartTime.AddSeconds(5))
                 {
-                    LoggingUtilities.WriteLog($" SNI timeout detected, PreLogin phase was not complete after {(int)(DateTime.UtcNow - connectStartTime).TotalMilliseconds} milliseconds.", writeToSummaryLog: true);
+                    LoggingUtilities.WriteLog($" SNI timeout detected, PreLogin phase was not complete after {(int)(DateTime.UtcNow - connectStartTime).TotalMilliseconds} milliseconds.",
+                        writeToSummaryLog: true);
                 }
 
                 LoggingUtilities.WriteLog($"Exception:");
@@ -213,7 +222,7 @@ namespace TDSClient.TDS.Client
                 preLoginResponse.FedAuthRequired == TdsPreLoginFedAuthRequiredOption.FedAuthRequired &&
                 IsAADAuthRequired())
             {
-                Tuple<string, string> fedAuthInfoMessage = ReceiveFedAuthInfoMessage() ?? throw new Exception("Server didn't return a proper Fed Auth Info message.");
+                Tuple<string, string> fedAuthInfoMessage = ReceiveFedAuthInfoMessage();
                 string authority = fedAuthInfoMessage.Item1;
                 string resource = fedAuthInfoMessage.Item2;
                 string clientID = "4d079b4c-cab7-4b7c-a115-8fd51b6f8239"; // ado client id
@@ -229,7 +238,7 @@ namespace TDSClient.TDS.Client
         }
 
         /// <summary>
-        /// 
+        /// Acquires JWT Access token from MSAL/ADAL.
         /// </summary>
         /// <param name="authority"></param>
         /// <param name="resource"></param>
@@ -245,7 +254,7 @@ namespace TDSClient.TDS.Client
         }
 
         /// <summary>
-        /// 
+        /// Acquires access token for AAD integrated authentication.
         /// </summary>
         /// <param name="authority"></param>
         /// <param name="resource"></param>
@@ -259,7 +268,7 @@ namespace TDSClient.TDS.Client
         }
 
         /// <summary>
-        /// 
+        /// Acquires access token for AAD username password authentication.
         /// </summary>
         /// <param name="authority"></param>
         /// <param name="resource"></param>
@@ -271,19 +280,6 @@ namespace TDSClient.TDS.Client
                 await MSALHelper.GetSQLAccessTokenFromMSALUsingUsernamePassword(authority, clientID, UserID, Password) :
                 await ADALHelper.GetSQLAccessTokenFromADALUsingUsernamePassword(authority, resource, clientID, UserID, Password);
         }
-
-        // private async Task<string> GetAccessTokenForMultiFactorAuthentication(string authority, string resource, string clientID)
-        // {
-        //     var cca = ConfidentialClientApplicationBuilder.Create(clientId)
-        //         .WithClientSecret(clientSecret)
-        //         .WithAuthority(new Uri(authority))
-        //         .Build();
-
-        //     var result = await cca.AcquireTokenForClient(scopes)
-        //         .ExecuteAsync();
-
-        //     Console.WriteLine($"Token: {result.AccessToken}");
-        // }
 
         /// <summary>
         /// Sends PreLogin request message to the server.
@@ -357,10 +353,15 @@ namespace TDSClient.TDS.Client
             LoggingUtilities.WriteLog($" Login7 message sent.");
         }
 
+        /// <summary>
+        /// Adds options for SQL Authentication to TDS Login message.
+        /// </summary>
+        /// <param name="tdsMessageBody"></param>
+
         private void AddLogin7SQLAuthenticationOptions(TDSLogin7PacketData tdsMessageBody)
         {
             LoggingUtilities.WriteLog($"  Adding option UserID with value [{UserID}]");
-            tdsMessageBody.UserID = UserID;
+            tdsMessageBody.UserName = UserID;
 
             LoggingUtilities.WriteLog($"  Adding option Password");
             tdsMessageBody.Password = Password;
@@ -369,6 +370,10 @@ namespace TDSClient.TDS.Client
             tdsMessageBody.OptionFlags2.IntSecurity = TDSLogin7OptionFlags2IntSecurity.IntegratedSecurityOff;
         }
 
+        /// <summary>
+        /// Adds options for AAD Authentication to TDS Login message.
+        /// </summary>
+        /// <param name="tdsMessageBody"></param>
         private void AddLogin7AADAuthenticationOptions(TDSLogin7PacketData tdsMessageBody)
         {
             TDSFedAuthADALWorkflow adalWorkflow = AuthenticationType.Contains("Integrated") ?
@@ -386,6 +391,10 @@ namespace TDSClient.TDS.Client
                 TDSLogin7OptionFlags2IntSecurity.IntegratedSecurityOn : TDSLogin7OptionFlags2IntSecurity.IntegratedSecurityOff;
         }
 
+        /// <summary>
+        /// Helper method to add common login 7 options to Login7 message.
+        /// </summary>
+        /// <param name="tdsMessageBody"></param>
         private void AddLogin7CommonOptions(TDSLogin7PacketData tdsMessageBody)
         {
             tdsMessageBody.OptionFlags1.Char = TDSLogin7OptionFlags1Char.CharsetASCII;
@@ -415,7 +424,7 @@ namespace TDSClient.TDS.Client
         /// <returns></returns>
         /// <exception cref="Exception"></exception>
         /// <exception cref="InvalidOperationException"></exception>
-        private Tuple<string, string>? ReceiveFedAuthInfoMessage()
+        private Tuple<string, string> ReceiveFedAuthInfoMessage()
         {
             LoggingUtilities.AddEmptyLine();
             LoggingUtilities.WriteLog($" Waiting for FedAuthInfoMessage response.");
@@ -438,7 +447,8 @@ namespace TDSClient.TDS.Client
                     }
                 }
 
-                return null;
+                throw new Exception("Server couldn't return a proper Fed Auth Info message.");
+
             }
             else
             {
@@ -547,7 +557,7 @@ namespace TDSClient.TDS.Client
         }
 
         /// <summary>
-        /// 
+        /// Helper method which processes the login ack token recevied from the server.
         /// </summary>
         /// <param name="loginAck"></param>
         /// 
@@ -562,7 +572,7 @@ namespace TDSClient.TDS.Client
         }
 
         /// <summary>
-        /// 
+        /// Helper method which processes the info token recevied from the server.
         /// </summary>
         /// <param name="infoToken"></param>
         private void ProcessInfoToken(TDSInfoToken infoToken)
@@ -578,7 +588,7 @@ namespace TDSClient.TDS.Client
         }
 
         /// <summary>
-        /// 
+        /// Helper method which processes the error token recevied from the server.
         /// </summary>
         /// <param name="errorToken"></param>
         /// <exception cref="Exception"></exception>
@@ -599,7 +609,7 @@ namespace TDSClient.TDS.Client
         }
 
         /// <summary>
-        /// 
+        /// Helper method which processes the env change token recevied from the server.
         /// </summary>
         /// <param name="envChangeToken"></param>
         private void ProcessEnvChangeToken(TDSEnvChangeToken envChangeToken)
@@ -615,7 +625,7 @@ namespace TDSClient.TDS.Client
         }
 
         /// <summary>
-        /// 
+        /// Helper method which processes the fed auth info token recevied from the server.
         /// </summary>
         /// <param name="fedAuthInfoToken"></param>
         /// <returns></returns>
@@ -635,7 +645,7 @@ namespace TDSClient.TDS.Client
         }
 
         /// <summary>
-        /// 
+        /// Helper method which processes the fed auth info option token recevied from the server.
         /// </summary>
         /// <param name="option"></param>
         /// <param name="STSUrl"></param>
@@ -676,7 +686,7 @@ namespace TDSClient.TDS.Client
         /// <returns></returns>
         private bool IsAADAuthRequired()
         {
-            return AuthenticationType.Contains("Azure Active Directory");
+            return AuthenticationType.Contains("Active Directory");
         }
 
         /// <summary>

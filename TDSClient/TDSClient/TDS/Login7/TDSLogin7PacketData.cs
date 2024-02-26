@@ -99,7 +99,7 @@ namespace TDSClient.TDS.Login7
         {
             uint notFixed = 
                   (uint)(string.IsNullOrEmpty(HostName) ? 0 : HostName.Length * 2)
-                + (uint)(string.IsNullOrEmpty(UserID) ? 0 : UserID.Length * 2)
+                + (uint)(string.IsNullOrEmpty(UserName) ? 0 : UserName.Length * 2)
                 + (uint)(string.IsNullOrEmpty(Password) ? 0 : Password.Length * 2)
                 + (uint)(string.IsNullOrEmpty(ApplicationName) ? 0 : ApplicationName.Length * 2)
                 + (uint)(string.IsNullOrEmpty(ServerName) ? 0 : ServerName.Length * 2)
@@ -113,9 +113,7 @@ namespace TDSClient.TDS.Login7
             if (FeatureExt != null)
             {
                 MemoryStream featureExtension = new MemoryStream();
-
                 FeatureExt.Pack(featureExtension);
-
                 notFixed += (uint)(sizeof(uint) + featureExtension.Length); 
             }
 
@@ -190,7 +188,7 @@ namespace TDSClient.TDS.Login7
         /// <summary>
         /// User ID
         /// </summary>
-        public string UserID { get; set; }
+        public string UserName { get; set; }
 
         /// <summary>
         /// Password
@@ -298,7 +296,6 @@ namespace TDSClient.TDS.Login7
             if (FeatureExt != null)
             {
                 featureExtension = new MemoryStream();
-
                 FeatureExt.Pack(featureExtension);
             }
 
@@ -320,7 +317,7 @@ namespace TDSClient.TDS.Login7
             IList<TDSLogin7TokenOffsetProperty> variableProperties = new List<TDSLogin7TokenOffsetProperty>();
 
             WriteLoginDataPositionAndOffsetToStream(variableProperties, "HostName", destination, HostName);
-            WriteLoginDataPositionAndOffsetToStream(variableProperties, "UserID", destination, UserID);
+            WriteLoginDataPositionAndOffsetToStream(variableProperties, "UserID", destination, UserName);
             WriteLoginDataPositionAndOffsetToStream(variableProperties, "Password", destination, Password);
             WriteLoginDataPositionAndOffsetToStream(variableProperties, "ApplicationName", destination, ApplicationName);
             WriteLoginDataPositionAndOffsetToStream(variableProperties, "ServerName", destination, ServerName);
@@ -339,10 +336,7 @@ namespace TDSClient.TDS.Login7
             WriteLoginDataPositionAndOffsetToStream(variableProperties, "Language", destination, Language);
             WriteLoginDataPositionAndOffsetToStream(variableProperties, "Database", destination, Database);
 
-            if (ClientID == null)
-            {
-                ClientID = new byte[6];
-            }
+            ClientID ??= new byte[6];
 
             destination.Write(ClientID, 0, 6);
 
@@ -362,6 +356,13 @@ namespace TDSClient.TDS.Login7
             featureExtension?.WriteTo(destination);
         }
 
+        /// <summary>
+        /// Helper method to write login data position and offset to stream.
+        /// </summary>
+        /// <param name="variableProperties"></param>
+        /// <param name="propertyName"></param>
+        /// <param name="destination"></param>
+        /// <param name="property"></param>
         private void WriteLoginDataPositionAndOffsetToStream(IList<TDSLogin7TokenOffsetProperty> variableProperties, string propertyName, MemoryStream destination, string property = null)
         {
             ushort position;
@@ -401,6 +402,11 @@ namespace TDSClient.TDS.Login7
             }
         }
 
+        /// <summary>
+        /// Helper to write login data to stream.
+        /// </summary>
+        /// <param name="variableProperties"></param>
+        /// <param name="destination"></param>
         private void WriteLoginDataPropertiesToStream(IList<TDSLogin7TokenOffsetProperty> variableProperties, MemoryStream destination)
         {
             int iCurrentProperty = 0;
@@ -460,13 +466,14 @@ namespace TDSClient.TDS.Login7
             ClientTimeZone = Convert.ToUInt32(LittleEndianUtilities.ReadUInt(stream));
             ClientLCID = LittleEndianUtilities.ReadUInt(stream);
 
-            IList<TDSLogin7TokenOffsetProperty> variableProperties = new List<TDSLogin7TokenOffsetProperty>();
-
-            variableProperties.Add(new TDSLogin7TokenOffsetProperty(GetType().GetProperty("HostName"), LittleEndianUtilities.ReadUShort(stream), LittleEndianUtilities.ReadUShort(stream)));
-            variableProperties.Add(new TDSLogin7TokenOffsetProperty(GetType().GetProperty("UserID"), LittleEndianUtilities.ReadUShort(stream), LittleEndianUtilities.ReadUShort(stream)));
-            variableProperties.Add(new TDSLogin7TokenOffsetProperty(GetType().GetProperty("Password"), LittleEndianUtilities.ReadUShort(stream), LittleEndianUtilities.ReadUShort(stream)));
-            variableProperties.Add(new TDSLogin7TokenOffsetProperty(GetType().GetProperty("ApplicationName"), LittleEndianUtilities.ReadUShort(stream), LittleEndianUtilities.ReadUShort(stream)));
-            variableProperties.Add(new TDSLogin7TokenOffsetProperty(GetType().GetProperty("ServerName"), LittleEndianUtilities.ReadUShort(stream), LittleEndianUtilities.ReadUShort(stream)));
+            IList<TDSLogin7TokenOffsetProperty> variableProperties = new List<TDSLogin7TokenOffsetProperty>
+            {
+                new TDSLogin7TokenOffsetProperty(GetType().GetProperty("HostName"), LittleEndianUtilities.ReadUShort(stream), LittleEndianUtilities.ReadUShort(stream)),
+                new TDSLogin7TokenOffsetProperty(GetType().GetProperty("UserID"), LittleEndianUtilities.ReadUShort(stream), LittleEndianUtilities.ReadUShort(stream)),
+                new TDSLogin7TokenOffsetProperty(GetType().GetProperty("Password"), LittleEndianUtilities.ReadUShort(stream), LittleEndianUtilities.ReadUShort(stream)),
+                new TDSLogin7TokenOffsetProperty(GetType().GetProperty("ApplicationName"), LittleEndianUtilities.ReadUShort(stream), LittleEndianUtilities.ReadUShort(stream)),
+                new TDSLogin7TokenOffsetProperty(GetType().GetProperty("ServerName"), LittleEndianUtilities.ReadUShort(stream), LittleEndianUtilities.ReadUShort(stream))
+            };
 
             if (OptionFlags3.Extension == TDSLogin7OptionFlags3Extension.Exists)
             {
@@ -516,7 +523,6 @@ namespace TDSClient.TDS.Login7
                 while (inflationOffset < property.Position)
                 {
                     stream.ReadByte();
-
                     inflationOffset++;
                 }
 
@@ -524,7 +530,7 @@ namespace TDSClient.TDS.Login7
                 {
                     property.Property.SetValue(this, LittleEndianUtilities.ReadPasswordString(stream, (ushort)(property.Length * 2)), null);
 
-                    inflationOffset += (property.Length * 2);
+                    inflationOffset += property.Length * 2;
                 }
                 else if (property.Property.Name == "SSPI")
                 {
@@ -538,11 +544,8 @@ namespace TDSClient.TDS.Login7
                     }
 
                     sspiLength = property.Length;
-
                     SSPI = new byte[sspiLength];
-
                     stream.Read(SSPI, 0, SSPI.Length);
-
                     inflationOffset += sspiLength;
                 }
                 else if (property.Property.Name == "FeatureExt")
@@ -566,16 +569,13 @@ namespace TDSClient.TDS.Login7
                     else
                     {
                         FeatureExt = new TDSLogin7FeatureOptionsToken();
-
                         FeatureExt.Unpack(stream);
-
                         inflationOffset += FeatureExt.Size;
                     }
                 }
                 else
                 {
                     property.Property.SetValue(this, LittleEndianUtilities.ReadString(stream, (ushort)(property.Length * 2)), null);
-
                     inflationOffset += property.Length * 2;
                 }
 

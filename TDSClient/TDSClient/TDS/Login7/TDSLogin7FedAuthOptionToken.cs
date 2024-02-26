@@ -62,7 +62,6 @@ namespace TDSClient.TDS.Login7
 			{
 				return 6*sizeof(byte) // Option (library + echo)
 					+ sizeof(byte);
-
 			}
 		}
 
@@ -153,7 +152,7 @@ namespace TDSClient.TDS.Login7
 			if (libraryType != TDSFedAuthLibraryType.SECURITY_TOKEN && fIncludeSignature)
 			{
 				Signature = new byte[SignatureDataLength];
-				Signature = _GenerateRandomBytes(32);
+				Signature = GenerateRandomBytes(32);
 			}
 		}
 
@@ -174,32 +173,23 @@ namespace TDSClient.TDS.Login7
 		public override bool Unpack(MemoryStream source)
 		{
 			Size = 0;
-
 			uint optionDataLength = BigEndianUtilities.ReadUInt(source);
-
 			Size += sizeof(uint);
-
 			byte temp = (byte)source.ReadByte();
-
 			Size += sizeof(byte);
-
 			Echo = (TdsPreLoginFedAuthRequiredOption)(temp & 0x01);
-
 			Library = (TDSFedAuthLibraryType)(temp >> 1);
 
 			// When using the ADAL library, a FedAuthToken is never included, nor is its length included
 			if (Library != TDSFedAuthLibraryType.ADAL)
 			{
 				uint fedauthTokenLen = BigEndianUtilities.ReadUInt(source);
-
 				Size += sizeof(uint);
 
 				if (fedauthTokenLen > 0)
 				{
 					Token = new byte[fedauthTokenLen];
-
 					source.Read(Token, 0, (int)fedauthTokenLen);
-
 					Size += fedauthTokenLen;
 				}
 			}
@@ -232,7 +222,7 @@ namespace TDSClient.TDS.Login7
 			destination.WriteByte((byte)FeatureID);
 
 			uint optionDataLength = (uint)(sizeof(byte) // Options size (library and Echo)
-									+ (WorkflowType == TDSFedAuthADALWorkflow.EMPTY ? 0 : (sizeof(byte))) //ADAL workflow type
+									+ (WorkflowType == TDSFedAuthADALWorkflow.EMPTY ? 0 : sizeof(byte)) //ADAL workflow type
 									+ ((Token == null && IsRequestingAuthenticationInfo) ? 0 : sizeof(uint)) // Fedauth token length
 									+ (Token == null ? 0 : (uint)Token.Length) // Fedauth Token
 									+ (Nonce == null ? 0 : NonceDataLength) // Nonce
@@ -287,9 +277,7 @@ namespace TDSClient.TDS.Login7
 			if (optionDataLength > Size)
 			{
 				Nonce = new byte[NonceDataLength];
-
 				source.Read(Nonce, 0, (int)NonceDataLength);
-
 				Size += NonceDataLength;
 			}
 
@@ -301,7 +289,7 @@ namespace TDSClient.TDS.Login7
 		/// </summary>
 		/// <param name="count">The number of bytes to be generated.</param>
 		/// <returns>Generated random bytes.</returns>
-		private byte[] _GenerateRandomBytes(int count)
+		private byte[] GenerateRandomBytes(int count)
 		{
 			byte[] randomBytes = new byte[count];
 

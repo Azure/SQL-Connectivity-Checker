@@ -62,17 +62,11 @@ namespace TDSClient.TDS.Login7
         public override bool Unpack(MemoryStream source)
         {
             Size = 0;
-
             int length = (int)BigEndianUtilities.ReadUInt(source);
-
             Size += sizeof(int);
-
             Data = new byte[length];
-
             source.Read(Data, 0, Data.Length);
-
             Size += (uint)length;
-
             return true;
         }
 

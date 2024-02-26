@@ -65,9 +65,7 @@ namespace TDSClient.TDS.Login7
     /// <summary>
     /// TDS Login7 Message Option Flags 3
     /// </summary>
-#pragma warning disable CS0659 // Type overrides Object.Equals(object o) but does not override Object.GetHashCode()
     public abstract class TDSLogin7FeatureExt : IPackageable, IEquatable<TDSLogin7FeatureExt>
-#pragma warning restore CS0659 // Type overrides Object.Equals(object o) but does not override Object.GetHashCode()
     {
 
         /// <summary>

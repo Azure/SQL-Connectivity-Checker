@@ -19,25 +19,14 @@ namespace TDSClient.TDS.Login7
 		/// </summary>
 		internal uint Size { get; set; }
 
-		//private readonly TDSDataClassification.Version dataClassificationVersion;
-
-		/// <summary>
-		/// Default constructor
-		/// </summary>
-		// public TDSLogin7FeatureOptionsToken(TDSDataClassification.Version dataClassificationVersion = TDSDataClassification.Version.V1)
-		// {
-		// 	this.dataClassificationVersion = dataClassificationVersion;
-		// }
-
 		/// <summary>
 		/// Unpack an object instance from the stream
 		/// </summary>
 		/// 
 		public bool Unpack(MemoryStream source)
 		{
-			TDSFeatureID featureID = TDSFeatureID.Terminator;
-
-			do
+            TDSFeatureID featureID;
+            do
 			{
 				featureID = (TDSFeatureID)source.ReadByte();
 
@@ -64,9 +53,7 @@ namespace TDSClient.TDS.Login7
 				if (optionToken != null)
 				{
 					optionToken.Unpack(source);
-
 					Add(optionToken);
-
 					Size += optionToken.Size;
 				}
 			}

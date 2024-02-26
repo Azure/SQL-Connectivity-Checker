@@ -192,7 +192,7 @@ namespace TDSClient.TDS.Login7
         /// <returns>true if the specified object is equal to the current object; otherwise, false</returns>
         public override bool Equals(object obj)
         {
-            return this.Equals(obj as TDSLogin7OptionFlags1);
+            return Equals(obj as TDSLogin7OptionFlags1);
         }
 
         /// <summary>
