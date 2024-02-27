@@ -73,13 +73,7 @@ namespace TDSClient.TDS.Header
         /// <summary>
         /// Gets converted (to int) Packet Length.
         /// </summary>
-        public int ConvertedPacketLength
-        {
-            get
-            {
-                return Convert.ToInt32(Length);
-            }
-        }
+        public int ConvertedPacketLength => Convert.ToInt32(Length);
 
         /// <summary>
         /// Used to pack IPackageable to a stream.
@@ -87,6 +81,11 @@ namespace TDSClient.TDS.Header
         /// <param name="stream">MemoryStream in which IPackageable is packet into.</param>
         public void Pack(MemoryStream stream)
         {
+            if (stream == null)
+            {
+                throw new ArgumentNullException(nameof(stream));
+            }
+
             stream.WriteByte((byte)Type);
             stream.WriteByte((byte)Status);
             BigEndianUtilities.WriteUShort(stream, Length);
@@ -102,6 +101,11 @@ namespace TDSClient.TDS.Header
         /// <returns>Returns true if successful.</returns>
         public bool Unpack(MemoryStream stream)
         {
+            if (stream == null)
+            {
+                throw new ArgumentNullException(nameof(stream));
+            }
+            
             Type = (TDSMessageType)stream.ReadByte();
             Status = (TDSMessageStatus)stream.ReadByte();
             Length = BigEndianUtilities.ReadUShort(stream);

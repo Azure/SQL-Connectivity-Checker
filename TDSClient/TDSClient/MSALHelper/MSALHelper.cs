@@ -24,23 +24,23 @@ namespace TDSClient.MSALHelper
         /// <returns></returns>
         public static async Task<string> GetSQLAccessTokenFromMSALUsingUsernamePassword(string authority, string clientId, string userId, string password)
         {
-            IPublicClientApplication app;
-            app = PublicClientApplicationBuilder.Create(clientId)
-                .WithAuthority(authority)
-                .Build();
+            var app = CreateClientApp(authority, clientId);
+
             string[] scopes = new[] { "https://database.windows.net/.default" };
 
             try
             {
+                LoggingUtilities.WriteLog("Attempting to acquire access token using username and password.");
                 var result = await app.AcquireTokenByUsernamePassword(scopes, userId, password)
-                    .ExecuteAsync();
+                    .ExecuteAsync()
+                    .ConfigureAwait(false);
 
                 LoggingUtilities.WriteLog($"  Successfully acquired access token.");
                 return result.AccessToken;
             }
             catch (MsalServiceException ex)
             {
-               LoggingUtilities.WriteLog($"Service exception: {ex.Message}");
+                LoggingUtilities.WriteLog($"Service exception: {ex.Message}");
 
                 LoggingUtilities.WriteLog($"Error code: {ex.ErrorCode}");
                 LoggingUtilities.WriteLog($"HTTP status code: {ex.StatusCode}");
@@ -49,14 +49,12 @@ namespace TDSClient.MSALHelper
             }
             catch (MsalClientException ex)
             {
-                // MSAL client exception occurred
                 LoggingUtilities.WriteLog($"Client exception: {ex.Message}");
 
                 throw;
             }
             catch (Exception ex)
             {
-                // An unexpected error occurred
                 LoggingUtilities.WriteLog($"An unexpected error occurred: {ex.Message}");
 
                 throw;
@@ -71,16 +69,16 @@ namespace TDSClient.MSALHelper
         /// <returns></returns>
         public static async Task<string> GetSQLAccessTokenFromMSALUsingIntegratedAuth(string authority, string clientId)
         {
-            IPublicClientApplication app;
-            app = PublicClientApplicationBuilder.Create(clientId)
-                .WithAuthority(authority)
-                .Build();
+            var app = CreateClientApp(authority, clientId);
+
             string[] scopes = new[] { "https://database.windows.net/.default" };
 
             try
             {
+                LoggingUtilities.WriteLog("Attempting to acquire access token using integrated auth.");
                 var result = await app.AcquireTokenByIntegratedWindowsAuth(scopes)
-                    .ExecuteAsync(CancellationToken.None);
+                    .ExecuteAsync(CancellationToken.None)
+                    .ConfigureAwait(false);
 
                 LoggingUtilities.WriteLog($"  Successfully acquired access token.");
 
@@ -119,16 +117,17 @@ namespace TDSClient.MSALHelper
         /// <returns></returns>
         public static async Task<string> GetSQLAccessTokenFromMSALUsingMFA(string authority, string clientId)
         {
-            IPublicClientApplication app;
-            app = PublicClientApplicationBuilder.Create(clientId)
-                .WithAuthority(authority)
-                .Build();
+            var app = CreateClientApp(authority, clientId);
+
             string[] scopes = new[] { "https://database.windows.net/.default" };
 
             try
             {
+                LoggingUtilities.WriteLog("Attempting to acquire access token using MFA.");
+
                 var result = await app.AcquireTokenInteractive(scopes)
-                    .ExecuteAsync(CancellationToken.None);
+                    .ExecuteAsync(CancellationToken.None)
+                    .ConfigureAwait(false);
 
                 // if (result.Account?.)
                 // {
@@ -167,5 +166,31 @@ namespace TDSClient.MSALHelper
                 throw;
             }
         }
+
+        private static IPublicClientApplication CreateClientApp(string authority, string clientId)
+        {
+            return PublicClientApplicationBuilder.Create(clientId)
+                .WithAuthority(authority)
+                .Build();
+        }
+
+        /// <summary>
+        /// Logs possible MSAL exception message.
+        /// </summary>
+        /// <param name="message">Custom message</param>
+        /// <param name="ex">Exception</param>
+        // private static void LogException(string message, Exception ex)
+        // {
+        //     if (ex is MsalServiceException adalException)
+        //     {
+        //         LoggingUtilities.WriteLog($"{message}: {adalException.Message}");
+        //         LoggingUtilities.WriteLog($"Error code: {adalException.ErrorCode}");
+        //     }
+
+        //     if (ex is MsalClientException serviceException)
+        //     {
+        //         LoggingUtilities.WriteLog($"HTTP status code: {serviceException.StatusCode}");
+        //     }
+        // }
     }
 }

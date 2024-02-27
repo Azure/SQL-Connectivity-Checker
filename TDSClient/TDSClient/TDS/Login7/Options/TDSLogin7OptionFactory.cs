@@ -68,26 +68,28 @@ namespace TDSClient.TDS.Login7.Options
         /// <returns>Created TDS Login7 packet option</returns>
         public static TDSLogin7Option CreateOption(string optionName, object optionData)
         {
-            if (TextOptions.Contains(optionName))
+            if (optionData == null)
             {
-                if (optionData is string)
-                {
-                    var data = (string)optionData;
-                    return new TDSLogin7TextOption(optionName, 0, Convert.ToUInt16(data.Length), data);
-                } 
-                else
-                {
-                    throw new InvalidOperationException();
-                }
+                throw new ArgumentNullException(nameof(optionData));
             }
-            else if (PasswordOptions.Contains(optionName)) 
+
+            if (!(optionData is string))
             {
-                var data = (string)optionData;
-                return new TDSLogin7PasswordOption(optionName, 0, Convert.ToUInt16(data.Length), data);
-            } 
-            else
+                throw new ArgumentException($"{nameof(optionData)} must be a string.", nameof(optionData));
+            }
+
+            var data = (string)optionData;
+
+            switch (optionName)
             {
-                throw new NotSupportedException();
+                case var option when TextOptions.Contains(option):
+                    return new TDSLogin7TextOption(option, 0, Convert.ToUInt16(data.Length), data);
+
+                case var option when PasswordOptions.Contains(option):
+                    return new TDSLogin7PasswordOption(option, 0, Convert.ToUInt16(data.Length), data);
+
+                default:
+                    throw new NotSupportedException($"Option {optionName} is not supported.");
             }
         }
 

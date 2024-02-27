@@ -76,11 +76,15 @@ namespace TDSClient.TDS.Login7.Options
         /// <returns>true if the specified object is equal to the current object; otherwise, false</returns>
         public bool Equals(TDSLogin7Option other)
         {
-            return other != null &&
-                   Name == other.Name &&
-                   Position == other.Position &&
-                   Length == other.Length &&
-                   TrueLength == other.TrueLength;
+            if (other == null)
+            {
+                return false;
+            }
+
+            return Name == other.Name &&
+               Position == other.Position &&
+               Length == other.Length &&
+               TrueLength == other.TrueLength;
         }
 
         /// <summary>

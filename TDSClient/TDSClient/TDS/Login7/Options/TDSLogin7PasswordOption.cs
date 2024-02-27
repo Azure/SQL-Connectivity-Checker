@@ -68,9 +68,13 @@ namespace TDSClient.TDS.Login7.Options
         /// <returns>true if the specified object is equal to the current object; otherwise, false</returns>
         public bool Equals(TDSLogin7PasswordOption other)
         {
-            return other != null &&
-                   base.Equals(other) &&
-                   PlainTextPassword == other.PlainTextPassword;
+            if (other == null)
+            {
+                return false;
+            }
+
+            return base.Equals(other) &&
+                PlainTextPassword == other.PlainTextPassword;
         }
 
         /// <summary>

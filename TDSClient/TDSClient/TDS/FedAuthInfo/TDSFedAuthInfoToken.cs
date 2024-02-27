@@ -12,6 +12,7 @@ namespace TDSClient.TDS.FedAuthInfo
 
     using TDSClient.TDS.Utilities;
     using TDSClient.TDS.Tokens;
+    using System;
 
 #pragma warning disable CS0659
     public class TDSFedAuthInfoToken : TDSToken
@@ -53,6 +54,11 @@ namespace TDSClient.TDS.FedAuthInfo
         /// <returns>True in case of success, false otherwise.</returns>
         public override bool Unpack(MemoryStream source)
         {
+            if (source == null)
+            {
+                throw new ArgumentNullException(nameof(source));
+            }
+
             // We skip the token identifier because it is read by token factory
             TDSFedAuthInfoId currentFeatureType;
 
@@ -106,6 +112,11 @@ namespace TDSClient.TDS.FedAuthInfo
         /// <param name="destination">Stream to pack the token to.</param>
         public override void Pack(MemoryStream destination)
         {
+            if (destination == null)
+            {
+                throw new ArgumentNullException(nameof(destination));
+            }
+
             destination.WriteByte((byte)TDSTokenType.FedAuthInfo);
 
             // Length of all of the options' FedAuthInfoID, FedAuthInfoDataLen, and FedAuthInfoDataOffset fields.
@@ -165,20 +176,16 @@ namespace TDSClient.TDS.FedAuthInfo
 		/// <returns></returns>
         public override bool Equals(object obj)
         {
-            return Equals(obj as TDSFedAuthInfoToken);
-        }
+            if (obj == null || GetType() != obj.GetType())
+            {
+                return false;
+            }
 
-		/// <summary>
-		/// Compares.
-		/// </summary>
-		/// <param name="obj"></param>
-		/// <returns></returns>
-        public bool Equals(TDSFedAuthInfoToken obj)
-		{
-			return Length() == obj.Length()
-					&& TokenLength == obj.TokenLength
-					&& AreDictionariesEqual(Options, obj.Options);
-		}
+            var otherToken = (TDSFedAuthInfoToken)obj;
+            return Length() == otherToken.Length()
+                && TokenLength == otherToken.TokenLength
+                && AreDictionariesEqual(Options, otherToken.Options);
+        }
 
         /// <summary>
         /// Compares two dictionaries.

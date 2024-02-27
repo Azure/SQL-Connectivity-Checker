@@ -177,7 +177,7 @@ namespace TDSClient.TDS.Client
 
             DateTime connectStartTime = DateTime.UtcNow;
 
-            SendPreLoginRequest();
+            SendPreLogin();
             TDSPreLoginPacketData preLoginResponse = (TDSPreLoginPacketData)ReceivePreLoginResponse();
 
             preLoginDone = true;
@@ -284,7 +284,7 @@ namespace TDSClient.TDS.Client
         /// <summary>
         /// Sends PreLogin request message to the server.
         /// </summary>
-        private void SendPreLoginRequest()
+        private void SendPreLogin()
         {
             LoggingUtilities.AddEmptyLine();
             LoggingUtilities.WriteLog($" Building PreLogin message.");
@@ -657,12 +657,14 @@ namespace TDSClient.TDS.Client
                 TDSFedAuthInfoOptionSTSURL optionSTSURL = option.Value as TDSFedAuthInfoOptionSTSURL;
                 var output = optionSTSURL.StsUrl.Where(b => b != 0).ToArray();
                 STSUrl = Encoding.UTF8.GetString(output);
+                LoggingUtilities.WriteLog($"     STSURL: {STSUrl}");
             }
             else if (option.Value.FedAuthInfoId == TDSFedAuthInfoId.SPN)
             {
                 TDSFedAuthInfoOptionSPN optionSPN = option.Value as TDSFedAuthInfoOptionSPN;
                 var output = optionSPN.ServicePrincipalName.Where(b => b != 0).ToArray();
                 SPN = Encoding.UTF8.GetString(output);
+                LoggingUtilities.WriteLog($"     Service Principal Name: {SPN}");
             }
         }
 

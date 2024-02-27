@@ -13,8 +13,9 @@ namespace TDSClient.ADALHelper
 {
     public class ADALHelper
     {
+        
         /// <summary>
-        /// Gets AAD access token using ADAL with username and password.
+        /// Gets JWT access token using ADAL with username and password.
         /// </summary>
         /// <param name="authority"></param>
         /// <param name="resource"></param>
@@ -29,46 +30,12 @@ namespace TDSClient.ADALHelper
             string userId,
             string password)
         {
-            try
-            {
-                LoggingUtilities.WriteLog($"  Acquiring access token using username and password.");
-                AuthenticationContext authContext = new AuthenticationContext(authority);
-                UserPasswordCredential userCredentials = new UserPasswordCredential(userId, password);
-
-                AuthenticationResult result = await authContext.AcquireTokenAsync(resource, clientId, userCredentials);
-
-                LoggingUtilities.WriteLog($"  Successfully acquired access token.");
-
-                return result.AccessToken;
-            }
-            catch (AdalServiceException ex)
-            {
-                LoggingUtilities.WriteLog($"Service exception occurred when trying to acquire a JWT token: {ex.Message}");
-
-                LoggingUtilities.WriteLog($"Error code: {ex.ErrorCode}");
-                LoggingUtilities.WriteLog($"HTTP status code: {ex.StatusCode}");
-
-                throw;
-            }
-            catch (AdalException ex)
-            {
-                // Handle client-related exceptions
-                LoggingUtilities.WriteLog($"Client exception occurred when trying to acquire a JWT token: {ex.Message}");
-                LoggingUtilities.WriteLog($"Error code: {ex.ErrorCode}");
-
-                throw;
-            }
-            catch (Exception ex)
-            {
-                // An unexpected error occurred
-                LoggingUtilities.WriteLog($"An unexpected error occurred when trying to acquire a JWT token: {ex.Message}");
-
-                throw;
-            }
+            UserPasswordCredential userCredentials = new UserPasswordCredential(userId, password);
+            return await GetAccessToken(authority, resource, clientId, userCredentials).ConfigureAwait(false);
         }
 
         /// <summary>
-        /// Gets AAD access token using ADAL with integrated authentication.
+        /// Gets JWT access token using ADAL with integrated authentication.
         /// </summary>
         /// <param name="authority"></param>
         /// <param name="resource"></param>
@@ -79,40 +46,65 @@ namespace TDSClient.ADALHelper
             string resource,
             string clientId)
         {
+            UserCredential userCredentials = new UserCredential();
+            return await GetAccessToken(authority, resource, clientId, userCredentials).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Gets access token using provided credential.
+        /// </summary>
+        /// <param name="authority"></param>
+        /// <param name="resource"></param>
+        /// <param name="clientId"></param>
+        /// <param name="credential"></param>
+        /// <returns></returns>
+        private static async Task<string> GetAccessToken(
+            string authority,
+            string resource,
+            string clientId,
+            UserCredential credential = null)
+        {
             try
             {
-                LoggingUtilities.WriteLog($"  Acquiring access token using integrated authentication.");
+                LoggingUtilities.WriteLog("Acquiring access token...");
                 AuthenticationContext authContext = new AuthenticationContext(authority);
-
-                AuthenticationResult result = await authContext.AcquireTokenAsync(resource, clientId, new UserCredential());
-
-                LoggingUtilities.WriteLog($"  Successfully acquired access token.");
-
+                AuthenticationResult result = await authContext.AcquireTokenAsync(resource, clientId, credential).ConfigureAwait(false);
+                LoggingUtilities.WriteLog("Successfully acquired access token.");
                 return result.AccessToken;
             }
             catch (AdalServiceException ex)
             {
-                LoggingUtilities.WriteLog($"Service exception: {ex.Message}");
-
-                LoggingUtilities.WriteLog($"Error code: {ex.ErrorCode}");
-                LoggingUtilities.WriteLog($"HTTP status code: {ex.StatusCode}");
-
+                LogException("Service exception occurred when trying to acquire a JWT token", ex);
                 throw;
             }
             catch (AdalException ex)
             {
-                // Handle client-related exceptions
-                LoggingUtilities.WriteLog($"Client exception: {ex.Message}");
-                LoggingUtilities.WriteLog($"Error code: {ex.ErrorCode}");
-
+                LogException("Client exception occurred when trying to acquire a JWT token", ex);
                 throw;
             }
             catch (Exception ex)
             {
-                // An unexpected error occurred
-                LoggingUtilities.WriteLog($"An unexpected error occurred: {ex.Message}");
-
+                LogException("An unexpected error occurred when trying to acquire a JWT token", ex);
                 throw;
+            }
+        }
+
+        /// <summary>
+        /// Logs possible ADAL exception message.
+        /// </summary>
+        /// <param name="message">Custom message</param>
+        /// <param name="ex">Exception</param>
+        private static void LogException(string message, Exception ex)
+        {
+            if (ex is AdalException adalException)
+            {
+                LoggingUtilities.WriteLog($"{message}: {adalException.Message}");
+                LoggingUtilities.WriteLog($"Error code: {adalException.ErrorCode}");
+            }
+
+            if (ex is AdalServiceException serviceException)
+            {
+                LoggingUtilities.WriteLog($"HTTP status code: {serviceException.StatusCode}");
             }
         }
     }

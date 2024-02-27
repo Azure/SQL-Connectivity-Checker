@@ -51,15 +51,15 @@ namespace TDSClient.TDS.Login7
         /// </summary>
         SupportUTF8 = 0x0A,
 
-		/// <summary
-		/// Azure SQL DNS caching
-		/// </summary>
-		AzureSQLDNSCaching = 0x0B,
+        /// <summary
+        /// Azure SQL DNS caching
+        /// </summary>
+        AzureSQLDNSCaching = 0x0B,
 
-		/// <summary>
-		/// End of the list
-		/// </summary>
-		Terminator = 0xFF
+        /// <summary>
+        /// End of the list
+        /// </summary>
+        Terminator = 0xFF
     }
 
     /// <summary>

@@ -6,6 +6,7 @@
 
 namespace TDSClient.TDS.FedAuthInfo
 {
+    using System;
     using System.IO;
     using System.Text;
 
@@ -17,29 +18,20 @@ namespace TDSClient.TDS.FedAuthInfo
         /// <summary>
         /// STS URL
         /// </summary>
-        public byte[] StsUrl;
+        public byte[] StsUrl {get; set; }
 
         /// <summary>
         /// Return the FedAuthInfo Id.
         /// </summary>
-        public override TDSFedAuthInfoId FedAuthInfoId
-        {
-            get
-            {
-                return TDSFedAuthInfoId.STSURL;
-            }
-        }
+        public override TDSFedAuthInfoId FedAuthInfoId => TDSFedAuthInfoId.STSURL;
+
 
         /// <summary>
         /// Return the STSURL as a unicode string.
         /// </summary>
-        public string STSURL
-        {
-            get
-            {
-                return StsUrl != null ? Encoding.Unicode.GetString(StsUrl) : null;
-            }
-        }
+        public string STSURL => StsUrl != null 
+            ? Encoding.Unicode.GetString(StsUrl) 
+            : null;
 
         /// <summary>
         /// Default public contructor
@@ -64,6 +56,11 @@ namespace TDSClient.TDS.FedAuthInfo
         public TDSFedAuthInfoOptionSTSURL(string stsurl)
             : this()
         {
+            if (stsurl == null)
+            {
+                throw new ArgumentNullException(nameof(stsurl));
+            }
+
             StsUrl = Encoding.Unicode.GetBytes(stsurl);
             InfoDataLength = (uint)StsUrl.Length;
         }
@@ -73,6 +70,11 @@ namespace TDSClient.TDS.FedAuthInfo
         /// </summary>
         public override bool Unpack(MemoryStream source)
         {
+            if (source == null)
+            {
+                throw new ArgumentNullException(nameof(source));
+            }
+
             if (InfoDataLength > 0)
             {
                 StsUrl = new byte[InfoDataLength];
@@ -88,6 +90,11 @@ namespace TDSClient.TDS.FedAuthInfo
         /// <param name="source"></param>
         public override void Pack(MemoryStream source)
         {
+            if (source == null)
+            {
+                throw new ArgumentNullException(nameof(source));
+            }
+            
             if (InfoDataLength > 0)
             {
                 source.Write(StsUrl, 0, StsUrl.Length);

@@ -293,8 +293,10 @@ namespace TDSClient.TDS.Login7
 		{
 			byte[] randomBytes = new byte[count];
 
-			RNGCryptoServiceProvider gen = new RNGCryptoServiceProvider();
-			gen.GetBytes(randomBytes);
+			using (RNGCryptoServiceProvider gen = new RNGCryptoServiceProvider())
+			{
+				gen.GetBytes(randomBytes);
+			}
 
 			return randomBytes;
 		}

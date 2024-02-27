@@ -6,12 +6,13 @@
 
 namespace TDSClient.TDS.Comms
 {
+    using System;
     using System.IO;
 
     /// <summary>
     /// Stream used for enabling TLS through TDS.
     /// </summary>
-    public class TDSTemporaryStream : Stream
+    public class TDSTemporaryStream : Stream, IDisposable
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="TDSTemporaryStream"/> class.

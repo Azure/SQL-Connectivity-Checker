@@ -68,9 +68,13 @@ namespace TDSClient.TDS.Login7.Options
         /// <returns>true if the specified object is equal to the current object; otherwise, false</returns>
         public bool Equals(TDSLogin7TextOption other)
         {
-            return other != null &&
-                   base.Equals(other) &&
-                   Text == other.Text;
+            if (other == null)
+            {
+                return false;
+            }
+
+            return base.Equals(other) &&
+                Text == other.Text;
         }
 
         /// <summary>

@@ -19,7 +19,7 @@ namespace TDSClient.TDS.FedAuthMessage
     /// FedAuthToken Message definition.
     /// </summary>
 	#pragma warning disable CS0659
-    public class TDSFedAuthToken : ITDSPacketData, IEquatable<TDSFedAuthToken>
+    public class TDSFedAuthToken : ITDSPacketData
 	#pragma warning restore CS0659
     {
 		/// <summary>
@@ -30,12 +30,12 @@ namespace TDSClient.TDS.FedAuthMessage
         /// <summary>
         /// Federated Authentication Token
         /// </summary>
-        private byte[] FedAuthToken;
+        private byte[] FedAuthToken {get; set; }
 
 		/// <summary>
 		/// Nonce
 		/// </summary>
-		private byte[] Nonce;
+		private byte[] Nonce {get;  set; }
 
 		/// <summary>
 		/// Default Constructor.
@@ -51,9 +51,12 @@ namespace TDSClient.TDS.FedAuthMessage
 		public TDSFedAuthToken(string JWTAccessToken) :
 			this()
 		{
-			byte[] tokenBytes = Encoding.Unicode.GetBytes(JWTAccessToken);
-			FedAuthToken = new byte[tokenBytes.Length];
-			tokenBytes.CopyTo(FedAuthToken, 0);
+			if (JWTAccessToken == null)
+			{
+				throw new ArgumentNullException(nameof(JWTAccessToken));
+			}
+
+			FedAuthToken = Encoding.Unicode.GetBytes(JWTAccessToken);
 		}
 
 		/// <summary>
@@ -130,21 +133,15 @@ namespace TDSClient.TDS.FedAuthMessage
 		/// <returns></returns>
         public override bool Equals(object obj)
         {
-            return Equals(obj as TDSFedAuthToken);
-        }
+            if (obj == null || GetType() != obj.GetType())
+			{
+				return false;
+			}
 
-		/// <summary>
-		/// Compares.
-		/// </summary>
-		/// <param name="obj"></param>
-		/// <returns></returns>
-        public bool Equals(TDSFedAuthToken obj)
-		{
-			return Length() == obj.Length()
-					&& FedAuthToken.Length == obj.FedAuthToken.Length
-					&& FedAuthToken.SequenceEqual(obj.FedAuthToken)
-					&& Nonce.Length == obj.Nonce.Length
-                    && Nonce.SequenceEqual(obj.Nonce);
-		}
+			var otherToken = (TDSFedAuthToken)obj;
+			return Length() == otherToken.Length()
+				&& FedAuthToken.SequenceEqual(otherToken.FedAuthToken)
+				&& Nonce.SequenceEqual(otherToken.Nonce);
+        }
 	}
 }

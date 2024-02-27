@@ -30,5 +30,5 @@ namespace TDSClient.TDS
         /// Multifactor AAD Authentication
         /// </summary>
         AADMFAAuthentication
-	}
+    }
 }

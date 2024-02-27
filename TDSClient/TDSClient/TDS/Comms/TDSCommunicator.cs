@@ -198,93 +198,103 @@ namespace TDSClient.TDS.Comms
             return result;
         }
 
-        /// <summary>
-        /// Send TDS Message to the server
-        /// </summary>
-        /// <param name="data">TDS Message Data</param>
         public void SendTDSMessage(ITDSPacketData data)
         {
-            switch (CommunicatorState)
-            {
-                case TDSCommunicatorState.Initial:
-                    {
-                        if (!(data is TDSPreLoginPacketData))
-                        {
-                            throw new InvalidDataException();
-                        }
-
-                        InnerTdsStream.CurrentOutboundMessageType = TDSMessageType.PreLogin;
-                        break;
-                    }
-
-                case TDSCommunicatorState.SentInitialPreLogin:
-                    {
-                        if (!(data is TDSLogin7PacketData))
-                        {
-                            throw new InvalidDataException();
-                        }
-
-                        InnerTdsStream.CurrentOutboundMessageType = TDSMessageType.TDS7Login;
-
-                        break;
-                    }
-
-                case TDSCommunicatorState.SentLogin7RecordWithFederatedAuthenticationInformationRequest:
-                    {
-                        if (!(data is TDSFedAuthToken))
-                        {
-                            throw new InvalidDataException();
-                        }
-
-                        InnerTdsStream.CurrentOutboundMessageType = TDSMessageType.FedAuthToken;
-
-                        break;
-                    }
-
-                case TDSCommunicatorState.LoggedIn:
-                    {
-                        throw new NotSupportedException();
-                    }
-
-                default:
-                    {
-                        throw new InvalidOperationException();
-                    }
-            }
+            HandleMessageData(data);
 
             var buffer = new byte[data.Length()];
             MemoryStream ms = new MemoryStream(buffer);
             data.Pack(ms);
             InnerStream.Write(buffer, 0, buffer.Length);
+            
+            UpdateCommunicatorState();
 
+        }
+
+        private void HandleMessageData(ITDSPacketData data)
+        {
             switch (CommunicatorState)
             {
                 case TDSCommunicatorState.Initial:
-                    {
-                        CommunicatorState = TDSCommunicatorState.SentInitialPreLogin;
-                        break;
-                    }
+                    HandleInitialSendState(data);
+                    break;
 
                 case TDSCommunicatorState.SentInitialPreLogin:
-                    {
-                        if (AuthenticationType.Contains("Active Directory"))
-                        {
-                            CommunicatorState = TDSCommunicatorState.SentLogin7RecordWithFederatedAuthenticationInformationRequest;
-                        }
-                        else
-                        {
-                            CommunicatorState = TDSCommunicatorState.SentLogin7RecordWithCompleteAuthenticationToken;
-                        }
-                        
-                        break;
-                    }
+                    HandleSentInitialPreLoginState(data);
+                    break;
 
                 case TDSCommunicatorState.SentLogin7RecordWithFederatedAuthenticationInformationRequest:
+                    HandleSentLoginRecordState(data);
+                    break;
+
+                case TDSCommunicatorState.LoggedIn:
+                    HandleLoggedInState();
+                    break;
+
+                default:
+                    throw new InvalidOperationException();
+            }
+
+        }
+
+        private void UpdateCommunicatorState()
+        {
+            switch (CommunicatorState)
+            {
+                case TDSCommunicatorState.Initial:
+                    CommunicatorState = TDSCommunicatorState.SentInitialPreLogin;
+                    break;
+
+                case TDSCommunicatorState.SentInitialPreLogin:
+                    if (AuthenticationType.Contains("Active Directory"))
+                    {
+                        CommunicatorState = TDSCommunicatorState.SentLogin7RecordWithFederatedAuthenticationInformationRequest;
+                    }
+                    else
                     {
                         CommunicatorState = TDSCommunicatorState.SentLogin7RecordWithCompleteAuthenticationToken;
-                        break;
                     }
+                    break;
+
+                case TDSCommunicatorState.SentLogin7RecordWithFederatedAuthenticationInformationRequest:
+                    CommunicatorState = TDSCommunicatorState.SentLogin7RecordWithCompleteAuthenticationToken;
+                    break;
             }
+        }
+
+        private void HandleInitialSendState(ITDSPacketData data)
+        {
+            if (!(data is TDSPreLoginPacketData))
+            {
+                throw new InvalidDataException();
+            }
+
+            InnerTdsStream.CurrentOutboundMessageType = TDSMessageType.PreLogin;
+        }
+
+        private void HandleSentInitialPreLoginState(ITDSPacketData data)
+        {
+            if (!(data is TDSLogin7PacketData))
+            {
+                throw new InvalidDataException();
+            }
+
+            InnerTdsStream.CurrentOutboundMessageType = TDSMessageType.TDS7Login;
+        }
+
+        private void HandleSentLoginRecordState(ITDSPacketData data)
+        {
+            if (!(data is TDSFedAuthToken))
+            {
+                throw new InvalidDataException();
+            }
+
+            InnerTdsStream.CurrentOutboundMessageType = TDSMessageType.FedAuthToken;
+        }
+
+        private void HandleLoggedInState()
+        {
+            throw new NotSupportedException();
         }
     }
 }

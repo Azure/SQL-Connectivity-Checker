@@ -6,6 +6,7 @@
 
 namespace TDSClient.TDS.FedAuthInfo
 {
+    using System;
     using System.IO;
     using System.Text;
 
@@ -17,29 +18,19 @@ namespace TDSClient.TDS.FedAuthInfo
         /// <summary>
         /// Service Principal Name (SPN)
         /// </summary>
-        public byte[] ServicePrincipalName;
+        public byte[] ServicePrincipalName { get; set; }
 
         /// <summary>
         /// Return the SPN as a unicode string.
         /// </summary>
-        public string GetSPNString
-        {
-            get
-            {
-                return ServicePrincipalName != null ? Encoding.Unicode.GetString(ServicePrincipalName) : null;
-            }
-        }
+        public string GetSPNString => ServicePrincipalName != null
+            ? Encoding.Unicode.GetString(ServicePrincipalName)
+            : null;
 
         /// <summary>
         /// Return the FedAuthInfo Id.
         /// </summary>
-        public override TDSFedAuthInfoId FedAuthInfoId
-        {
-            get
-            {
-                return TDSFedAuthInfoId.SPN;
-            }
-        }
+        public override TDSFedAuthInfoId FedAuthInfoId => TDSFedAuthInfoId.SPN;
 
         /// <summary>
         /// Default public contructor
@@ -65,6 +56,11 @@ namespace TDSClient.TDS.FedAuthInfo
         public TDSFedAuthInfoOptionSPN(string spn)
             : this()
         {
+            if (spn == null)
+            {
+                throw new ArgumentNullException(nameof(spn));
+            }
+
             ServicePrincipalName = Encoding.Unicode.GetBytes(spn);
             InfoDataLength = (uint)ServicePrincipalName.Length;
         }
@@ -74,6 +70,11 @@ namespace TDSClient.TDS.FedAuthInfo
         /// </summary>
         public override bool Unpack(MemoryStream source)
         {
+            if (source == null)
+            {
+                throw new ArgumentNullException(nameof(source));
+            }
+
             if (InfoDataLength > 0)
             {
                 ServicePrincipalName = new byte[InfoDataLength];
@@ -89,6 +90,11 @@ namespace TDSClient.TDS.FedAuthInfo
         /// <param name="source"></param>
         public override void Pack(MemoryStream source)
         {
+            if (source == null)
+            {
+                throw new ArgumentNullException(nameof(source));
+            }
+            
             if (InfoDataLength > 0)
             {
                 source.Write(ServicePrincipalName, 0, ServicePrincipalName.Length);

@@ -14,8 +14,15 @@ namespace TDSClient.TDS.Comms
     /// <summary>
     /// Stream used to pass TDS messages.
     /// </summary>
-    public class TDSStream : Stream
+    public class TDSStream : Stream, IDisposable
     {
+        private const int HeaderBufferSize = 8;
+
+        /// <summary>
+        /// Gets or sets the Inner Stream.
+        /// </summary>
+        public Stream InnerStream { get; set; }
+
         /// <summary>
         /// TDS Packet Size used for communication
         /// </summary>
@@ -49,15 +56,10 @@ namespace TDSClient.TDS.Comms
         /// <param name="negotiatedPacketSize">Packet size</param>
         public TDSStream(Stream innerStream, TimeSpan timeout, int negotiatedPacketSize)
         {
-            InnerStream = innerStream;
+            InnerStream = innerStream ?? throw new ArgumentNullException(nameof(innerStream));;
             Timeout = timeout;
             NegotiatedPacketSize = negotiatedPacketSize;
         }
-
-        /// <summary>
-        /// Gets or sets the Inner Stream.
-        /// </summary>
-        public Stream InnerStream { get; set; }
 
         /// <summary>
         /// Gets a value indicating whether inbound message is terminated.
@@ -110,6 +112,7 @@ namespace TDSClient.TDS.Comms
         /// </summary>
         public override void Flush()
         {
+            EnsureInnerStreamIsNotNull();
             InnerStream.Flush();
         }
 
@@ -122,6 +125,8 @@ namespace TDSClient.TDS.Comms
         /// <returns>Returns number of successfully read bytes.</returns>
         public override int Read(byte[] buffer, int offset, int count)
         {
+            EnsureInnerStreamIsNotNull();
+
             var startTime = DateTime.Now;
             var bytesReadTotal = 0;
 
@@ -193,6 +198,8 @@ namespace TDSClient.TDS.Comms
         /// <param name="count">Number of bytes to write.</param>
         public override void Write(byte[] buffer, int offset, int count)
         {
+            EnsureInnerStreamIsNotNull();
+
             CurrentOutboundTDSHeader = new TDSPacketHeader(CurrentOutboundMessageType, TDSMessageStatus.Normal, 0, 1);
 
             var bytesSent = 0;
@@ -226,6 +233,7 @@ namespace TDSClient.TDS.Comms
         /// <returns>The new position within current stream.</returns>
         public override long Seek(long offset, SeekOrigin origin)
         {
+            EnsureInnerStreamIsNotNull();
             return InnerStream.Seek(offset, origin);
         }
 
@@ -235,16 +243,34 @@ namespace TDSClient.TDS.Comms
         /// <param name="value">New length.</param>
         public override void SetLength(long value)
         {
+            EnsureInnerStreamIsNotNull();
             InnerStream.SetLength(value);
         }
 
-        /// <summary>
-        /// Close this stream.
-        /// </summary>
-        public override void Close()
+        protected override void Dispose(bool disposing)
         {
-            InnerStream.Close();
-            base.Close();
+            if (disposing)
+            {
+                if (InnerStream != null)
+                {
+                    InnerStream.Dispose();
+                    InnerStream = null;
+                }
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        private void EnsureInnerStreamIsNotNull()
+        {
+            if (InnerStream == null)
+            {
+                throw new ObjectDisposedException(GetType().FullName);
+            }
         }
     }
 }
