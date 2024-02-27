@@ -32,7 +32,7 @@ $AuthenticationLibrary = 'ADAL' # Set the authentication library you wish to use
 $Server = 'tde-akv-active-runner-mi.public.75be698df605.database.windows.net,3342' # or any other supported FQDN
 $Database = ''  # Set the name of the database you wish to test, 'master' will be used by default if nothing is set
 $User = 'tde-akv-active-runner-login'  # Set the login username you wish to use, 'AzSQLConnCheckerUser' will be used by default if nothing is set
-$Password = 'Turnideason999999'  # Set the login password you wish to use, 'AzSQLConnCheckerPassword' will be used by default if nothing is set
+$Password = ''  # Set the login password you wish to use, 'AzSQLConnCheckerPassword' will be used by default if nothing is set
 # In case you want to hide the password (like during a remote session), uncomment the 2 lines below (by removing leading #) and password will be asked during execution
 # $Credentials = Get-Credential -Message "Credentials to test connections to the database (optional)" -User $User
 # $Password = $Credentials.GetNetworkCredential().password
@@ -48,6 +48,8 @@ $EncryptionProtocol = 'Tls 1.2'  # Supported values: 'Tls 1.0', 'Tls 1.1', 'Tls 
 ### Just for testing
 $Local = $true
 $LocalPath = "D:\ConnectivityChecker\SQL-Connectivity-Checker\"
+
+$LocalPath = "C:\Users\bmarkovic\Downloads\ConnectivityChecker\ConnectivityChecker\SQL-Connectivity-Checker\"
 
 # Parameter region when Invoke-Command -ScriptBlock is used
 $parameters = $args[0]
@@ -1246,7 +1248,6 @@ function RunConnectivityPolicyTests($port) {
         }
 
         if ($Local) {
-            Write-Host $PWD
             Copy-Item -Path $($LocalPath + '\AdvancedConnectivityPolicyTests.ps1') -Destination ".\AdvancedConnectivityPolicyTests.ps1"
         }
         ### USING GITHUB HERE
