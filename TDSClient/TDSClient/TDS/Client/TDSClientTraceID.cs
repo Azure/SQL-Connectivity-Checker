@@ -15,30 +15,10 @@ namespace TDSClient.TDS.Client
     /// <summary>
     /// Client Trace ID used in TDS PreLogin package.
     /// </summary>
-#pragma warning disable CS0659 // Type overrides Object.Equals(object o) but does not override Object.GetHashCode()
+    #pragma warning disable CS0659 // Type overrides Object.Equals(object o) but does not override Object.GetHashCode()
     public class TDSClientTraceID : IPackageable, IEquatable<TDSClientTraceID>
-#pragma warning restore CS0659 // Type overrides Object.Equals(object o) but does not override Object.GetHashCode()
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="TDSClientTraceID"/> class.
-        /// </summary>
-        public TDSClientTraceID()
-        { 
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="TDSClientTraceID"/> class.
-        /// </summary>
-        /// <param name="traceID">Trace ID</param>
-        /// <param name="activityID">Activity ID</param>
-        /// <param name="activitySequence">Activity Sequence</param>
-        public TDSClientTraceID(byte[] traceID, byte[] activityID, uint activitySequence)
-        {
-            TraceID = traceID;
-            ActivityID = activityID;
-            ActivitySequence = activitySequence;
-        }
-
+    #pragma warning restore CS0659 // Type overrides Object.Equals(object o) but does not override Object.GetHashCode()
         /// <summary>
         /// Gets or sets the TDS Client Application Trace ID
         /// </summary>
@@ -55,6 +35,28 @@ namespace TDSClient.TDS.Client
         public uint ActivitySequence { get; set;  }
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="TDSClientTraceID"/> class.
+        /// </summary>
+        public TDSClientTraceID()
+        { 
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TDSClientTraceID"/> class.
+        /// </summary>
+        /// <param name="traceID">Trace ID</param>
+        /// <param name="activityID">Activity ID</param>
+        /// <param name="activitySequence">Activity Sequence</param>
+        public TDSClientTraceID(byte[] traceID, byte[] activityID, uint activitySequence)
+        {
+            TraceID = traceID ?? throw new ArgumentNullException(nameof(traceID));
+            ActivityID = activityID ?? throw new ArgumentNullException(nameof(activityID));
+            ActivitySequence = activitySequence;
+        }
+
+
+
+        /// <summary>
         /// Determines whether the specified object is equal to the current object.
         /// </summary>
         /// <param name="obj">The object to compare with the current object.</param>
@@ -69,12 +71,13 @@ namespace TDSClient.TDS.Client
         /// </summary>
         /// <param name="other">The object to compare with the current object.</param>
         /// <returns>true if the specified object is equal to the current object; otherwise, false</returns>
+        
         public bool Equals(TDSClientTraceID other)
         {
             return other != null &&
-                   TraceID != null && TraceID.SequenceEqual(other.TraceID) &&
-                   ActivityID != null && ActivityID.SequenceEqual(other.ActivityID) &&
-                   ActivitySequence == other.ActivitySequence;
+                TraceID.SequenceEqual(other.TraceID) &&
+                ActivityID.SequenceEqual(other.ActivityID) &&
+                ActivitySequence == other.ActivitySequence;
         }
 
         /// <summary>

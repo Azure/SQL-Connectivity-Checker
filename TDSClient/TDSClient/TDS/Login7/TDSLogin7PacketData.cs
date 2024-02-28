@@ -99,7 +99,7 @@ namespace TDSClient.TDS.Login7
         {
             uint notFixed = 
                   (uint)(string.IsNullOrEmpty(HostName) ? 0 : HostName.Length * 2)
-                + (uint)(string.IsNullOrEmpty(UserName) ? 0 : UserName.Length * 2)
+                + (uint)(string.IsNullOrEmpty(UserID) ? 0 : UserID.Length * 2)
                 + (uint)(string.IsNullOrEmpty(Password) ? 0 : Password.Length * 2)
                 + (uint)(string.IsNullOrEmpty(ApplicationName) ? 0 : ApplicationName.Length * 2)
                 + (uint)(string.IsNullOrEmpty(ServerName) ? 0 : ServerName.Length * 2)
@@ -188,7 +188,7 @@ namespace TDSClient.TDS.Login7
         /// <summary>
         /// User ID
         /// </summary>
-        public string UserName { get; set; }
+        public string UserID { get; set; }
 
         /// <summary>
         /// Password
@@ -317,7 +317,7 @@ namespace TDSClient.TDS.Login7
             IList<TDSLogin7TokenOffsetProperty> variableProperties = new List<TDSLogin7TokenOffsetProperty>();
 
             WriteLoginDataPositionAndOffsetToStream(variableProperties, "HostName", destination, HostName);
-            WriteLoginDataPositionAndOffsetToStream(variableProperties, "UserID", destination, UserName);
+            WriteLoginDataPositionAndOffsetToStream(variableProperties, "UserID", destination, UserID);
             WriteLoginDataPositionAndOffsetToStream(variableProperties, "Password", destination, Password);
             WriteLoginDataPositionAndOffsetToStream(variableProperties, "ApplicationName", destination, ApplicationName);
             WriteLoginDataPositionAndOffsetToStream(variableProperties, "ServerName", destination, ServerName);
@@ -369,30 +369,28 @@ namespace TDSClient.TDS.Login7
             ushort length = (ushort)(string.IsNullOrEmpty(property) ? 0 : property.Length);
             bool isOffsetOffset = false;
 
-            if (propertyName.Equals("HostName"))
+            switch (propertyName)
             {
-                position = FixedLength;
+                case "HostName":
+                    position = FixedLength;
+                    break;
+                case "FeatureExt":
+                    length = sizeof(uint) / 2;
+                    isOffsetOffset = true;
+                    position = (ushort)(variableProperties.Last().Position + variableProperties.Last().Length * 2);
+                    break;
+                case "AttachDatabaseFile":
+                    position = (ushort)(variableProperties.Last().Position + variableProperties.Last().Length);
+                    break;
+                default:
+                    position = (ushort)(variableProperties.Last().Position + variableProperties.Last().Length * 2);
+                    break;
             }
-            else if (propertyName.Equals("FeatureExt"))
-            {
-                length = sizeof(uint) / 2;
-                isOffsetOffset = true;
-                position = (ushort)(variableProperties.Last().Position + variableProperties.Last().Length * 2);
-            }
-            else if (propertyName.Equals("AttachDatabaseFile"))
-            {
-                position = (ushort)(variableProperties.Last().Position + variableProperties.Last().Length);
-            }
-            else
-            {
-                position = (ushort)(variableProperties.Last().Position + variableProperties.Last().Length * 2);
-            }
-            
+
             variableProperties.Add(new TDSLogin7TokenOffsetProperty(GetType().GetProperty(propertyName), position, length, isOffsetOffset));
             LittleEndianUtilities.WriteUShort(destination, (ushort)variableProperties.Last().Position);
 
-
-            if (propertyName.Equals("FeatureExt"))
+            if (propertyName == "FeatureExt")
             {
                 LittleEndianUtilities.WriteUShort(destination, (ushort)(variableProperties.Last().Length * 2));
             }
@@ -407,42 +405,32 @@ namespace TDSClient.TDS.Login7
         /// </summary>
         /// <param name="variableProperties"></param>
         /// <param name="destination"></param>
-        private void WriteLoginDataPropertiesToStream(IList<TDSLogin7TokenOffsetProperty> variableProperties, MemoryStream destination)
+        private void WriteLoginDataPropertiesToStream(IList<TDSLogin7TokenOffsetProperty> properties, MemoryStream stream)
         {
-            int iCurrentProperty = 0;
-
-            while (iCurrentProperty < variableProperties.Count)
+            foreach (var property in properties)
             {
-                TDSLogin7TokenOffsetProperty property = variableProperties[iCurrentProperty];
-
                 if (property.Length == 0)
-                {
-                    iCurrentProperty++;
                     continue;
-                }
 
-                if (property.Property.Name == "Password" || property.Property.Name == "ChangePassword")
+                switch (property.Property.Name)
                 {
-                    LittleEndianUtilities.WritePasswordString(destination, (string)property.Property.GetValue(this, null));
+                    case "Password":
+                    case "ChangePassword":
+                        LittleEndianUtilities.WritePasswordString(stream, (string)property.Property.GetValue(this, null));
+                        break;
+                    case "FeatureExt":
+                        // Property will be written at the offset immediately following all variable length data
+                        property.Position = properties.Last().Position + properties.Last().Length;
+                        // Write the position at which we'll be serializing the feature extension block
+                        LittleEndianUtilities.WriteUInt(stream, property.Position);
+                        break;
+                    case "SSPI":
+                        stream.Write(SSPI, 0, SSPI.Length);
+                        break;
+                    default:
+                        LittleEndianUtilities.WriteString(stream, (string)property.Property.GetValue(this, null));
+                        break;
                 }
-                else if (property.Property.Name == "FeatureExt")
-                {
-                    // Property will be written at the offset immediately following all variable length data
-                    property.Position = variableProperties.Last().Position + variableProperties.Last().Length;
-
-                    // Write the position at which we'll be serializing the feature extension block
-                    LittleEndianUtilities.WriteUInt(destination, property.Position);
-                }
-                else if (property.Property.Name == "SSPI")
-                {
-                    destination.Write(SSPI, 0, SSPI.Length);
-                }
-                else
-                {
-                    LittleEndianUtilities.WriteString(destination, (string)property.Property.GetValue(this, null));
-                }
-
-                iCurrentProperty++;
             }
         }
 

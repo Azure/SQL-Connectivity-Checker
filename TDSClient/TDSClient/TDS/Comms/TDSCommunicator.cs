@@ -19,6 +19,7 @@ namespace TDSClient.TDS.Comms
     using TDSClient.TDS.Tokens;
     using TDSClient.TDS.Utilities;
     using TDSClient.TDS.FedAuthMessage;
+    using System.Linq;
 
     /// <summary>
     /// Class that implements TDS communication.
@@ -73,24 +74,23 @@ namespace TDSClient.TDS.Comms
         /// <returns>Returns true if no errors occurred.</returns>
         public static bool ValidateServerCertificate(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
-            // if (sslPolicyErrors == SslPolicyErrors.None)
-            // {
-            //     LoggingUtilities.WriteLog($"   Server certificate: {certificate.Subject}");
-            //     return true;
-            // }
+            if (sslPolicyErrors == SslPolicyErrors.None)
+            {
+                LoggingUtilities.WriteLog($"   Server certificate: {certificate.Subject}");
+                return true;
+            }
 
-            // LoggingUtilities.WriteLog($"   Certificate error: {sslPolicyErrors}");
+            LoggingUtilities.WriteLog($"   Certificate error: {sslPolicyErrors}");
 
-            // // foreach (var (element, index) in chain.ChainElements.Cast<X509ChainElement>().Select((element, index) => (element, index)))
-            // // {
-            // //     LoggingUtilities.WriteLog($"   Cert details:");
-            // //     LoggingUtilities.WriteLog($"    issued to {element.Certificate.Subject}");
-            // //     LoggingUtilities.WriteLog($"    valid from {element.Certificate.GetEffectiveDateString()} until {element.Certificate.GetExpirationDateString()}");
-            // //     LoggingUtilities.WriteLog($"    issued from {element.Certificate.Issuer}");
-            // // }
-            // return false;
+            foreach (var (element, index) in chain.ChainElements.Cast<X509ChainElement>().Select((element, index) => (element, index)))
+            {
+                 LoggingUtilities.WriteLog($"   Cert details:");
+                 LoggingUtilities.WriteLog($"    issued to {element.Certificate.Subject}");
+                 LoggingUtilities.WriteLog($"    valid from {element.Certificate.GetEffectiveDateString()} until {element.Certificate.GetExpirationDateString()}");
+                 LoggingUtilities.WriteLog($"    issued from {element.Certificate.Issuer}");
+            }
 
-            return true;
+            return false;
         }
 
         /// <summary>

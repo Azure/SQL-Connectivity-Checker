@@ -16,8 +16,6 @@ namespace TDSClient.TDS.Comms
     /// </summary>
     public class TDSStream : Stream, IDisposable
     {
-        private const int HeaderBufferSize = 8;
-
         /// <summary>
         /// Gets or sets the Inner Stream.
         /// </summary>

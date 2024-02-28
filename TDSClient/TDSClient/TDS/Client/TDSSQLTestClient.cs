@@ -28,6 +28,7 @@ namespace TDSClient.TDS.Client
     using TDSClient.MSALHelper;
     using TDSClient.ADALHelper;
     using TDSClient.TDS.Tokens;
+    using System.Collections;
 
     /// <summary>
     /// SQL Test Client used to run diagnostics on SQL Server using TDS protocol.
@@ -238,7 +239,7 @@ namespace TDSClient.TDS.Client
         }
 
         /// <summary>
-        /// Acquires JWT Access token from MSAL/ADAL.
+        /// Acquires JWT Access token.
         /// </summary>
         /// <param name="authority"></param>
         /// <param name="resource"></param>
@@ -246,10 +247,21 @@ namespace TDSClient.TDS.Client
         /// <returns></returns>
         private async Task<string> GetJWTAccessToken(string authority, string resource, string clientID)
         {
-            string accessToken = AuthenticationType.Contains("Integrated") ?
-                    await GetAccessTokenForIntegratedAuth(authority, resource, clientID) :
-                    await GetAccessTokenForUsernamePassword(authority, resource, clientID);
-   
+            string accessToken = null;
+
+            switch(AuthenticationType)
+            {
+                case "Active Directory Integrated":
+                    accessToken = await GetAccessTokenForIntegratedAuth(authority, resource, clientID);
+                    break;
+                case "Active Directory Interactive":
+                    accessToken = await GetAccessTokenForInteractiveAuth(authority, clientID);
+                    break;
+                case "Active Directory Password":
+                    accessToken = await GetAccessTokenForUsernamePassword(authority, resource, clientID);
+                    break;
+            }
+
             return accessToken;
         }
 
@@ -279,6 +291,18 @@ namespace TDSClient.TDS.Client
              return AuthenticationLibrary.Contains("MSAL") ?
                 await MSALHelper.GetSQLAccessTokenFromMSALUsingUsernamePassword(authority, clientID, UserID, Password) :
                 await ADALHelper.GetSQLAccessTokenFromADALUsingUsernamePassword(authority, resource, clientID, UserID, Password);
+        }
+
+        /// <summary>
+        /// Acquires access token for AAD integrated authentication.
+        /// </summary>
+        /// <param name="authority"></param>
+        /// <param name="resource"></param>
+        /// <param name="clientID"></param>
+        /// <returns></returns>
+        private async Task<string> GetAccessTokenForInteractiveAuth(string authority, string clientID)
+        {
+            return await MSALHelper.GetSQLAccessTokenFromMSALInteractively(authority, clientID);
         }
 
         /// <summary>
@@ -339,13 +363,16 @@ namespace TDSClient.TDS.Client
             //
             if (!IsAADAuthRequired())
             {
+                LoggingUtilities.WriteLog($"  Adding SQL Authentication options");
                 AddLogin7SQLAuthenticationOptions(tdsMessageBody);
             }
             else
             {
+                LoggingUtilities.WriteLog($"  Adding AAD Authentication options");
                 AddLogin7AADAuthenticationOptions(tdsMessageBody);
             }
 
+            LoggingUtilities.WriteLog($"  Adding common login options");
             AddLogin7CommonOptions(tdsMessageBody);
 
             TdsCommunicator.SendTDSMessage(tdsMessageBody);
@@ -361,7 +388,7 @@ namespace TDSClient.TDS.Client
         private void AddLogin7SQLAuthenticationOptions(TDSLogin7PacketData tdsMessageBody)
         {
             LoggingUtilities.WriteLog($"  Adding option UserID with value [{UserID}]");
-            tdsMessageBody.UserName = UserID;
+            tdsMessageBody.UserID = UserID;
 
             LoggingUtilities.WriteLog($"  Adding option Password");
             tdsMessageBody.Password = Password;

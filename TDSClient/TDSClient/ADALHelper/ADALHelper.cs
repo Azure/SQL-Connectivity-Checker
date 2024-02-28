@@ -51,6 +51,61 @@ namespace TDSClient.ADALHelper
         }
 
         /// <summary>
+        /// Gets AAD access token to Azure SQL using interactive authentication.
+        /// </summary>
+        /// <param name="authority"></param>
+        /// <param name="clientId"></param>
+        /// <returns></returns>
+        //public static async Task<string> GetSQLAccessTokenFromADALInteractively(string authority, string clientId)
+        //{
+            // // Validate input parameters
+            // if (string.IsNullOrEmpty(authority))
+            //     throw new ArgumentException("Authority cannot be null or empty.", nameof(authority));
+
+            // if (string.IsNullOrEmpty(clientId))
+            //     throw new ArgumentException("ClientId cannot be null or empty.", nameof(clientId));
+
+            // string[] scopes = new string[] { "https://database.windows.net/.default" };
+
+            // var app = PublicClientApplicationBuilder.Create(clientId)
+            //     .WithDefaultRedirectUri()
+            //     .Build();
+
+            // AuthenticationResult result;
+
+            // try
+            // {
+            //     result = await app.AcquireTokenInteractive(scopes).ExecuteAsync();
+            //     LoggingUtilities.WriteLog($"  Successfully acquired access token.");
+
+            //     return result.AccessToken;
+            // }
+            // catch (MsalServiceException ex)
+            // {
+            //     LoggingUtilities.WriteLog($"Service exception: {ex.Message}");
+
+            //     LoggingUtilities.WriteLog($"Error code: {ex.ErrorCode}");
+            //     LoggingUtilities.WriteLog($"HTTP status code: {ex.StatusCode}");
+
+            //     throw;
+            // }
+            // catch (MsalClientException ex)
+            // {
+            //     // MSAL client exception occurred
+            //     LoggingUtilities.WriteLog($"Client exception: {ex.Message}");
+
+            //     throw;
+            // }
+            // catch (Exception ex)
+            // {
+            //     // An unexpected error occurred
+            //     LoggingUtilities.WriteLog($"An unexpected error occurred: {ex.Message}");
+
+            //     throw;
+            // }
+        //}
+
+        /// <summary>
         /// Gets access token using provided credential.
         /// </summary>
         /// <param name="authority"></param>
