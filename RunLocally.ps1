@@ -4,9 +4,15 @@ $Path = Join-Path $LocalPath 'AzureSQLConnectivityChecker.ps1'
 
 # Script parameters
 $parameters = @{
-
-    AuthenticationType = 'Azure Active Directory Password' # Set the type of authentication you wish to use: 'Azure Active Directory Password', 'Azure Active Directory Integrated', 'SQL Server Authentication' (SQL Authentication will be used by default if nothing is set)
-
+    AuthenticationType = ''
+    # Set the type of authentication you wish to use:
+        # 'SQL Server Authentication' (default),
+        # 'Active Directory Password',
+        # 'Active Directory Integrated',
+        # 'Active Directory Interactive',
+        # 'Active Directory Service Principal',
+        # 'Active Directory Managed Identity' ('Active Directory MSI')
+    $AuthenticationLibrary = '' # Set the authentication library you wish to use: 'ADAL' or 'MSAL'. Default is 'ADAL'.
     Server   = ''
     Database = ''  # Set the name of the database you wish to test, 'master' will be used by default if nothing is set
     User     = ''  # Set the login username you wish to use, 'AzSQLConnCheckerUser' will be used by default if nothing is set
