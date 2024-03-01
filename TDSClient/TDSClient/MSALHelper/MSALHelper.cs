@@ -19,7 +19,6 @@ namespace TDSClient.MSALHelper
 {
     public class MSALHelper
     {
-        MsalLogger msalLogger = new MsalLogger();
         private static readonly string AdoClientId = "4d079b4c-cab7-4b7c-a115-8fd51b6f8239";
 
         /// <summary>
@@ -245,35 +244,35 @@ namespace TDSClient.MSALHelper
         }
     }
 
-    public class MsalLogger : IIdentityLogger
-    {
-        public EventLogLevel MinLogLevel { get; }
+    // public class MsalLogger : IIdentityLogger
+    // {
+    //     public EventLogLevel MinLogLevel { get; }
 
-        public MsalLogger()
-        {
-            //Retrieve the log level from an environment variable
-            var msalEnvLogLevel = Environment.GetEnvironmentVariable("MSAL_LOG_LEVEL");
+    //     public MsalLogger()
+    //     {
+    //         //Retrieve the log level from an environment variable
+    //         var msalEnvLogLevel = Environment.GetEnvironmentVariable("MSAL_LOG_LEVEL");
 
-            if (Enum.TryParse(msalEnvLogLevel, out EventLogLevel msalLogLevel))
-            {
-                MinLogLevel = msalLogLevel;
-            }
-            else
-            {
-                //Recommended default log level
-                MinLogLevel = EventLogLevel.Verbose;
-            }
-        }
+    //         if (Enum.TryParse(msalEnvLogLevel, out EventLogLevel msalLogLevel))
+    //         {
+    //             MinLogLevel = msalLogLevel;
+    //         }
+    //         else
+    //         {
+    //             //Recommended default log level
+    //             MinLogLevel = EventLogLevel.Verbose;
+    //         }
+    //     }
 
-        public bool IsEnabled(EventLogLevel eventLogLevel)
-        {
-            return eventLogLevel <= MinLogLevel;
-        }
+    //     public bool IsEnabled(EventLogLevel eventLogLevel)
+    //     {
+    //         return eventLogLevel <= MinLogLevel;
+    //     }
 
-        public void Log(LogEntry entry)
-        {
-            //Log Message here:
-            LoggingUtilities.WriteLog(entry.Message);
-        }
-    }
+    //     public void Log(LogEntry entry)
+    //     {
+    //         //Log Message here:
+    //         LoggingUtilities.WriteLog(entry.Message);
+    //     }
+    // }
 }
