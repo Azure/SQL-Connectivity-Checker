@@ -161,6 +161,7 @@ namespace TDSClient.TDS.Client
                         writeToSummaryLog: true);
                 }
 
+                LoggingUtilities.AddEmptyLine();
                 LoggingUtilities.WriteLog($"Exception:");
                 LoggingUtilities.WriteLog($"{ex.Message}");
 
@@ -331,7 +332,9 @@ namespace TDSClient.TDS.Client
         /// <returns></returns>
         private async Task<string> GetAccessTokenForMSIAuth(string authority)
         {
-            return await MSALHelper.GetSQLAccessTokenFromMSALUsingManagedIdentity(authority);
+            return IdentityClientId != null ?
+                await MSALHelper.GetSQLAccessTokenFromMSALUsingUserAssignedManagedIdentity(authority, IdentityClientId) :
+                await MSALHelper.GetSQLAccessTokenFromMSALUsingSystemAssignedManagedIdentity(authority);
         }
 
         /// <summary>
@@ -725,7 +728,7 @@ namespace TDSClient.TDS.Client
         {
             if (Client != null)
             {
-                LoggingUtilities.WriteLog($" ");
+                LoggingUtilities.AddEmptyLine();
                 LoggingUtilities.WriteLog($" Disconnect initiated.");
                 Client.Close();
                 Client = null;

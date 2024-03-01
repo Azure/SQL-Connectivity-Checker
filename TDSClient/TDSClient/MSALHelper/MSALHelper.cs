@@ -45,8 +45,7 @@ namespace TDSClient.MSALHelper
 
             string[] scopes = new[] { resource + "/.default"};
 
-            try
-            {
+  
                 LoggingUtilities.WriteLog("Attempting to acquire access token using username and password.");
                 var result = await app.AcquireTokenByUsernamePassword(scopes, userId, password)
                     .ExecuteAsync()
@@ -54,27 +53,6 @@ namespace TDSClient.MSALHelper
 
                 LoggingUtilities.WriteLog("Successfully acquired access token.");
                 return result.AccessToken;
-            }
-            catch (MsalServiceException ex)
-            {
-                LoggingUtilities.WriteLog($"Service exception: {ex.Message}");
-                LoggingUtilities.WriteLog($"Error code: {ex.ErrorCode}");
-                LoggingUtilities.WriteLog($"HTTP status code: {ex.StatusCode}");
-
-                throw;
-            }
-            catch (MsalClientException ex)
-            {
-                LoggingUtilities.WriteLog($"Client exception: {ex.Message}");
-
-                throw;
-            }
-            catch (Exception ex)
-            {
-                LoggingUtilities.WriteLog($"An unexpected error occurred: {ex.Message}");
-
-                throw;
-            }
         }
 
         /// <summary>
@@ -139,15 +117,14 @@ namespace TDSClient.MSALHelper
 
             string[] scopes = new string[] { resource + "/.default" };
 
+            LoggingUtilities.WriteLog("Attempting to acquire access token using interactive auth.");
             var app = PublicClientApplicationBuilder.Create(AdoClientId)
                 .WithDefaultRedirectUri()
                 .Build();
 
-            AuthenticationResult result;
-
             try
             {
-                result = await app.AcquireTokenInteractive(scopes).ExecuteAsync();
+                var result = await app.AcquireTokenInteractive(scopes).ExecuteAsync();
                 LoggingUtilities.WriteLog($"  Successfully acquired access token.");
 
                 return result.AccessToken;
@@ -182,17 +159,17 @@ namespace TDSClient.MSALHelper
         /// </summary>
         /// <param name="authority"></param>
         /// <returns></returns>
-        public static async Task<string> GetSQLAccessTokenFromMSALUsingManagedIdentity(string resource)
+        public static async Task<string> GetSQLAccessTokenFromMSALUsingSystemAssignedManagedIdentity(string resource)
         {
             var app = ManagedIdentityApplicationBuilder.Create(ManagedIdentityId.SystemAssigned)
                 .Build();
 
-            AuthenticationResult result;
-
             try
             {
-                result = await app.AcquireTokenForManagedIdentity(resource)
-                                .ExecuteAsync();
+                LoggingUtilities.WriteLog("Attempting to acquire access token using managed identity auth.");
+
+                var result = await app.AcquireTokenForManagedIdentity(resource)
+                    .ExecuteAsync();
 
                 LoggingUtilities.WriteLog($"  Successfully acquired access token.");
 
@@ -201,7 +178,52 @@ namespace TDSClient.MSALHelper
             catch (MsalServiceException ex)
             {
                 LoggingUtilities.WriteLog($"Service exception: {ex.Message}");
+                LoggingUtilities.WriteLog($"Error code: {ex.ErrorCode}");
+                LoggingUtilities.WriteLog($"HTTP status code: {ex.StatusCode}");
 
+                throw;
+            }
+            catch (MsalClientException ex)
+            {
+                // MSAL client exception occurred
+                LoggingUtilities.WriteLog($"Client exception: {ex.Message}");
+
+                throw;
+            }
+            catch (Exception ex)
+            {
+                // An unexpected error occurred
+                LoggingUtilities.WriteLog($"An unexpected error occurred: {ex.Message}");
+
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Gets AAD access token to Azure SQL using managed identity.
+        /// </summary>
+        /// <param name="authority"></param>
+        /// <returns></returns>
+        public static async Task<string> GetSQLAccessTokenFromMSALUsingUserAssignedManagedIdentity(string resource, string identityClientId)
+        {
+            var app = ManagedIdentityApplicationBuilder
+                .Create(ManagedIdentityId.WithUserAssignedClientId(identityClientId))
+                .Build();
+
+            try
+            {
+                LoggingUtilities.WriteLog("Attempting to acquire access token using managed identity auth.");
+
+                var result = await app.AcquireTokenForManagedIdentity(resource)
+                    .ExecuteAsync();
+
+                LoggingUtilities.WriteLog($"  Successfully acquired access token.");
+
+                return result.AccessToken;
+            }
+            catch (MsalServiceException ex)
+            {
+                LoggingUtilities.WriteLog($"Service exception: {ex.Message}");
                 LoggingUtilities.WriteLog($"Error code: {ex.ErrorCode}");
                 LoggingUtilities.WriteLog($"HTTP status code: {ex.StatusCode}");
 

@@ -32,7 +32,7 @@ $Server = 'identity-test-instance.public.72e285ecfe96.database.windows.net,3342'
 $Database = ''  # Set the name of the database you wish to test, 'master' will be used by default if nothing is set
 $User = 'bmarkovic@microsoft.com'  # Set the login username you wish to use, 'AzSQLConnCheckerUser' will be used by default if nothing is set
 $Password = ''  # Set the login password you wish to use, 'AzSQLConnCheckerPassword' will be used by default if nothing is set
-$UserAssignedIdentityClientId = ''
+$UserAssignedIdentityClientId = '' # Set the Client ID of the User Assigned Identity you wish to use, if nothing is set, the script will use the system-assigned identity
 # In case you want to hide the password (like during a remote session), uncomment the 2 lines below (by removing leading #) and password will be asked during execution
 # $Credentials = Get-Credential -Message "Credentials to test connections to the database (optional)" -User $User
 # $Password = $Credentials.GetNetworkCredential().password
