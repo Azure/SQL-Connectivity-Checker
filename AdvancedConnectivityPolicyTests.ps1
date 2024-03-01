@@ -191,6 +191,7 @@ $Server = $parameters['Server']
 $Port = $parameters['Port']
 $AuthenticationType = $parameters['AuthenticationType']
 $AuthenticationLibrary = $parameters['AuthenticationLibrary']
+$UserAssignedIdentityClientId = $parameters['UserAssignedIdentityClientId']
 $User = $parameters['User']
 $Password = $parameters['Password']
 $Database = $parameters['Database']
@@ -228,12 +229,12 @@ try {
     Write-Host $TDSClientPath
     Write-Host $Local
     if ($Local) {
-        Copy-Item -Path $($LocalPath + '\net472\TDSClient.dll') -Destination $TDSClientPath
+        Copy-Item -Path $($LocalPath + '\netstandard2.0\TDSClient.dll') -Destination $TDSClientPath
     }
     # else {
     #     Invoke-WebRequest -Uri $('https://github.com/Azure/SQL-Connectivity-Checker/raw/' + $RepositoryBranch + '/net472/TDSClient.dll') -OutFile $TDSClientPath -UseBasicParsing
     # }
-    $assembly = [System.IO.File]::ReadAllBytes("D:\ConnectivityChecker\SQL-Connectivity-Checker\net472\TDSClient.dll")
+    $assembly = [System.IO.File]::ReadAllBytes("D:\ConnectivityChecker\SQL-Connectivity-Checker\netstandard2.0\TDSClient.dll")
     [System.Reflection.Assembly]::Load($assembly) | Out-Null
 
     $fullLogPath = Join-Path ((Get-Location).Path) 'AdvancedTests_FullLog.txt'
@@ -267,7 +268,7 @@ try {
                 $encryption = [System.Security.Authentication.SslProtocols]::Tls12 -bor [System.Security.Authentication.SslProtocols]::Tls11 -bor [System.Security.Authentication.SslProtocols]::Default
             }
         }
-        $tdsClient = [TDSClient.TDS.Client.TDSSQLTestClient]::new($Server, $Port, $AuthenticationType, $AuthenticationLibrary, $User, $Password, $Database, $encryption)
+        $tdsClient = [TDSClient.TDS.Client.TDSSQLTestClient]::new($Server, $Port, $AuthenticationType, $AuthenticationLibrary, $User, $Password, $Database, $encryption, $UserAssignedIdentityClientId)
 
         for ($i = 1; $i -le $ConnectionAttempts; ++$i) {
             $log = [System.IO.File]::CreateText($logPath)

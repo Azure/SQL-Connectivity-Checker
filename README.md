@@ -13,16 +13,6 @@ For a network trace to be collected along with the tests ('CollectNetworkTrace' 
 
 3. Paste the following in the script window:
 
-$AuthenticationType = 'Active Directory Interactive'
-# Set the type of authentication you wish to use:
-    # 'SQL Server Authentication' (default),
-    # 'Active Directory Password',
-    # 'Active Directory Integrated',
-    # 'Active Directory Interactive',
-    # 'Active Directory Service Principal',
-    # 'Active Directory Managed Identity' ('Active Directory MSI')
-$AuthenticationLibrary = 'MSAL' # Set the authentication library you wish to use: 'ADAL' or 'MSAL'. Default is 'ADAL'.
-
 ```powershell
 $parameters = @{
     # Supports Single, Elastic Pools and Managed Instance (please provide FQDN, MI public endpoint is supported)

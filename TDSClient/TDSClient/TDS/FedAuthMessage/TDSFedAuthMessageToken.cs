@@ -22,11 +22,6 @@ namespace TDSClient.TDS.FedAuthMessage
     public class TDSFedAuthToken : ITDSPacketData
 	#pragma warning restore CS0659
     {
-		/// <summary>
-		/// Total length of data, without DataLen itself;
-		/// </summary>
-		private uint DataLen;
-
         /// <summary>
         /// Federated Authentication Token
         /// </summary>
@@ -77,20 +72,25 @@ namespace TDSClient.TDS.FedAuthMessage
 		/// <returns>True in case of success, false otherwise.</returns>
 		public bool Unpack(MemoryStream source)
 		{
-			DataLen = LittleEndianUtilities.ReadUInt(source);
+			// Read length of entire message
+			uint totalLengthOfData = LittleEndianUtilities.ReadUInt(source);
 
+			// Read length of the fedauth token
 			uint tokenLength = LittleEndianUtilities.ReadUInt(source);
 
+			// Read the fedauth token
 			FedAuthToken = new byte[tokenLength];
 			source.Read(FedAuthToken, 0, (int)tokenLength);
 
-			if (DataLen > tokenLength)
+			// Read nonce if it exists
+			if (totalLengthOfData > tokenLength)
 			{
-				Nonce = new byte[DataLen - tokenLength];
-				source.Read(Nonce, 0, (int)(DataLen - tokenLength));
+				Nonce = new byte[totalLengthOfData - tokenLength];
+				source.Read(Nonce, 0, (int)(totalLengthOfData - tokenLength));
 			}
-			else if (tokenLength > DataLen)
+			else if (tokenLength > totalLengthOfData)
 			{
+				// token length cannot be greater than the total length of the message
 				return false;
 			}
 
@@ -103,7 +103,7 @@ namespace TDSClient.TDS.FedAuthMessage
 		/// <param name="destination">Stream to pack the token to.</param>
 		public void Pack(MemoryStream destination)
 		{
-			uint totalLengthOfData = sizeof(uint) + (uint)FedAuthToken.Length + (uint)Nonce.Length;
+			uint totalLengthOfData = sizeof(uint) + (uint)FedAuthToken.Length + (Nonce != null ? (uint)Nonce.Length : 0);
 			
 			LittleEndianUtilities.WriteUInt(destination, totalLengthOfData);
 
@@ -123,7 +123,7 @@ namespace TDSClient.TDS.FedAuthMessage
 		/// <returns></returns>
 		public ushort Length() 
         {
-            return (ushort)(sizeof(uint) + DataLen);
+            return (ushort)(sizeof(uint) + sizeof(uint) + (uint)FedAuthToken.Length);
         }
 
 		/// <summary>

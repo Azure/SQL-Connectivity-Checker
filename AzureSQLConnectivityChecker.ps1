@@ -19,20 +19,20 @@ using namespace Microsoft.Data.SqlClient
 # Supports Single, Elastic Pools and Managed Instance (please provide FQDN, MI public endpoint is supported)
 # Supports Azure Synapse / Azure SQL Data Warehouse (*.sql.azuresynapse.net / *.database.windows.net)
 # Supports Public Cloud (*.database.windows.net), Azure China (*.database.chinacloudapi.cn), Azure Germany (*.database.cloudapi.de) and Azure Government (*.database.usgovcloudapi.net)
-$AuthenticationType = 'SQL Server Authentication'
+$AuthenticationType = 'Active Directory Password'
 # Set the type of authentication you wish to use:
     # 'SQL Server Authentication' (default),
-    # 'Active Directory Password',
+    # 'Active Directory Password', (supported only with MSAL)
     # 'Active Directory Integrated',
     # 'Active Directory Interactive',
     # 'Active Directory Service Principal',
-    # 'Active Directory Device Code Flow',
-    # 'Active Directory Managed Identity' ('Active Directory MSI')
-$AuthenticationLibrary = 'ADAL' # Set the authentication library you wish to use: 'ADAL' or 'MSAL'. Default is 'ADAL'.
-$Server = 'tde-akv-active-runner-mi.public.75be698df605.database.windows.net,3342' # or any other supported FQDN
+    # 'Active Directory Managed Identity' ('Active Directory MSI') NOTE: Managed Identity authentication works only when your application is running as an Azure resource, not with your personal account
+$AuthenticationLibrary = 'MSAL' # Set the authentication library you wish to use: 'ADAL' or 'MSAL'. Default is 'ADAL'.
+$Server = 'identity-test-instance.public.72e285ecfe96.database.windows.net,3342' # or any other supported FQDN
 $Database = ''  # Set the name of the database you wish to test, 'master' will be used by default if nothing is set
-$User = 'tde-akv-active-runner-login'  # Set the login username you wish to use, 'AzSQLConnCheckerUser' will be used by default if nothing is set
+$User = 'bmarkovic@microsoft.com'  # Set the login username you wish to use, 'AzSQLConnCheckerUser' will be used by default if nothing is set
 $Password = ''  # Set the login password you wish to use, 'AzSQLConnCheckerPassword' will be used by default if nothing is set
+$UserAssignedIdentityClientId = ''
 # In case you want to hide the password (like during a remote session), uncomment the 2 lines below (by removing leading #) and password will be asked during execution
 # $Credentials = Get-Credential -Message "Credentials to test connections to the database (optional)" -User $User
 # $Password = $Credentials.GetNetworkCredential().password
@@ -48,8 +48,6 @@ $EncryptionProtocol = 'Tls 1.2'  # Supported values: 'Tls 1.0', 'Tls 1.1', 'Tls 
 ### Just for testing
 $Local = $true
 $LocalPath = "D:\ConnectivityChecker\SQL-Connectivity-Checker\"
-
-$LocalPath = "C:\Users\bmarkovic\Downloads\ConnectivityChecker\ConnectivityChecker\SQL-Connectivity-Checker\"
 
 # Parameter region when Invoke-Command -ScriptBlock is used
 $parameters = $args[0]
@@ -330,7 +328,7 @@ $SQLDB_Error40532 = ' Error 40532 is usually related to one of the following sce
     To fix this issue create a virtual network rule in your server in SQL Database, for the originating subnet in the Firewalls and virtual networks.
     See how to at https://docs.microsoft.com/azure/azure-sql/database/vnet-service-endpoint-rule-overview#use-the-portal-to-create-a-virtual-network-rule
     You can also consider removing the service endpoint from the subnet, but you will need to take into consideration the impact in all the services mentioned above.'
-
+ 
 $CannotDownloadAdvancedScript = ' Advanced connectivity policy tests script could not be downloaded!
  Confirm this machine can access https://github.com/Azure/SQL-Connectivity-Checker/
  or use a machine with Internet access to see how to run this from machines without Internet. See how at https://github.com/Azure/SQL-Connectivity-Checker/'
@@ -614,17 +612,17 @@ function FilterTranscript() {
     }
 }
 
-function TestConnectionToDatabase($Server, $gatewayPort, $Database, $AuthenticationLibrary, $User, $Password) {
+function TestConnectionToDatabase($Server, $gatewayPort, $Database, $AuthenticationType, $AuthenticationLibrary, $User, $Password) {
     Write-Host
     [void]$summaryLog.AppendLine()
     Write-Host ([string]::Format("Testing connecting to {0} database (please wait):", $Database)) -ForegroundColor Green
     Try {
-        $masterDbConnection = [System.Data.SqlClient.SQLConnection]::new()
+        $masterDbConnection = [Microsoft.Data.SqlClient.SqlConnection]::new()
         Write-Host $Database
         Write-Host $AuthenticationType
         Write-Host $AuthenticationLibrary
         Write-Host $User
-        $masterDbConnection.ConnectionString = GetConnectionString $Server $gatewayPort $Database $AuthenticationType $User $Password
+        $masterDbConnection.ConnectionString = GetConnectionString $Server $gatewayPort $Database $AuthenticationType $User $Password $UserAssignedIdentityClientId
         $masterDbConnection.Open()
         Write-Host ([string]::Format(" The connection attempt succeeded", $Database))
         [void]$summaryLog.AppendLine([string]::Format(" The connection attempt to {0} database succeeded", $Database))
@@ -784,22 +782,27 @@ function TestConnectionToDatabase($Server, $gatewayPort, $Database, $Authenticat
     }
 }
 
-function GetConnectionString ($Server, $gatewayPort, $Database, $AuthenticationType, $User, $Password) {
+function GetConnectionString ($Server, $gatewayPort, $Database, $AuthenticationType, $User, $Password, $UserAssignedIdentityClientId) {
     if (($null -eq $AuthenticationType) -or ('SQL Server Authentication' -eq $AuthenticationType) -or ('' -eq $AuthenticationType)) {
         return [string]::Format("Server=tcp:{0},{1};Initial Catalog={2};Persist Security Info=False;User ID='{3}';Password='{4}';MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;Application Name=Azure-SQL-Connectivity-Checker;",
             $Server, $gatewayPort, $Database, $User, $Password)
     }
-    if ('Azure Active Directory Password' -eq $AuthenticationType) { 
+    if ('Active Directory Password' -eq $AuthenticationType) { 
         return [string]::Format("Server=tcp:{0},{1};Initial Catalog={2};Persist Security Info=False;User ID='{3}';Password='{4}';MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Application Name=Azure-SQL-Connectivity-Checker;Authentication='Active Directory Password'",
             $Server, $gatewayPort, $Database, $User, $Password)
     }
-    if ('Azure Active Directory Password' -eq $AuthenticationType) { 
-        return [string]::Format("Server=tcp:{0},{1};Initial Catalog={2};Persist Security Info=False;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Application Name=Azure-SQL-Connectivity-Checker;Authentication='Active Directory Integrated'",
-            $Server, $gatewayPort, $Database)
-    }
-    if ('Azure Active Directory Interactive' -eq $AuthenticationType) { 
+    if ('Active Directory Interactive' -eq $AuthenticationType) { 
         return [string]::Format("Server=tcp:{0},{1};Initial Catalog={2};Persist Security Info=False;User ID='{3}';MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Application Name=Azure-SQL-Connectivity-Checker;Authentication='Active Directory Interactive'",
             $Server, $gatewayPort, $Database, $User)
+    }
+    if ('Active Directory Integrated' -eq $AuthenticationType) { 
+        return [string]::Format("Server=tcp:{0},{1};Initial Catalog={2};Persist Security Info=False;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Application Name=Azure-SQL-Connectivity-Checker;Authentication='Active Directory Integrated'",
+            $Server, $gatewayPort, $Database, $User)
+    }
+    if ('Active Directory Managed Identity' -eq $AuthenticationType -or 'Active Directory MSI' -eq $AuthenticationType) { 
+        Write-Host $AuthenticationType
+        return [string]::Format("Server=tcp:{0},{1};Initial Catalog={2};Persist Security Info=False;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Application Name=Azure-SQL-Connectivity-Checker;Authentication='Active Directory MSI'",
+            $Server, $gatewayPort, $Database)
     }
 }
 
@@ -1233,6 +1236,7 @@ function RunConnectivityPolicyTests($port) {
             Port                    = $port
             AuthenticationType      = $AuthenticationType
             AuthenticationLibrary   = $AuthenticationLibrary
+            $UserAssignedIdentityClientId = $UserAssignedIdentityClientId
             User                    = $User
             Password                = $Password
             EncryptionProtocol      = $EncryptionProtocol
@@ -1357,7 +1361,7 @@ function RunConnectionToDatabaseTestsAndAdvancedTests($Server, $dbPort, $Databas
         $customDatabaseNameWasSet = $Database -and $Database.Length -gt 0 -and $Database -ne 'master'
 
         #Test master database
-        $canConnectToMaster = TestConnectionToDatabase $Server $dbPort 'master' $AuthenticationType $User $Password
+        $canConnectToMaster = TestConnectionToDatabase $Server $dbPort 'master' $AuthenticationType $AuthenticationLibrary $User $Password
 
         if ($customDatabaseNameWasSet) {
             if ($canConnectToMaster) {
@@ -1370,7 +1374,7 @@ function RunConnectionToDatabaseTestsAndAdvancedTests($Server, $dbPort, $Databas
 
                     #Test database from parameter
                     if ($customDatabaseNameWasSet) {
-                        TestConnectionToDatabase $Server $dbPort $Database $AuthenticationType $User $Password | Out-Null
+                        TestConnectionToDatabase $Server $dbPort $Database $AuthenticationType $AuthenticationLibrary $User $Password | Out-Null
                     }
                 }
                 else {
@@ -1390,7 +1394,7 @@ function RunConnectionToDatabaseTestsAndAdvancedTests($Server, $dbPort, $Databas
             else {
                 #Test database from parameter anyway
                 if ($customDatabaseNameWasSet) {
-                    TestConnectionToDatabase $Server $dbPort $Database $AuthenticationType $User $Password | Out-Null
+                    TestConnectionToDatabase $Server $dbPort $Database $AuthenticationType $AuthenticationLibrary $User $Password | Out-Null
                 }
             }
         } 

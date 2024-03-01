@@ -15,7 +15,6 @@ namespace TDSClient.TDS.Client
     using System.Collections.Generic;
     using System.Text;
     using System.Threading.Tasks;
-    using System.Data;
 
     using TDSClient.TDS.Comms;
     using TDSClient.TDS.Header;
@@ -28,7 +27,6 @@ namespace TDSClient.TDS.Client
     using TDSClient.MSALHelper;
     using TDSClient.ADALHelper;
     using TDSClient.TDS.Tokens;
-    using System.Collections;
 
     /// <summary>
     /// SQL Test Client used to run diagnostics on SQL Server using TDS protocol.
@@ -44,6 +42,7 @@ namespace TDSClient.TDS.Client
         private readonly string UserID;
         private readonly string Password;
         private readonly string Database;
+        private readonly string IdentityClientId;
         private TDSCommunicator TdsCommunicator;
         private TcpClient Client;
         private readonly TDSClientVersion Version;
@@ -59,7 +58,16 @@ namespace TDSClient.TDS.Client
         /// <param name="password">User password</param>
         /// <param name="database">Database to connect to</param>
         /// <param name="encryptionProtocol">Encryption Protocol</param>
-        public TDSSQLTestClient(string server, int port, string authenticationType, string authenticationLibrary, string userID, string password, string database, SslProtocols encryptionProtocol = SslProtocols.Tls12)
+        public TDSSQLTestClient(
+            string server,
+            int port,
+            string authenticationType,
+            string authenticationLibrary,
+            string userID,
+            string password,
+            string database,
+            SslProtocols encryptionProtocol = SslProtocols.Tls12,
+            string identityClientId = null)
         {
             ValidateInputParameters(server, userID, password, database, authenticationType);
 
@@ -70,6 +78,12 @@ namespace TDSClient.TDS.Client
             UserID = userID;
             Password = password;
             Database = database;
+
+            if(identityClientId != null)
+            {
+                IdentityClientId = identityClientId;
+            }
+
             EncryptionProtocol = encryptionProtocol;
             ConnectionAttempt = 0;
 
@@ -226,9 +240,8 @@ namespace TDSClient.TDS.Client
                 Tuple<string, string> fedAuthInfoMessage = ReceiveFedAuthInfoMessage();
                 string authority = fedAuthInfoMessage.Item1;
                 string resource = fedAuthInfoMessage.Item2;
-                string clientID = "4d079b4c-cab7-4b7c-a115-8fd51b6f8239"; // ado client id
 
-                string accessToken = await GetJWTAccessToken(authority, resource, clientID);
+                string accessToken = await GetJWTAccessToken(authority, resource);
 
                 SendFedAuthMessage(accessToken);
             }
@@ -245,20 +258,24 @@ namespace TDSClient.TDS.Client
         /// <param name="resource"></param>
         /// <param name="clientID"></param>
         /// <returns></returns>
-        private async Task<string> GetJWTAccessToken(string authority, string resource, string clientID)
+        private async Task<string> GetJWTAccessToken(string authority, string resource)
         {
             string accessToken = null;
 
             switch(AuthenticationType)
             {
                 case "Active Directory Integrated":
-                    accessToken = await GetAccessTokenForIntegratedAuth(authority, resource, clientID);
+                    accessToken = await GetAccessTokenForIntegratedAuth(authority, resource);
                     break;
                 case "Active Directory Interactive":
-                    accessToken = await GetAccessTokenForInteractiveAuth(authority, clientID);
+                    accessToken = await GetAccessTokenForInteractiveAuth(authority);
                     break;
                 case "Active Directory Password":
-                    accessToken = await GetAccessTokenForUsernamePassword(authority, resource, clientID);
+                    accessToken = await GetAccessTokenForUsernamePassword(authority, resource);
+                    break;
+                case "Active Directory Managed Identity":
+                case "Active Directory MSI":
+                    accessToken = await GetAccessTokenForMSIAuth(authority);
                     break;
             }
 
@@ -272,11 +289,11 @@ namespace TDSClient.TDS.Client
         /// <param name="resource"></param>
         /// <param name="clientID"></param>
         /// <returns></returns>
-        private async Task<string> GetAccessTokenForIntegratedAuth(string authority, string resource, string clientID)
+        private async Task<string> GetAccessTokenForIntegratedAuth(string authority, string resource)
         {
             return AuthenticationLibrary.Contains("MSAL") ?
-                await MSALHelper.GetSQLAccessTokenFromMSALUsingIntegratedAuth(authority, clientID) :
-                await ADALHelper.GetSQLAccessTokenFromADALUsingIntegratedAuth(authority, resource, clientID);
+                await MSALHelper.GetSQLAccessTokenFromMSALUsingIntegratedAuth(authority, resource) :
+                await ADALHelper.GetSQLAccessTokenFromADALUsingIntegratedAuth(authority, resource);
         }
 
         /// <summary>
@@ -286,11 +303,11 @@ namespace TDSClient.TDS.Client
         /// <param name="resource"></param>
         /// <param name="clientID"></param>
         /// <returns></returns>
-        private async Task<string> GetAccessTokenForUsernamePassword(string authority, string resource, string clientID)
+        private async Task<string> GetAccessTokenForUsernamePassword(string authority, string resource)
         {
              return AuthenticationLibrary.Contains("MSAL") ?
-                await MSALHelper.GetSQLAccessTokenFromMSALUsingUsernamePassword(authority, clientID, UserID, Password) :
-                await ADALHelper.GetSQLAccessTokenFromADALUsingUsernamePassword(authority, resource, clientID, UserID, Password);
+                await MSALHelper.GetSQLAccessTokenFromMSALUsingUsernamePassword(authority, resource, UserID, Password) :
+                null;
         }
 
         /// <summary>
@@ -300,9 +317,21 @@ namespace TDSClient.TDS.Client
         /// <param name="resource"></param>
         /// <param name="clientID"></param>
         /// <returns></returns>
-        private async Task<string> GetAccessTokenForInteractiveAuth(string authority, string clientID)
+        private async Task<string> GetAccessTokenForInteractiveAuth(string authority)
         {
-            return await MSALHelper.GetSQLAccessTokenFromMSALInteractively(authority, clientID);
+            return await MSALHelper.GetSQLAccessTokenFromMSALInteractively(authority);
+        }
+
+        /// <summary>
+        /// Acquires access token for AAD integrated authentication.
+        /// </summary>
+        /// <param name="authority"></param>
+        /// <param name="resource"></param>
+        /// <param name="clientID"></param>
+        /// <returns></returns>
+        private async Task<string> GetAccessTokenForMSIAuth(string authority)
+        {
+            return await MSALHelper.GetSQLAccessTokenFromMSALUsingManagedIdentity(authority);
         }
 
         /// <summary>
@@ -394,7 +423,6 @@ namespace TDSClient.TDS.Client
             tdsMessageBody.Password = Password;
 
             tdsMessageBody.OptionFlags3.Extension = TDSLogin7OptionFlags3Extension.DoesntExist;
-            tdsMessageBody.OptionFlags2.IntSecurity = TDSLogin7OptionFlags2IntSecurity.IntegratedSecurityOff;
         }
 
         /// <summary>
@@ -411,11 +439,7 @@ namespace TDSClient.TDS.Client
             TDSLogin7FedAuthOptionToken featureOption = CreateLogin7FederatedAuthenticationFeatureExt(TDSFedAuthLibraryType.ADAL, adalWorkflow);
 
             tdsMessageBody.FeatureExt ??= new TDSLogin7FeatureOptionsToken();
-
             tdsMessageBody.FeatureExt.Add(featureOption);
-
-            tdsMessageBody.OptionFlags2.IntSecurity = adalWorkflow == TDSFedAuthADALWorkflow.Integrated ?
-                TDSLogin7OptionFlags2IntSecurity.IntegratedSecurityOn : TDSLogin7OptionFlags2IntSecurity.IntegratedSecurityOff;
         }
 
         /// <summary>
@@ -435,6 +459,7 @@ namespace TDSClient.TDS.Client
             tdsMessageBody.OptionFlags2.Language = TDSLogin7OptionFlags2Language.InitLangFatal;
             tdsMessageBody.OptionFlags2.ODBC = TDSLogin7OptionFlags2ODBC.OdbcOn;
             tdsMessageBody.OptionFlags2.UserType = TDSLogin7OptionFlags2UserType.UserNormal;
+            tdsMessageBody.OptionFlags2.IntSecurity = TDSLogin7OptionFlags2IntSecurity.IntegratedSecurityOff;
 
             tdsMessageBody.OptionFlags3.ChangePassword = TDSLogin7OptionFlags3ChangePassword.NoChangeRequest;
             tdsMessageBody.OptionFlags3.UserInstanceProcess = TDSLogin7OptionFlags3UserInstanceProcess.DontRequestSeparateProcess;
@@ -490,10 +515,8 @@ namespace TDSClient.TDS.Client
         private void SendFedAuthMessage(string accessToken)
         {
             LoggingUtilities.WriteLog($"  Sending JWT token to the server.");
-
             TDSFedAuthToken fedAuthToken = new TDSFedAuthToken(accessToken);
             TdsCommunicator.SendTDSMessage(fedAuthToken);
-
             LoggingUtilities.WriteLog($"  JWT token successfully sent.");
         }
 
@@ -702,6 +725,7 @@ namespace TDSClient.TDS.Client
         {
             if (Client != null)
             {
+                LoggingUtilities.WriteLog($" ");
                 LoggingUtilities.WriteLog($" Disconnect initiated.");
                 Client.Close();
                 Client = null;
