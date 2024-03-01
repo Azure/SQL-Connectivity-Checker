@@ -19,7 +19,7 @@ using namespace Microsoft.Data.SqlClient
 # Supports Single, Elastic Pools and Managed Instance (please provide FQDN, MI public endpoint is supported)
 # Supports Azure Synapse / Azure SQL Data Warehouse (*.sql.azuresynapse.net / *.database.windows.net)
 # Supports Public Cloud (*.database.windows.net), Azure China (*.database.chinacloudapi.cn), Azure Germany (*.database.cloudapi.de) and Azure Government (*.database.usgovcloudapi.net)
-$AuthenticationType = 'Active Directory Password'
+$AuthenticationType = 'Active Directory Interactive'
 # Set the type of authentication you wish to use:
     # 'SQL Server Authentication' (default),
     # 'Active Directory Password', (supported only with MSAL)
@@ -1236,7 +1236,7 @@ function RunConnectivityPolicyTests($port) {
             Port                    = $port
             AuthenticationType      = $AuthenticationType
             AuthenticationLibrary   = $AuthenticationLibrary
-            $UserAssignedIdentityClientId = $UserAssignedIdentityClientId
+            UserAssignedIdentityClientId = $UserAssignedIdentityClientId
             User                    = $User
             Password                = $Password
             EncryptionProtocol      = $EncryptionProtocol

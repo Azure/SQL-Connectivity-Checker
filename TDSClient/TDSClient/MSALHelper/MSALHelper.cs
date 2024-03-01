@@ -67,13 +67,14 @@ namespace TDSClient.MSALHelper
             if (string.IsNullOrEmpty(authority))
                 throw new ArgumentException("Authority cannot be null or empty.", nameof(authority));
 
+            LoggingUtilities.WriteLog("Attempting to acquire access token using integrated auth.");
+
             var app = CreateClientApp(authority);
 
             string[] scopes = new[] { resource + "/.default" };
 
             try
             {
-                LoggingUtilities.WriteLog("Attempting to acquire access token using integrated auth.");
                 var result = await app.AcquireTokenByIntegratedWindowsAuth(scopes)
                     .ExecuteAsync(CancellationToken.None)
                     .ConfigureAwait(false);
@@ -119,12 +120,13 @@ namespace TDSClient.MSALHelper
 
             LoggingUtilities.WriteLog("Attempting to acquire access token using interactive auth.");
             var app = PublicClientApplicationBuilder.Create(AdoClientId)
-                .WithDefaultRedirectUri()
+                .WithRedirectUri("https://login.microsoftonline.com/common/oauth2/nativeclient")
                 .Build();
 
             try
             {
-                var result = await app.AcquireTokenInteractive(scopes).ExecuteAsync();
+                var result = await app.AcquireTokenInteractive(scopes)
+                    .ExecuteAsync();
                 LoggingUtilities.WriteLog($"  Successfully acquired access token.");
 
                 return result.AccessToken;
@@ -161,13 +163,13 @@ namespace TDSClient.MSALHelper
         /// <returns></returns>
         public static async Task<string> GetSQLAccessTokenFromMSALUsingSystemAssignedManagedIdentity(string resource)
         {
+            LoggingUtilities.WriteLog("Attempting to acquire access token using system assigned managed identity auth.");
+
             var app = ManagedIdentityApplicationBuilder.Create(ManagedIdentityId.SystemAssigned)
                 .Build();
 
             try
             {
-                LoggingUtilities.WriteLog("Attempting to acquire access token using managed identity auth.");
-
                 var result = await app.AcquireTokenForManagedIdentity(resource)
                     .ExecuteAsync();
 
@@ -206,14 +208,14 @@ namespace TDSClient.MSALHelper
         /// <returns></returns>
         public static async Task<string> GetSQLAccessTokenFromMSALUsingUserAssignedManagedIdentity(string resource, string identityClientId)
         {
+            LoggingUtilities.WriteLog("Attempting to acquire access token using user assigned managed identity auth.");
+
             var app = ManagedIdentityApplicationBuilder
                 .Create(ManagedIdentityId.WithUserAssignedClientId(identityClientId))
                 .Build();
 
             try
             {
-                LoggingUtilities.WriteLog("Attempting to acquire access token using managed identity auth.");
-
                 var result = await app.AcquireTokenForManagedIdentity(resource)
                     .ExecuteAsync();
 
