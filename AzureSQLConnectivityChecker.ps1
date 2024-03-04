@@ -19,13 +19,12 @@ using namespace Microsoft.Data.SqlClient
 # Supports Single, Elastic Pools and Managed Instance (please provide FQDN, MI public endpoint is supported)
 # Supports Azure Synapse / Azure SQL Data Warehouse (*.sql.azuresynapse.net / *.database.windows.net)
 # Supports Public Cloud (*.database.windows.net), Azure China (*.database.chinacloudapi.cn), Azure Germany (*.database.cloudapi.de) and Azure Government (*.database.usgovcloudapi.net)
-$AuthenticationType = 'Active Directory Interactive'
+$AuthenticationType = 'Active Directory Password'
 # Set the type of authentication you wish to use:
     # 'SQL Server Authentication' (default),
     # 'Active Directory Password', (supported only with MSAL)
     # 'Active Directory Integrated',
     # 'Active Directory Interactive',
-    # 'Active Directory Service Principal',
     # 'Active Directory Managed Identity' ('Active Directory MSI') NOTE: Managed Identity authentication works only when your application is running as an Azure resource, not with your personal account
 $AuthenticationLibrary = 'MSAL' # Set the authentication library you wish to use: 'ADAL' or 'MSAL'. Default is 'ADAL'.
 $Server = 'identity-test-instance.public.72e285ecfe96.database.windows.net,3342' # or any other supported FQDN
@@ -33,6 +32,7 @@ $Database = ''  # Set the name of the database you wish to test, 'master' will b
 $User = 'bmarkovic@microsoft.com'  # Set the login username you wish to use, 'AzSQLConnCheckerUser' will be used by default if nothing is set
 $Password = ''  # Set the login password you wish to use, 'AzSQLConnCheckerPassword' will be used by default if nothing is set
 $UserAssignedIdentityClientId = '' # Set the Client ID of the User Assigned Identity you wish to use, if nothing is set, the script will use the system-assigned identity
+
 # In case you want to hide the password (like during a remote session), uncomment the 2 lines below (by removing leading #) and password will be asked during execution
 # $Credentials = Get-Credential -Message "Credentials to test connections to the database (optional)" -User $User
 # $Password = $Credentials.GetNetworkCredential().password
@@ -58,7 +58,6 @@ if ($null -ne $parameters) {
     $Database = $parameters['Database']
     $User = $parameters['User']
     $Password = $parameters['Password']
-
     
     if ($null -ne $parameters['SendAnonymousUsageData']) {
         $SendAnonymousUsageData = $parameters['SendAnonymousUsageData']
@@ -89,12 +88,14 @@ if ($null -ne $parameters) {
     }
 }
 
+# Setting default parameters if not provided
+
 if ($null -eq $AuthenticationType -or '' -eq $AuthenticationType) {
     $AuthenticationType = 'SQL Server Authentication'
 }
 
 if ($null -eq $AuthenticationLibrary -or '' -eq $AuthenticationLibrary) {
-    $AuthenticationLibrary = 'ADAL'
+    $AuthenticationLibrary = 'MSAL'
 }
 
 if ($null -eq $User -or '' -eq $User) {
@@ -125,6 +126,11 @@ else {
     if ($currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
         $CustomerRunningInElevatedMode = $true
     }
+}
+
+if ($AuthenticationType -eq "Active Directory Password" -and $AuthenticationLibrary -eq "ADAL") {
+    Write-Host "Active Directory Password authentication is not supported with ADAL library, switching to MSAL library"
+    $AuthenticationLibrary = "MSAL"
 }
 
 $SQLDBGateways = @(

@@ -20,6 +20,7 @@ namespace TDSClient.TDS.Comms
     using TDSClient.TDS.Utilities;
     using TDSClient.TDS.FedAuthMessage;
     using System.Linq;
+    using TDSClient.TDS.Client;
 
     /// <summary>
     /// Class that implements TDS communication.
@@ -49,14 +50,14 @@ namespace TDSClient.TDS.Comms
         /// <summary>
         /// Authentication Type
         /// </summary>
-        private readonly string AuthenticationType;
+        private readonly TDSAuthenticationType AuthenticationType;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TDSCommunicator" /> class.
         /// </summary>
         /// <param name="stream">NetworkStream used for communication</param>
         /// <param name="packetSize">TDS packet size</param>
-        public TDSCommunicator(Stream stream, ushort packetSize, string authenticationType)
+        public TDSCommunicator(Stream stream, ushort packetSize, TDSAuthenticationType authenticationType)
         {
             PacketSize = packetSize;
             InnerTdsStream = new TDSStream(stream, new TimeSpan(0, 0, 30), packetSize);
@@ -246,7 +247,7 @@ namespace TDSClient.TDS.Comms
                     break;
 
                 case TDSCommunicatorState.SentInitialPreLogin:
-                    if (AuthenticationType.Contains("Active Directory"))
+                    if (IsAADAuth(AuthenticationType))
                     {
                         CommunicatorState = TDSCommunicatorState.SentLogin7RecordWithFederatedAuthenticationInformationRequest;
                     }
@@ -260,6 +261,17 @@ namespace TDSClient.TDS.Comms
                     CommunicatorState = TDSCommunicatorState.SentLogin7RecordWithCompleteAuthenticationToken;
                     break;
             }
+        }
+
+        private bool IsAADAuth(TDSAuthenticationType authenticationType)
+        {
+            var aadAuthTypes = new TDSAuthenticationType[] { 
+                TDSAuthenticationType.ADPassword,
+                TDSAuthenticationType.ADIntegrated,
+                TDSAuthenticationType.ADInteractive,
+                TDSAuthenticationType.ADManagedIdentity };
+
+            return aadAuthTypes.Contains(authenticationType);
         }
 
         private void HandleInitialSendState(ITDSPacketData data)

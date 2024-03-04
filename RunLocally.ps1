@@ -10,7 +10,6 @@ $parameters = @{
         # 'Active Directory Password',
         # 'Active Directory Integrated',
         # 'Active Directory Interactive',
-        # 'Active Directory Service Principal',
         # 'Active Directory Managed Identity' ('Active Directory MSI')
     $AuthenticationLibrary = '' # Set the authentication library you wish to use: 'ADAL' or 'MSAL'. Default is 'ADAL'.
     Server   = ''

@@ -28,14 +28,33 @@ namespace TDSClient.TDS.Client
     using TDSClient.ADALHelper;
     using TDSClient.TDS.Tokens;
 
+    public enum TDSAuthenticationType
+        {
+            SQLServerAuthentication,
+            ADPassword,
+            ADIntegrated,
+            ADInteractive,
+            ADManagedIdentity
+        }
+
     /// <summary>
     /// SQL Test Client used to run diagnostics on SQL Server using TDS protocol.
     /// </summary>
     public class TDSSQLTestClient
     {
+        private static readonly Dictionary<string, TDSAuthenticationType> authTypeStringToEnum = new Dictionary<string, TDSAuthenticationType>
+        {
+            { "SQL Server Authentication", TDSAuthenticationType.SQLServerAuthentication },
+            { "Active Directory Password", TDSAuthenticationType.ADPassword },
+            { "Active Directory Integrated", TDSAuthenticationType.ADIntegrated },
+            { "Active Directory Interactive", TDSAuthenticationType.ADInteractive },
+            { "Active Directory Managed Identity", TDSAuthenticationType.ADManagedIdentity },
+            { "Active Directory MSI", TDSAuthenticationType.ADManagedIdentity }
+        };
+
         private bool Reconnect;
         private int ConnectionAttempt;
-        private readonly string AuthenticationType;
+        private readonly TDSAuthenticationType AuthenticationType;
         private readonly string AuthenticationLibrary;
         private string Server;
         private int Port;
@@ -79,7 +98,7 @@ namespace TDSClient.TDS.Client
             Password = password;
             Database = database;
 
-            if(identityClientId != null)
+            if (identityClientId != null)
             {
                 IdentityClientId = identityClientId;
             }
@@ -87,7 +106,7 @@ namespace TDSClient.TDS.Client
             EncryptionProtocol = encryptionProtocol;
             ConnectionAttempt = 0;
 
-            AuthenticationType = authenticationType;
+            AuthenticationType = authTypeStringToEnum[authenticationType];
             AuthenticationLibrary = authenticationLibrary;
 
             LoggingUtilities.WriteLog($" Instantiating TDSSQLTestClient with the following parameters:");
@@ -265,17 +284,16 @@ namespace TDSClient.TDS.Client
 
             switch(AuthenticationType)
             {
-                case "Active Directory Integrated":
+                case TDSAuthenticationType.ADIntegrated:
                     accessToken = await GetAccessTokenForIntegratedAuth(authority, resource);
                     break;
-                case "Active Directory Interactive":
+                case TDSAuthenticationType.ADInteractive:
                     accessToken = await GetAccessTokenForInteractiveAuth(authority);
                     break;
-                case "Active Directory Password":
+                case TDSAuthenticationType.ADPassword:
                     accessToken = await GetAccessTokenForUsernamePassword(authority, resource);
                     break;
-                case "Active Directory Managed Identity":
-                case "Active Directory MSI":
+                case TDSAuthenticationType.ADManagedIdentity:
                     accessToken = await GetAccessTokenForMSIAuth(authority);
                     break;
             }
@@ -293,7 +311,7 @@ namespace TDSClient.TDS.Client
         private async Task<string> GetAccessTokenForIntegratedAuth(string authority, string resource)
         {
             return AuthenticationLibrary.Contains("MSAL") ?
-                await MSALHelper.GetSQLAccessTokenFromMSALUsingIntegratedAuth(authority, resource) :
+                await MSALHelper.GetSQLAccessTokenFromMSALUsingIntegratedAuth(authority, resource, UserID) :
                 await ADALHelper.GetSQLAccessTokenFromADALUsingIntegratedAuth(authority, resource);
         }
 
@@ -308,7 +326,7 @@ namespace TDSClient.TDS.Client
         {
              return AuthenticationLibrary.Contains("MSAL") ?
                 await MSALHelper.GetSQLAccessTokenFromMSALUsingUsernamePassword(authority, resource, UserID, Password) :
-                null;
+                throw new Exception("Username password authentication is not supported by ADAL.");
         }
 
         /// <summary>
@@ -434,7 +452,7 @@ namespace TDSClient.TDS.Client
         /// <param name="tdsMessageBody"></param>
         private void AddLogin7AADAuthenticationOptions(TDSLogin7PacketData tdsMessageBody)
         {
-            TDSFedAuthADALWorkflow adalWorkflow = AuthenticationType.Contains("Integrated") ?
+            TDSFedAuthADALWorkflow adalWorkflow = AuthenticationType.Equals(TDSAuthenticationType.ADIntegrated) ?
                 TDSFedAuthADALWorkflow.Integrated : TDSFedAuthADALWorkflow.UserPassword;
 
             tdsMessageBody.OptionFlags3.Extension = TDSLogin7OptionFlags3Extension.Exists;
@@ -742,7 +760,13 @@ namespace TDSClient.TDS.Client
         /// <returns></returns>
         private bool IsAADAuthRequired()
         {
-            return AuthenticationType.Contains("Active Directory");
+            var aadAuthTypes = new TDSAuthenticationType[] { 
+                TDSAuthenticationType.ADPassword,
+                TDSAuthenticationType.ADIntegrated,
+                TDSAuthenticationType.ADInteractive,
+                TDSAuthenticationType.ADManagedIdentity };
+
+            return aadAuthTypes.Contains(AuthenticationType);
         }
 
         /// <summary>

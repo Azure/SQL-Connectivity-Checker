@@ -61,7 +61,7 @@ namespace TDSClient.MSALHelper
         /// <param name="authority"></param>
         /// <param name="clientId"></param>
         /// <returns></returns>
-        public static async Task<string> GetSQLAccessTokenFromMSALUsingIntegratedAuth(string authority, string resource)
+        public static async Task<string> GetSQLAccessTokenFromMSALUsingIntegratedAuth(string authority, string resource, string userId)
         {
             // Validate input parameters
             if (string.IsNullOrEmpty(authority))
@@ -75,7 +75,10 @@ namespace TDSClient.MSALHelper
 
             try
             {
-                var result = await app.AcquireTokenByIntegratedWindowsAuth(scopes)
+                var result = userId == null ? await app.AcquireTokenByIntegratedWindowsAuth(scopes)
+                    .ExecuteAsync(CancellationToken.None)
+                    .ConfigureAwait(false) : await app.AcquireTokenByIntegratedWindowsAuth(scopes)
+                    .WithUsername(userId)
                     .ExecuteAsync(CancellationToken.None)
                     .ConfigureAwait(false);
 
@@ -120,7 +123,7 @@ namespace TDSClient.MSALHelper
 
             LoggingUtilities.WriteLog("Attempting to acquire access token using interactive auth.");
             var app = PublicClientApplicationBuilder.Create(AdoClientId)
-                .WithRedirectUri("https://login.microsoftonline.com/common/oauth2/nativeclient")
+                .WithRedirectUri("http://localhost")
                 .Build();
 
             try
@@ -131,27 +134,9 @@ namespace TDSClient.MSALHelper
 
                 return result.AccessToken;
             }
-            catch (MsalServiceException ex)
-            {
-                LoggingUtilities.WriteLog($"Service exception: {ex.Message}");
-
-                LoggingUtilities.WriteLog($"Error code: {ex.ErrorCode}");
-                LoggingUtilities.WriteLog($"HTTP status code: {ex.StatusCode}");
-
-                throw;
-            }
-            catch (MsalClientException ex)
-            {
-                // MSAL client exception occurred
-                LoggingUtilities.WriteLog($"Client exception: {ex.Message}");
-
-                throw;
-            }
             catch (Exception ex)
             {
-                // An unexpected error occurred
-                LoggingUtilities.WriteLog($"An unexpected error occurred: {ex.Message}");
-
+                HandleException(ex);
                 throw;
             }
         }
@@ -177,26 +162,9 @@ namespace TDSClient.MSALHelper
 
                 return result.AccessToken;
             }
-            catch (MsalServiceException ex)
-            {
-                LoggingUtilities.WriteLog($"Service exception: {ex.Message}");
-                LoggingUtilities.WriteLog($"Error code: {ex.ErrorCode}");
-                LoggingUtilities.WriteLog($"HTTP status code: {ex.StatusCode}");
-
-                throw;
-            }
-            catch (MsalClientException ex)
-            {
-                // MSAL client exception occurred
-                LoggingUtilities.WriteLog($"Client exception: {ex.Message}");
-
-                throw;
-            }
             catch (Exception ex)
             {
-                // An unexpected error occurred
-                LoggingUtilities.WriteLog($"An unexpected error occurred: {ex.Message}");
-
+                HandleException(ex);
                 throw;
             }
         }
@@ -223,25 +191,9 @@ namespace TDSClient.MSALHelper
 
                 return result.AccessToken;
             }
-            catch (MsalServiceException ex)
-            {
-                LoggingUtilities.WriteLog($"Service exception: {ex.Message}");
-                LoggingUtilities.WriteLog($"Error code: {ex.ErrorCode}");
-                LoggingUtilities.WriteLog($"HTTP status code: {ex.StatusCode}");
-
-                throw;
-            }
-            catch (MsalClientException ex)
-            {
-                // MSAL client exception occurred
-                LoggingUtilities.WriteLog($"Client exception: {ex.Message}");
-
-                throw;
-            }
             catch (Exception ex)
             {
-                // An unexpected error occurred
-                LoggingUtilities.WriteLog($"An unexpected error occurred: {ex.Message}");
+                HandleException(ex);
 
                 throw;
             }
@@ -265,6 +217,28 @@ namespace TDSClient.MSALHelper
         {
             // Customize how you handle logs here
             LoggingUtilities.WriteLog($"[{level}] {(containsPii ? "[PII]" : "")} {message}");
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="ex"></param>
+        private static void HandleException(Exception ex)
+        {
+            if (ex is MsalServiceException serviceException)
+            {
+                LoggingUtilities.WriteLog($"Service exception: {serviceException.Message}");
+                LoggingUtilities.WriteLog($"Error code: {serviceException.ErrorCode}");
+                LoggingUtilities.WriteLog($"HTTP status code: {serviceException.StatusCode}");
+            }
+            else if (ex is MsalClientException clientException)
+            {
+                LoggingUtilities.WriteLog($"Client exception: {clientException.Message}");
+            }
+            else
+            {
+                LoggingUtilities.WriteLog($"An unexpected error occurred: {ex.Message}");
+            }
         }
     }
 
