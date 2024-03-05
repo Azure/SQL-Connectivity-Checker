@@ -5,12 +5,9 @@
 //  ---------------------------------------------------------------------------
 
 using System;
-using System.Linq;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Identity.Client;
-using Microsoft.IdentityModel.Abstractions;
 
 using Microsoft.Identity.Client.AppConfig;
 using TDSClient.TDS.Utilities;
@@ -87,22 +84,7 @@ namespace TDSClient.MSALHelper
             }
             catch (MsalServiceException ex)
             {
-                LoggingUtilities.WriteLog($"Service exception: {ex.Message}");
-                LoggingUtilities.WriteLog($"Error code: {ex.ErrorCode}");
-                LoggingUtilities.WriteLog($"HTTP status code: {ex.StatusCode}");
-
-                throw;
-            }
-            catch (MsalClientException ex)
-            {
-                // MSAL client exception occurred
-                LoggingUtilities.WriteLog($"Client exception: {ex.Message}");
-
-                throw;
-            }
-            catch (Exception ex)
-            {
-                LoggingUtilities.WriteLog($"An unexpected error occurred: {ex.Message}");
+                HandleException(ex);
 
                 throw;
             }
