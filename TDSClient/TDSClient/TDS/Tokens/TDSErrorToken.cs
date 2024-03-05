@@ -101,6 +101,22 @@ namespace TDSClient.TDS.Tokens
             throw new NotImplementedException();
         }
 
+        public override void ProcessToken()
+        {
+            LoggingUtilities.WriteLog($" Client received Error token, Number: {Number}, State: {State}", writeToSummaryLog: true);
+            LoggingUtilities.WriteLog($"  MsgText: {MsgText}");
+            LoggingUtilities.WriteLog($"  Class: {Class}");
+            LoggingUtilities.WriteLog($"  ServerName: {ServerName}");
+            LoggingUtilities.WriteLog($"  ProcName: {ProcName}");
+            LoggingUtilities.WriteLog($"  LineNumber: {LineNumber}");
+            LoggingUtilities.WriteLog($"  State: {State}");
+
+            if (Number == 18456)
+            {
+                throw new Exception("Login failure.");
+            }
+        }
+
         /// <summary>
         /// Used to unpack IPackageable from a stream.
         /// </summary>

@@ -99,6 +99,18 @@ namespace TDSClient.TDS.Tokens
             throw new NotImplementedException();
         }
 
+        public override void ProcessToken()
+        {
+            LoggingUtilities.WriteLog($"  Client received Info token:");
+            LoggingUtilities.WriteLog($"     Number: {Number}");
+            LoggingUtilities.WriteLog($"     State: {State}");
+            LoggingUtilities.WriteLog($"     Class: {Class}");
+            LoggingUtilities.WriteLog($"     MsgText: {MsgText}");
+            LoggingUtilities.WriteLog($"     ServerName: {ServerName}");
+            LoggingUtilities.WriteLog($"     ProcName: {ProcName}");
+            LoggingUtilities.WriteLog($"     LineNumber: {LineNumber}");
+        }
+
         /// <summary>
         /// Used to unpack IPackageable from a stream.
         /// </summary>

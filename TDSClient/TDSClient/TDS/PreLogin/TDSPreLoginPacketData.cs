@@ -12,6 +12,7 @@ namespace TDSClient.TDS.PreLogin
     using System.Linq;
     
     using TDSClient.TDS.Client;
+    using TDSClient.TDS.Comms;
     using TDSClient.TDS.Header;
     using TDSClient.TDS.Interfaces;
     using TDSClient.TDS.Utilities;
@@ -44,6 +45,13 @@ namespace TDSClient.TDS.PreLogin
 
             Options = new List<TDSPreLoginOptionToken>();
             AddOption(TDSPreLoginOptionTokenType.Version, clientVersion);
+            AddOption(TDSPreLoginOptionTokenType.Encryption,
+                                    TDSEncryptionOption.EncryptOff);
+
+            AddOption(TDSPreLoginOptionTokenType.TraceID,
+                                    new TDSClientTraceID(Guid.NewGuid().ToByteArray(),
+                                                        Guid.NewGuid().ToByteArray(),
+                                                        0));
         }
 
         /// <summary>

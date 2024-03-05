@@ -77,6 +77,7 @@ namespace TDSClient.TDS.Client
         /// <param name="password">User password</param>
         /// <param name="database">Database to connect to</param>
         /// <param name="encryptionProtocol">Encryption Protocol</param>
+        /// <param name="identityClientId">Identity client ID for the UAMI</param>
         public TDSSQLTestClient(
             string server,
             int port,
@@ -133,7 +134,7 @@ namespace TDSClient.TDS.Client
             {
                 throw new ArgumentNullException();
             }
-            if (authenticationType.Contains("Azure Active Directory Password") || authenticationType.Contains("SQL Authentication"))
+            if (authenticationType.Contains("Active Directory Password") || authenticationType.Contains("SQL Server Authentication"))
             {
                 if (string.IsNullOrEmpty(userID) || string.IsNullOrEmpty(password))
                 {
@@ -365,14 +366,6 @@ namespace TDSClient.TDS.Client
 
             var tdsMessageBody = new TDSPreLoginPacketData(Version);
 
-            tdsMessageBody.AddOption(TDSPreLoginOptionTokenType.Encryption,
-                                    TDSEncryptionOption.EncryptOff);
-
-            tdsMessageBody.AddOption(TDSPreLoginOptionTokenType.TraceID,
-                                    new TDSClientTraceID(Guid.NewGuid().ToByteArray(),
-                                                        Guid.NewGuid().ToByteArray(),
-                                                        0));
-
             if (IsAADAuthRequired())
             {
                 tdsMessageBody.AddOption(TDSPreLoginOptionTokenType.FedAuthRequired,
@@ -423,7 +416,6 @@ namespace TDSClient.TDS.Client
             }
 
             LoggingUtilities.WriteLog($"  Adding common login options");
-            AddLogin7CommonOptions(tdsMessageBody);
 
             TdsCommunicator.SendTDSMessage(tdsMessageBody);
 
@@ -464,34 +456,6 @@ namespace TDSClient.TDS.Client
         }
 
         /// <summary>
-        /// Helper method to add common login 7 options to Login7 message.
-        /// </summary>
-        /// <param name="tdsMessageBody"></param>
-        private void AddLogin7CommonOptions(TDSLogin7PacketData tdsMessageBody)
-        {
-            tdsMessageBody.OptionFlags1.Char = TDSLogin7OptionFlags1Char.CharsetASCII;
-            tdsMessageBody.OptionFlags1.Database = TDSLogin7OptionFlags1Database.InitDBFatal;
-            tdsMessageBody.OptionFlags1.DumpLoad = TDSLogin7OptionFlags1DumpLoad.DumploadOn;
-            tdsMessageBody.OptionFlags1.Float = TDSLogin7OptionFlags1Float.FloatIEEE754;
-            tdsMessageBody.OptionFlags1.SetLang = TDSLogin7OptionFlags1SetLang.SetLangOn;
-            tdsMessageBody.OptionFlags1.ByteOrder = TDSLogin7OptionFlags1ByteOrder.OrderX86;
-            tdsMessageBody.OptionFlags1.UseDB = TDSLogin7OptionFlags1UseDB.UseDBOff;
-
-            tdsMessageBody.OptionFlags2.Language = TDSLogin7OptionFlags2Language.InitLangFatal;
-            tdsMessageBody.OptionFlags2.ODBC = TDSLogin7OptionFlags2ODBC.OdbcOn;
-            tdsMessageBody.OptionFlags2.UserType = TDSLogin7OptionFlags2UserType.UserNormal;
-            tdsMessageBody.OptionFlags2.IntSecurity = TDSLogin7OptionFlags2IntSecurity.IntegratedSecurityOff;
-
-            tdsMessageBody.OptionFlags3.ChangePassword = TDSLogin7OptionFlags3ChangePassword.NoChangeRequest;
-            tdsMessageBody.OptionFlags3.UserInstanceProcess = TDSLogin7OptionFlags3UserInstanceProcess.DontRequestSeparateProcess;
-            tdsMessageBody.OptionFlags3.UnknownCollationHandling = TDSLogin7OptionFlags3UnknownCollationHandling.On;
-
-            tdsMessageBody.TypeFlags.OLEDB = TDSLogin7TypeFlagsOLEDB.On;
-            tdsMessageBody.TypeFlags.SQLType = TDSLogin7TypeFlagsSQLType.DFLT;
-            tdsMessageBody.TypeFlags.ReadOnlyIntent = TDSLogin7TypeFlagsReadOnlyIntent.On;
-        }
-
-        /// <summary>
         /// Receives and handles a federated authentication info response from server.
         /// </summary>
         /// <returns></returns>
@@ -516,7 +480,7 @@ namespace TDSClient.TDS.Client
                     }
                     else if (token is TDSErrorToken)
                     {
-                        ProcessErrorToken(token as TDSErrorToken);
+                        token.ProcessToken();
                     }
                 }
 
@@ -542,23 +506,23 @@ namespace TDSClient.TDS.Client
         }
 
         /// <summary>
-		/// Creates Fedauth feature extension for the login7 packet.
-		/// </summary>
-		private TDSLogin7FedAuthOptionToken CreateLogin7FederatedAuthenticationFeatureExt(TDSFedAuthLibraryType libraryType, TDSFedAuthADALWorkflow workflow = TDSFedAuthADALWorkflow.EMPTY)
-		{
-			// Create feature option
-			TDSLogin7FedAuthOptionToken featureOption =
-				new TDSLogin7FedAuthOptionToken(TdsPreLoginFedAuthRequiredOption.FedAuthRequired,
-												libraryType,
-												null,
-												null,
-												null,
-												false,
-												libraryType == TDSFedAuthLibraryType.ADAL,
-												workflow);
+        /// Creates Fedauth feature extension for the login7 packet.
+        /// </summary>
+        private TDSLogin7FedAuthOptionToken CreateLogin7FederatedAuthenticationFeatureExt(TDSFedAuthLibraryType libraryType, TDSFedAuthADALWorkflow workflow = TDSFedAuthADALWorkflow.EMPTY)
+        {
+            // Create feature option
+            TDSLogin7FedAuthOptionToken featureOption =
+                new TDSLogin7FedAuthOptionToken(TdsPreLoginFedAuthRequiredOption.FedAuthRequired,
+                                                libraryType,
+                                                null,
+                                                null,
+                                                null,
+                                                false,
+                                                libraryType == TDSFedAuthLibraryType.ADAL,
+                                                workflow);
 
-			return featureOption;
-		}
+            return featureOption;
+        }
 
         /// <summary>
         /// Receive PreLogin response from the server.
@@ -605,17 +569,9 @@ namespace TDSClient.TDS.Client
                     {
                         ProcessEnvChangeToken(token as TDSEnvChangeToken);
                     }
-                    else if (token is TDSLoginAckToken)
+                    else
                     {
-                        ProcessLoginAckToken(token as TDSLoginAckToken);
-                    }
-                    else if (token is TDSErrorToken)
-                    {
-                        ProcessErrorToken(token as TDSErrorToken);
-                    }
-                    else if (token is TDSInfoToken)
-                    {
-                        ProcessInfoToken(token as TDSInfoToken);
+                        token.ProcessToken();
                     }
                 }
             }
@@ -625,58 +581,6 @@ namespace TDSClient.TDS.Client
             }
 
             LoggingUtilities.WriteLog($" Login7 response received.");
-        }
-
-        /// <summary>
-        /// Helper method which processes the login ack token recevied from the server.
-        /// </summary>
-        /// <param name="loginAck"></param>
-        /// 
-        private void ProcessLoginAckToken(TDSLoginAckToken loginAck)
-        {
-            LoggingUtilities.WriteLog($"  Client received LoginAck token:");
-            LoggingUtilities.WriteLog(loginAck.ProgName);
-            LoggingUtilities.WriteLog(loginAck.ServerVersion.ToString());
-            LoggingUtilities.WriteLog(loginAck.TDSVersion.ToString());
-
-            LoggingUtilities.WriteLog("Logged in successfully.");
-        }
-
-        /// <summary>
-        /// Helper method which processes the info token recevied from the server.
-        /// </summary>
-        /// <param name="infoToken"></param>
-        private void ProcessInfoToken(TDSInfoToken infoToken)
-        {
-            LoggingUtilities.WriteLog($"  Client received Info token:");
-            LoggingUtilities.WriteLog($"     Number: {infoToken.Number}");
-            LoggingUtilities.WriteLog($"     State: {infoToken.State}");
-            LoggingUtilities.WriteLog($"     Class: {infoToken.Class}");
-            LoggingUtilities.WriteLog($"     MsgText: {infoToken.MsgText}");
-            LoggingUtilities.WriteLog($"     ServerName: {infoToken.ServerName}");
-            LoggingUtilities.WriteLog($"     ProcName: {infoToken.ProcName}");
-            LoggingUtilities.WriteLog($"     LineNumber: {infoToken.LineNumber}");
-        }
-
-        /// <summary>
-        /// Helper method which processes the error token recevied from the server.
-        /// </summary>
-        /// <param name="errorToken"></param>
-        /// <exception cref="Exception"></exception>
-        private void ProcessErrorToken(TDSErrorToken errorToken)
-        {
-            LoggingUtilities.WriteLog($" Client received Error token, Number: {errorToken.Number}, State: {errorToken.State}", writeToSummaryLog: true);
-            LoggingUtilities.WriteLog($"  MsgText: {errorToken.MsgText}");
-            LoggingUtilities.WriteLog($"  Class: {errorToken.Class}");
-            LoggingUtilities.WriteLog($"  ServerName: {errorToken.ServerName}");
-            LoggingUtilities.WriteLog($"  ProcName: {errorToken.ProcName}");
-            LoggingUtilities.WriteLog($"  LineNumber: {errorToken.LineNumber}");
-            LoggingUtilities.WriteLog($"  State: {errorToken.State}");
-
-            if (errorToken.Number == 18456)
-            {
-                throw new Exception("Login failure.");
-            }
         }
 
         /// <summary>

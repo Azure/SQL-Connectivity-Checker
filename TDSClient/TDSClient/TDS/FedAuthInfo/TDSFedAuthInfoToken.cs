@@ -200,5 +200,10 @@ namespace TDSClient.TDS.FedAuthInfo
             // Compare key-value pairs
             return StructuralComparisons.StructuralEqualityComparer.Equals(dict1, dict2);
         }
+
+        public override void ProcessToken()
+        {
+            throw new NotImplementedException();
+        }
     }
 }

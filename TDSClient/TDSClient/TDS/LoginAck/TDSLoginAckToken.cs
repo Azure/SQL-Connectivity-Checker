@@ -3,6 +3,7 @@ using System.IO;
 using System.Text;
 
 using TDSClient.TDS.Login7;
+using TDSClient.TDS.Utilities;
 namespace TDSClient.TDS.Tokens
 {
     /// <summary>
@@ -182,5 +183,15 @@ namespace TDSClient.TDS.Tokens
                     && TDSVersion.Equals(obj.TDSVersion)
                     && ProgName.Equals(obj.ProgName);
 		}
+
+        public override void ProcessToken()
+        {
+            LoggingUtilities.WriteLog($"  Client received LoginAck token:");
+            LoggingUtilities.WriteLog(ProgName);
+            LoggingUtilities.WriteLog(ServerVersion.ToString());
+            LoggingUtilities.WriteLog(TDSVersion.ToString());
+
+            LoggingUtilities.WriteLog("Logged in successfully.");
+        }
     }
 }

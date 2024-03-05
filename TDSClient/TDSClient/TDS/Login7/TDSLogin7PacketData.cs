@@ -47,6 +47,8 @@ namespace TDSClient.TDS.Login7
             TypeFlags = new TDSLogin7TypeFlags();
             Options = new List<TDSLogin7Option>();
 
+            AddLogin7CommonOptions();
+
             if (clientID == null)
             {
                 ClientID = new byte[] { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05 };
@@ -59,6 +61,34 @@ namespace TDSClient.TDS.Login7
             {
                 ClientID = clientID;
             }
+        }
+
+        /// <summary>
+        /// Helper method to add common login 7 options to Login7 message.
+        /// </summary>
+        /// <param name="tdsMessageBody"></param>
+        private void AddLogin7CommonOptions()
+        {
+            OptionFlags1.Char = TDSLogin7OptionFlags1Char.CharsetASCII;
+            OptionFlags1.Database = TDSLogin7OptionFlags1Database.InitDBFatal;
+            OptionFlags1.DumpLoad = TDSLogin7OptionFlags1DumpLoad.DumploadOn;
+            OptionFlags1.Float = TDSLogin7OptionFlags1Float.FloatIEEE754;
+            OptionFlags1.SetLang = TDSLogin7OptionFlags1SetLang.SetLangOn;
+            OptionFlags1.ByteOrder = TDSLogin7OptionFlags1ByteOrder.OrderX86;
+            OptionFlags1.UseDB = TDSLogin7OptionFlags1UseDB.UseDBOff;
+
+            OptionFlags2.Language = TDSLogin7OptionFlags2Language.InitLangFatal;
+            OptionFlags2.ODBC = TDSLogin7OptionFlags2ODBC.OdbcOn;
+            OptionFlags2.UserType = TDSLogin7OptionFlags2UserType.UserNormal;
+            OptionFlags2.IntSecurity = TDSLogin7OptionFlags2IntSecurity.IntegratedSecurityOff;
+
+            OptionFlags3.ChangePassword = TDSLogin7OptionFlags3ChangePassword.NoChangeRequest;
+            OptionFlags3.UserInstanceProcess = TDSLogin7OptionFlags3UserInstanceProcess.DontRequestSeparateProcess;
+            OptionFlags3.UnknownCollationHandling = TDSLogin7OptionFlags3UnknownCollationHandling.On;
+
+            TypeFlags.OLEDB = TDSLogin7TypeFlagsOLEDB.On;
+            TypeFlags.SQLType = TDSLogin7TypeFlagsSQLType.DFLT;
+            TypeFlags.ReadOnlyIntent = TDSLogin7TypeFlagsReadOnlyIntent.On;
         }
 
         /// <summary>

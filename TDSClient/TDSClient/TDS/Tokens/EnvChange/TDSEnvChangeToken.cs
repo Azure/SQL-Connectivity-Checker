@@ -86,6 +86,11 @@ namespace TDSClient.TDS.Tokens
             throw new NotImplementedException();
         }
 
+        public override void ProcessToken()
+        {
+            throw new NotImplementedException();
+        }
+
         /// <summary>
         /// Used to unpack IPackageable from a stream.
         /// </summary>
