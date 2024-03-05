@@ -12,15 +12,27 @@ using namespace System.Net
 using namespace System.net.Sockets
 using namespace System.Collections.Generic
 using namespace System.Diagnostics
+using namespace System.Diagnostics.Tracing
+using namespace Microsoft.Data.SqlClient
 
 # Parameter region for when script is run directly
 # Supports Single, Elastic Pools and Managed Instance (please provide FQDN, MI public endpoint is supported)
 # Supports Azure Synapse / Azure SQL Data Warehouse (*.sql.azuresynapse.net / *.database.windows.net)
 # Supports Public Cloud (*.database.windows.net), Azure China (*.database.chinacloudapi.cn), Azure Germany (*.database.cloudapi.de) and Azure Government (*.database.usgovcloudapi.net)
-$Server = '.database.windows.net' # or any other supported FQDN
+$AuthenticationType = 'Active Directory Password'
+# Set the type of authentication you wish to use:
+    # 'SQL Server Authentication' (default),
+    # 'Active Directory Password', (supported only with MSAL)
+    # 'Active Directory Integrated',
+    # 'Active Directory Interactive',
+    # 'Active Directory Managed Identity' ('Active Directory MSI') NOTE: Managed Identity authentication works only when your application is running as an Azure resource, not with your personal account
+$AuthenticationLibrary = 'MSAL' # Set the authentication library you wish to use: 'ADAL' or 'MSAL'. Default is 'ADAL'.
+$Server = 'identity-test-instance.public.72e285ecfe96.database.windows.net,3342' # or any other supported FQDN
 $Database = ''  # Set the name of the database you wish to test, 'master' will be used by default if nothing is set
 $User = ''  # Set the login username you wish to use, 'AzSQLConnCheckerUser' will be used by default if nothing is set
 $Password = ''  # Set the login password you wish to use, 'AzSQLConnCheckerPassword' will be used by default if nothing is set
+$UserAssignedIdentityClientId = '' # Set the Client ID of the User Assigned Identity you wish to use, if nothing is set, the script will use the system-assigned identity
+
 # In case you want to hide the password (like during a remote session), uncomment the 2 lines below (by removing leading #) and password will be asked during execution
 # $Credentials = Get-Credential -Message "Credentials to test connections to the database (optional)" -User $User
 # $Password = $Credentials.GetNetworkCredential().password
@@ -31,15 +43,22 @@ $RunAdvancedConnectivityPolicyTests = $true  # Set as $true (default) or $false#
 $ConnectionAttempts = 1
 $DelayBetweenConnections = 1
 $CollectNetworkTrace = $true  # Set as $true (default) or $false
-$EncryptionProtocol = ''  # Supported values: 'Tls 1.0', 'Tls 1.1', 'Tls 1.2'; Without this parameter operating system will choose the best protocol to use
+$EncryptionProtocol = 'Tls 1.2'  # Supported values: 'Tls 1.0', 'Tls 1.1', 'Tls 1.2'; Without this parameter operating system will choose the best protocol to use
+
+### Just for testing
+$Local = $true
+$LocalPath = "E:\ConnectivityChecker\SQL-Connectivity-Checker\"
 
 # Parameter region when Invoke-Command -ScriptBlock is used
 $parameters = $args[0]
 if ($null -ne $parameters) {
+    $AuthenticationType = $parameters['AuthenticationType']
+    $AuthenticationLibrary = $parameters['AuthenticationLibrary']
     $Server = $parameters['Server']
     $Database = $parameters['Database']
     $User = $parameters['User']
     $Password = $parameters['Password']
+    
     if ($null -ne $parameters['SendAnonymousUsageData']) {
         $SendAnonymousUsageData = $parameters['SendAnonymousUsageData']
     }
@@ -52,12 +71,12 @@ if ($null -ne $parameters) {
     if ($null -ne $parameters['EncryptionProtocol']) {
         $EncryptionProtocol = $parameters['EncryptionProtocol']
     }
-    if ($null -ne $parameters['Local']) {
-        $Local = $parameters['Local']
-    }
-    if ($null -ne $parameters['LocalPath']) {
-        $LocalPath = $parameters['LocalPath']
-    }
+    # if ($null -ne $parameters['Local']) {
+    #     $Local = $parameters['Local']
+    # }
+    # if ($null -ne $parameters['LocalPath']) {
+    #     $LocalPath = $parameters['LocalPath']
+    # }
     if ($null -ne $parameters['RepositoryBranch']) {
         $RepositoryBranch = $parameters['RepositoryBranch']
     }
@@ -67,6 +86,16 @@ if ($null -ne $parameters) {
     if ($null -ne $parameters['DelayBetweenConnections']) {
         $DelayBetweenConnections = $parameters['DelayBetweenConnections']
     }
+}
+
+# Setting default parameters if not provided
+
+if ($null -eq $AuthenticationType -or '' -eq $AuthenticationType) {
+    $AuthenticationType = 'SQL Server Authentication'
+}
+
+if ($null -eq $AuthenticationLibrary -or '' -eq $AuthenticationLibrary) {
+    $AuthenticationLibrary = 'MSAL'
 }
 
 if ($null -eq $User -or '' -eq $User) {
@@ -81,9 +110,6 @@ if ($null -eq $Database -or '' -eq $Database) {
     $Database = 'master'
 }
 
-if ($null -eq $Local) {
-    $Local = $false
-}
 
 if ($null -eq $RepositoryBranch) {
     $RepositoryBranch = 'master'
@@ -102,57 +128,62 @@ else {
     }
 }
 
+if ($AuthenticationType -eq "Active Directory Password" -and $AuthenticationLibrary -eq "ADAL") {
+    Write-Host "Active Directory Password authentication is not supported with ADAL library, switching to MSAL library"
+    $AuthenticationLibrary = "MSAL"
+}
+
 $SQLDBGateways = @(
-    New-Object PSObject -Property @{Region = "Australia Central"; Gateways = ("20.36.104.6", "20.36.104.7", "20.36.105.33", "20.36.105.34"); TRs = ('tr1', 'tr3', 'tr27', 'tr136'); Cluster = 'australiacentral1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "Australia Central2"; Gateways = ("20.36.112.6", "20.36.113.33", "20.36.113.34"); TRs = ('tr21', 'tr51'); Cluster = 'australiacentral2-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "Australia East"; Gateways = ("40.79.161.1", "13.70.112.9", "20.53.46.128", "20.53.46.129"); TRs = ('tr39', 'tr2000', 'tr2215', 'tr3259'); Cluster = 'australiaeast1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "Australia South East"; Gateways = ("13.77.48.10", "13.77.49.32", "13.77.49.34", "13.77.49.35"); TRs = ('tr3', 'tr4', 'tr70', 'tr373'); Cluster = 'australiasoutheast1-a.worker.database.windows.net'; }
+    New-Object PSObject -Property @{Region = "Australia Central"; Gateways = ("20.36.105.0", "20.36.104.6", "20.36.104.7"); TRs = ('tr1', 'tr3', 'tr27', 'tr136'); Cluster = 'australiacentral1-a.worker.database.windows.net'; }
+    New-Object PSObject -Property @{Region = "Australia Central2"; Gateways = ("20.36.113.0", "20.36.112.6"); TRs = ('tr21', 'tr51'); Cluster = 'australiacentral2-a.worker.database.windows.net'; }
+    New-Object PSObject -Property @{Region = "Australia East"; Gateways = ("13.75.149.87", "40.79.161.1", "13.70.112.9"); TRs = ('tr39', 'tr2000', 'tr2215', 'tr3259'); Cluster = 'australiaeast1-a.worker.database.windows.net'; }
+    New-Object PSObject -Property @{Region = "Australia South East"; Gateways = ("13.73.109.251", "13.77.48.10", "13.77.49.32"); TRs = ('tr3', 'tr4', 'tr70', 'tr373'); Cluster = 'australiasoutheast1-a.worker.database.windows.net'; }
     New-Object PSObject -Property @{Region = "Brazil South"; Gateways = ("191.233.200.14", "191.234.144.16", "191.234.152.3"); TRs = ('tr85', 'tr272', 'tr323', 'tr435'); Cluster = 'brazilsouth1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "Canada Central"; Gateways = ("52.246.152.0", "20.38.144.1", "13.71.168.33"); TRs = ('tr1044', 'tr2061', 'tr2099', 'tr2320'); Cluster = 'canadacentral1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "Canada East"; Gateways = ("40.69.105.9", "40.69.105.10", "40.69.105.33", "40.69.105.34"); TRs = ('tr11', 'tr210', 'tr211', 'tr290'); Cluster = 'canadaeast1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "Central US"; Gateways = ("104.208.21.1", "13.89.169.20", "20.40.228.128", "20.40.228.129"); TRs = ('tr8', 'tr9', 'tr11', 'tr15'); Cluster = 'centralus1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "China East"; Gateways = ("52.130.112.139"); TRs = ('tr2', 'tr3'); Cluster = 'chinaeast1-a.worker.database.chinacloudapi.cn'; }
+    New-Object PSObject -Property @{Region = "Canada Central"; Gateways = ("52.246.152.0", "20.38.144.1"); TRs = ('tr1044', 'tr2061', 'tr2099', 'tr2320'); Cluster = 'canadacentral1-a.worker.database.windows.net'; }
+    New-Object PSObject -Property @{Region = "Canada East"; Gateways = ("40.86.226.166", "52.242.30.154", "40.69.105.9", "40.69.105.10"); TRs = ('tr11', 'tr210', 'tr211', 'tr290'); Cluster = 'canadaeast1-a.worker.database.windows.net'; }
+    New-Object PSObject -Property @{Region = "Central US"; Gateways = ("13.67.215.62", "52.182.137.15", "104.208.21.1", "13.89.169.20"); TRs = ('tr8', 'tr9', 'tr11', 'tr15'); Cluster = 'centralus1-a.worker.database.windows.net'; }
+    New-Object PSObject -Property @{Region = "China East"; Gateways = ("139.219.130.35"); TRs = ('tr2', 'tr3'); Cluster = 'chinaeast1-a.worker.database.chinacloudapi.cn'; }
     New-Object PSObject -Property @{Region = "China East 2"; Gateways = ("40.73.82.1"); TRs = ('tr1', 'tr5', 'tr11'); Cluster = 'chinaeast2-a.worker.database.chinacloudapi.cn'; }
-    New-Object PSObject -Property @{Region = "China North"; Gateways = ("52.130.128.89"); TRs = ('tr2', 'tr3'); Cluster = 'chinanorth1-a.worker.database.chinacloudapi.cn'; }
-    New-Object PSObject -Property @{Region = "China North 2"; Gateways = ("40.73.50.0", "52.130.128.89"); TRs = ('tr1', 'tr67', 'tr119'); Cluster = 'chinanorth2-a.worker.database.chinacloudapi.cn'; }
-    New-Object PSObject -Property @{Region = "East Asia"; Gateways = ("13.75.32.4", "13.75.32.14", "20.205.77.200", "20.205.83.224"); TRs = ('tr220', 'tr832', 'tr850', 'tr1038'); Cluster = 'eastasia1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "East US"; Gateways = ("40.121.158.30", "40.79.153.12", "40.78.225.32", "20.62.132.162", "20.62.132.163", "20.62.132.164", "20.62.132.165"); TRs = ('tr20', 'tr21', 'tr22', 'tr29'); Cluster = 'eastus1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "East US 2"; Gateways = ("104.208.150.3", "40.70.144.193", "20.62.58.128"); TRs = ('tr12332', 'tr12219', 'tr5548', 'tr12110'); Cluster = 'eastus2-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "France Central"; Gateways = ("40.79.129.1", "40.79.137.8", "40.79.145.12"); TRs = ('tr1', 'tr4', 'tr307', 'tr390'); Cluster = 'francecentral1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "France South"; Gateways = ("40.79.177.10", "40.79.177.12", "40.79.176.41", "40.79.176.42"); TRs = ('tr3', 'tr4', 'tr35', 'tr37'); Cluster = 'francesouth1-a.worker.database.windows.net'; }
+    New-Object PSObject -Property @{Region = "China North"; Gateways = ("139.219.15.17"); TRs = ('tr2', 'tr3'); Cluster = 'chinanorth1-a.worker.database.chinacloudapi.cn'; }
+    New-Object PSObject -Property @{Region = "China North 2"; Gateways = ("40.73.50.0"); TRs = ('tr1', 'tr67', 'tr119'); Cluster = 'chinanorth2-a.worker.database.chinacloudapi.cn'; }
+    New-Object PSObject -Property @{Region = "East Asia"; Gateways = ("52.175.33.150", "13.75.32.4", "13.75.32.14", "20.205.77.200", "20.205.83.224"); TRs = ('tr220', 'tr832', 'tr850', 'tr1038'); Cluster = 'eastasia1-a.worker.database.windows.net'; }
+    New-Object PSObject -Property @{Region = "East US"; Gateways = ("40.121.158.30", "40.79.153.12", "40.78.225.32"); TRs = ('tr20', 'tr21', 'tr22', 'tr29'); Cluster = 'eastus1-a.worker.database.windows.net'; }
+    New-Object PSObject -Property @{Region = "East US 2"; Gateways = ("40.79.84.180", "52.177.185.181", "52.167.104.0", "104.208.150.3", "40.70.144.193"); TRs = ('tr12332', 'tr12219', 'tr5548', 'tr12110'); Cluster = 'eastus2-a.worker.database.windows.net'; }
+    New-Object PSObject -Property @{Region = "France Central"; Gateways = ("40.79.137.0", "40.79.129.1", "40.79.137.8", "40.79.145.12"); TRs = ('tr1', 'tr4', 'tr307', 'tr390'); Cluster = 'francecentral1-a.worker.database.windows.net'; }
+    New-Object PSObject -Property @{Region = "France South"; Gateways = ("40.79.177.0", "40.79.177.10", "40.79.177.12"); TRs = ('tr3', 'tr4', 'tr35', 'tr37'); Cluster = 'francesouth1-a.worker.database.windows.net'; }
     New-Object PSObject -Property @{Region = "Germany North"; Gateways = ("51.116.56.0"); TRs = ('tr1', 'tr3', 'tr79', 'tr84'); Cluster = 'germanynorth1-a.worker.database.windows.net'; }
     New-Object PSObject -Property @{Region = "Germany West Central"; Gateways = ("51.116.152.0", "51.116.240.0", "51.116.248.0"); TRs = ('tr206', 'tr188', 'tr495', 'tr669'); Cluster = 'germanywestcentral1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "India Central"; Gateways = ("104.211.86.30", "104.211.86.31", "40.80.48.32", "20.192.96.32", "20.192.43.160", "20.192.43.161"); TRs = ('tr755', 'tr3', 'tr724', 'tr104'); Cluster = 'indiacentral1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "India South"; Gateways = ("104.211.224.146", "40.78.192.33", "40.78.192.34"); TRs = ('tr3', 'tr464', 'tr490', 'tr474'); Cluster = 'indiasouth1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "India West"; Gateways = ("104.211.144.4"); TRs = ('tr7', 'tr99', 'tr214', 'tr227'); Cluster = 'indiawest1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "Japan East"; Gateways = ("40.79.184.8", "40.79.192.5", "13.78.104.32", "40.79.184.32", "20.191.165.160", "20.191.165.161", "20.191.165.162"); TRs = ('tr1945', 'tr2260', 'tr2004', 'tr1944'); Cluster = 'japaneast1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "Japan West"; Gateways = ("104.214.148.156", "40.74.97.10", "20.18.179.192", "20.18.179.193"); TRs = ('tr11', 'tr12', 'tr13'); Cluster = 'japanwest1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "Korea Central"; Gateways = ("52.231.17.22", "52.231.17.23", "20.44.24.32", "20.194.64.33"); TRs = ('tr760', 'tr10', 'tr118', 'tr698'); Cluster = 'koreacentral1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "Korea South"; Gateways = ("52.231.151.96"); TRs = ('tr149', 'tr3', 'tr75', 'tr77'); Cluster = 'koreasouth1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "North Central US"; Gateways = ("52.162.104.33", "52.162.105.9", "52.162.105.200", "20.125.171.192"); TRs = ('tr13', 'tr15', 'tr16', 'tr1871'); Cluster = 'northcentralus1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "North Europe"; Gateways = ("52.138.224.1", "13.74.104.113"); TRs = ('tr24', 'tr31', 'tr1579', 'tr3180'); Cluster = 'northeurope1-a.worker.database.windows.net'; }
+    New-Object PSObject -Property @{Region = "India Central"; Gateways = ("104.211.96.159", "104.211.86.30", "104.211.86.31", "40.80.48.32", "20.192.96.32"); TRs = ('tr755', 'tr3', 'tr724', 'tr104'); Cluster = 'indiacentral1-a.worker.database.windows.net'; }
+    New-Object PSObject -Property @{Region = "India South"; Gateways = ("104.211.224.146"); TRs = ('tr3', 'tr464', 'tr490', 'tr474'); Cluster = 'indiasouth1-a.worker.database.windows.net'; }
+    New-Object PSObject -Property @{Region = "India West"; Gateways = ("104.211.160.80", "104.211.144.4"); TRs = ('tr7', 'tr99', 'tr214', 'tr227'); Cluster = 'indiawest1-a.worker.database.windows.net'; }
+    New-Object PSObject -Property @{Region = "Japan East"; Gateways = ("13.78.61.196", "40.79.184.8", "40.79.192.5", "13.78.104.32", "40.79.184.32"); TRs = ('tr1945', 'tr2260', 'tr2004', 'tr1944'); Cluster = 'japaneast1-a.worker.database.windows.net'; }
+    New-Object PSObject -Property @{Region = "Japan West"; Gateways = ("104.214.148.156", "40.74.97.10"); TRs = ('tr11', 'tr12', 'tr13'); Cluster = 'japanwest1-a.worker.database.windows.net'; }
+    New-Object PSObject -Property @{Region = "Korea Central"; Gateways = ("52.231.32.42", "52.231.17.22", "52.231.17.23", "20.44.24.32", "20.194.64.33"); TRs = ('tr760', 'tr10', 'tr118', 'tr698'); Cluster = 'koreacentral1-a.worker.database.windows.net'; }
+    New-Object PSObject -Property @{Region = "Korea South"; Gateways = ("52.231.200.86", "52.231.151.96"); TRs = ('tr149', 'tr3', 'tr75', 'tr77'); Cluster = 'koreasouth1-a.worker.database.windows.net'; }
+    New-Object PSObject -Property @{Region = "North Central US"; Gateways = ("23.96.178.199", "52.162.104.33", "52.162.105.9"); TRs = ('tr13', 'tr15', 'tr16', 'tr1871'); Cluster = 'northcentralus1-a.worker.database.windows.net'; }
+    New-Object PSObject -Property @{Region = "North Europe"; Gateways = ("40.113.93.91", "52.138.224.1", "13.74.104.113"); TRs = ('tr24', 'tr31', 'tr1579', 'tr3180'); Cluster = 'northeurope1-a.worker.database.windows.net'; }
     New-Object PSObject -Property @{Region = "Norway East"; Gateways = ("51.120.96.0", "51.120.96.33", "51.120.104.32", "51.120.208.32"); TRs = ('tr1', 'tr45', 'tr14'); Cluster = 'norwayeast1-a.worker.database.windows.net'; }
     New-Object PSObject -Property @{Region = "Norway West"; Gateways = ("51.120.216.0"); TRs = ('tr1', 'tr17', 'tr14'); Cluster = 'norwaywest1-a.worker.database.windows.net'; }
     New-Object PSObject -Property @{Region = "South Africa North"; Gateways = ("102.133.152.0", "102.133.120.2", "102.133.152.32"); TRs = ('tr544', 'tr299', 'tr445', 'tr480'); Cluster = 'southafricanorth1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "South Africa West"; Gateways = ("102.133.24.0", "102.133.25.32"); TRs = ('tr1', 'tr18', 'tr22'); Cluster = 'southafricawest1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "South Central US"; Gateways = ("104.214.16.32", "20.45.121.1", "20.49.88.1"); TRs = ('tr22', 'tr24', 'tr2465', 'tr2554'); Cluster = 'southcentralus1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "South East Asia"; Gateways = ("40.78.232.3", "13.67.16.193", "20.195.65.33"); TRs = ('tr3335', 'tr2135', 'tr3866', 'tr3572'); Cluster = 'southeastasia1-a.worker.database.windows.net'; }
+    New-Object PSObject -Property @{Region = "South Africa West"; Gateways = ("102.133.24.0"); TRs = ('tr1', 'tr18', 'tr22'); Cluster = 'southafricawest1-a.worker.database.windows.net'; }
+    New-Object PSObject -Property @{Region = "South Central US"; Gateways = ("13.66.62.124", "104.214.16.32", "20.45.121.1", "20.49.88.1"); TRs = ('tr22', 'tr24', 'tr2465', 'tr2554'); Cluster = 'southcentralus1-a.worker.database.windows.net'; }
+    New-Object PSObject -Property @{Region = "South East Asia"; Gateways = ("104.43.15.0", "40.78.232.3", "13.67.16.193"); TRs = ('tr3335', 'tr2135', 'tr3866', 'tr3572'); Cluster = 'southeastasia1-a.worker.database.windows.net'; }
     New-Object PSObject -Property @{Region = "Switzerland North"; Gateways = ("51.107.56.0", "20.208.19.192", "51.103.203.192"); TRs = ('tr1', 'tr2', 'tr54'); Cluster = 'switzerlandnorth1-a.worker.database.windows.net'; }
     New-Object PSObject -Property @{Region = "Switzerland West"; Gateways = ("51.107.152.0"); TRs = ('tr1', 'tr2', 'tr52'); Cluster = 'switzerlandwest1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "UAE Central"; Gateways = ("20.37.72.64", "20.37.72.96"); TRs = ('tr4', 'tr23', 'tr49'); Cluster = 'uaecentral1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "UAE North"; Gateways = ("65.52.248.0", "65.52.248.32", "20.38.152.24"); TRs = ('tr1', 'tr4', 'tr76', 'tr410'); Cluster = 'uaenorth1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "UK South"; Gateways = ("51.105.64.0", '51.140.144.36', '51.105.72.32', "51.143.209.224"); TRs = ('tr5', 'tr6', 'tr1666', 'tr2811'); Cluster = 'uksouth1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "UK West"; Gateways = ("51.140.208.96", "51.140.208.97", "51.140.208.99"); TRs = ('tr14', 'tr127', 'tr529', 'tr623'); Cluster = 'ukwest1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "West Central US"; Gateways = ("13.78.248.43", '13.71.193.32', '13.71.193.33'); TRs = ('tr11', 'tr359', 'tr409', 'tr1367'); Cluster = 'westcentralus1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "West Europe"; Gateways = ("104.40.168.105", "52.236.184.163", "20.61.99.192", "20.61.99.193"); TRs = ('tr29', 'tr30', 'tr33', 'tr34'); Cluster = 'westeurope1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "West US"; Gateways = ("104.42.238.205", "13.86.216.196","13.86.217.224","13.86.217.225","20.168.163.192","20.168.163.193"); TRs = ('tr37', 'tr38', 'tr41', 'tr47'); Cluster = 'westus1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "West US 2"; Gateways = ("40.78.240.8", "40.78.248.10", "20.51.9.128", "20.51.9.129"); TRs = ('tr4709', 'tr6453', 'tr6469', 'tr7228'); Cluster = 'westus2-a.worker.database.windows.net'; }
+    New-Object PSObject -Property @{Region = "UAE Central"; Gateways = ("20.37.72.64"); TRs = ('tr4', 'tr23', 'tr49'); Cluster = 'uaecentral1-a.worker.database.windows.net'; }
+    New-Object PSObject -Property @{Region = "UAE North"; Gateways = ("65.52.248.0"); TRs = ('tr1', 'tr4', 'tr76', 'tr410'); Cluster = 'uaenorth1-a.worker.database.windows.net'; }
+    New-Object PSObject -Property @{Region = "UK South"; Gateways = ("51.140.184.11", "51.105.64.0", '51.140.144.36', '51.105.72.32'); TRs = ('tr5', 'tr6', 'tr1666', 'tr2811'); Cluster = 'uksouth1-a.worker.database.windows.net'; }
+    New-Object PSObject -Property @{Region = "UK West"; Gateways = ("51.141.8.11", "51.140.208.96", "51.140.208.97"); TRs = ('tr14', 'tr127', 'tr529', 'tr623'); Cluster = 'ukwest1-a.worker.database.windows.net'; }
+    New-Object PSObject -Property @{Region = "West Central US"; Gateways = ("13.78.145.25", "13.78.248.43", '13.71.193.32', '13.71.193.33'); TRs = ('tr11', 'tr359', 'tr409', 'tr1367'); Cluster = 'westcentralus1-a.worker.database.windows.net'; }
+    New-Object PSObject -Property @{Region = "West Europe"; Gateways = ("40.68.37.158", "104.40.168.105", "52.236.184.163"); TRs = ('tr29', 'tr30', 'tr33', 'tr34'); Cluster = 'westeurope1-a.worker.database.windows.net'; }
+    New-Object PSObject -Property @{Region = "West US"; Gateways = ("104.42.238.205", "13.86.216.196"); TRs = ('tr37', 'tr38', 'tr41', 'tr47'); Cluster = 'westus1-a.worker.database.windows.net'; }
+    New-Object PSObject -Property @{Region = "West US 2"; Gateways = ("13.66.226.202", "40.78.240.8", "40.78.248.10"); TRs = ('tr4709', 'tr6453', 'tr6469', 'tr7228'); Cluster = 'westus2-a.worker.database.windows.net'; }
     New-Object PSObject -Property @{Region = "West US 3"; Gateways = ("20.150.168.0", "20.150.184.2"); TRs = ('tr1', 'tr4', 'tr1235'); Cluster = 'westus3-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "US DoD East"; Gateways = ("52.126.200.3"); TRs = ('tr3', 'tr4', 'tr5'); Cluster = 'usdodeast1-a.worker.database.usgovcloudapi.net'; }
+    New-Object PSObject -Property @{Region = "US DoD East"; Gateways = ("52.181.160.27"); TRs = ('tr3', 'tr4', 'tr5'); Cluster = 'usdodeast1-a.worker.database.usgovcloudapi.net'; }
     New-Object PSObject -Property @{Region = "US DoD Central"; Gateways = ("52.182.88.34"); TRs = ('tr1', 'tr4', 'tr7'); Cluster = 'usdodcentral1-a.worker.database.usgovcloudapi.net'; }
-    New-Object PSObject -Property @{Region = "US Gov Texas"; Gateways = ("52.127.33.32"); TRs = ('tr1', 'tr2', 'tr29'); Cluster = 'usgovsouthcentral1-a.worker.database.usgovcloudapi.net'; }
-    New-Object PSObject -Property @{Region = "US Gov Arizona"; Gateways = ("52.127.0.14"); TRs = ('tr1', 'tr4', 'tr13'); Cluster = 'usgovsouthwest1-a.worker.database.usgovcloudapi.net'; }
-    New-Object PSObject -Property @{Region = "US Gov Virginia"; Gateways = ("13.72.48.140", "52.127.41.2", "20.140.88.2"); TRs = ('tr1', 'tr3', 'tr5'); Cluster = 'usgoveast1-a.worker.database.usgovcloudapi.net'; }
+    New-Object PSObject -Property @{Region = "US Gov Texas"; Gateways = ("52.238.116.32"); TRs = ('tr1', 'tr2', 'tr29'); Cluster = 'usgovsouthcentral1-a.worker.database.usgovcloudapi.net'; }
+    New-Object PSObject -Property @{Region = "US Gov Arizona"; Gateways = ("52.244.48.33"); TRs = ('tr1', 'tr4', 'tr13'); Cluster = 'usgovsouthwest1-a.worker.database.usgovcloudapi.net'; }
+    New-Object PSObject -Property @{Region = "US Gov Virginia"; Gateways = ("13.72.48.140"); TRs = ('tr1', 'tr3', 'tr5'); Cluster = 'usgoveast1-a.worker.database.usgovcloudapi.net'; }
 )
 
 $TRPorts = @('11000', '11001', '11003', '11005', '11006')
@@ -161,6 +192,7 @@ $summaryRecommendedAction = New-Object -TypeName "System.Text.StringBuilder"
 $AnonymousRunId = ([guid]::NewGuid()).Guid
 
 # Error Messages
+
 $DNSResolutionFailed = ' Please make sure the server name FQDN is correct and that your machine can resolve it.
  Failure to resolve domain name for your logical server is almost always the result of specifying an invalid/misspelled server name,
  or a client-side networking issue that you will need to pursue with your local network administrator.'
@@ -302,7 +334,7 @@ $SQLDB_Error40532 = ' Error 40532 is usually related to one of the following sce
     To fix this issue create a virtual network rule in your server in SQL Database, for the originating subnet in the Firewalls and virtual networks.
     See how to at https://docs.microsoft.com/azure/azure-sql/database/vnet-service-endpoint-rule-overview#use-the-portal-to-create-a-virtual-network-rule
     You can also consider removing the service endpoint from the subnet, but you will need to take into consideration the impact in all the services mentioned above.'
-
+ 
 $CannotDownloadAdvancedScript = ' Advanced connectivity policy tests script could not be downloaded!
  Confirm this machine can access https://github.com/Azure/SQL-Connectivity-Checker/
  or use a machine with Internet access to see how to run this from machines without Internet. See how at https://github.com/Azure/SQL-Connectivity-Checker/'
@@ -586,14 +618,17 @@ function FilterTranscript() {
     }
 }
 
-function TestConnectionToDatabase($Server, $gatewayPort, $Database, $User, $Password) {
+function TestConnectionToDatabase($Server, $gatewayPort, $Database, $AuthenticationType, $AuthenticationLibrary, $User, $Password) {
     Write-Host
     [void]$summaryLog.AppendLine()
     Write-Host ([string]::Format("Testing connecting to {0} database (please wait):", $Database)) -ForegroundColor Green
     Try {
-        $masterDbConnection = [System.Data.SqlClient.SQLConnection]::new()
-        $masterDbConnection.ConnectionString = [string]::Format("Server=tcp:{0},{1};Initial Catalog={2};Persist Security Info=False;User ID='{3}';Password='{4}';MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;Application Name=Azure-SQL-Connectivity-Checker;",
-            $Server, $gatewayPort, $Database, $User, $Password)
+        $masterDbConnection = [Microsoft.Data.SqlClient.SqlConnection]::new()
+        Write-Host $Database
+        Write-Host $AuthenticationType
+        Write-Host $AuthenticationLibrary
+        Write-Host $User
+        $masterDbConnection.ConnectionString = GetConnectionString $Server $gatewayPort $Database $AuthenticationType $User $Password $UserAssignedIdentityClientId
         $masterDbConnection.Open()
         Write-Host ([string]::Format(" The connection attempt succeeded", $Database))
         [void]$summaryLog.AppendLine([string]::Format(" The connection attempt to {0} database succeeded", $Database))
@@ -753,6 +788,30 @@ function TestConnectionToDatabase($Server, $gatewayPort, $Database, $User, $Pass
     }
 }
 
+function GetConnectionString ($Server, $gatewayPort, $Database, $AuthenticationType, $User, $Password, $UserAssignedIdentityClientId) {
+    if (($null -eq $AuthenticationType) -or ('SQL Server Authentication' -eq $AuthenticationType) -or ('' -eq $AuthenticationType)) {
+        return [string]::Format("Server=tcp:{0},{1};Initial Catalog={2};Persist Security Info=False;User ID='{3}';Password='{4}';MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;Application Name=Azure-SQL-Connectivity-Checker;",
+            $Server, $gatewayPort, $Database, $User, $Password)
+    }
+    if ('Active Directory Password' -eq $AuthenticationType) { 
+        return [string]::Format("Server=tcp:{0},{1};Initial Catalog={2};Persist Security Info=False;User ID='{3}';Password='{4}';MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Application Name=Azure-SQL-Connectivity-Checker;Authentication='Active Directory Password'",
+            $Server, $gatewayPort, $Database, $User, $Password)
+    }
+    if ('Active Directory Interactive' -eq $AuthenticationType) { 
+        return [string]::Format("Server=tcp:{0},{1};Initial Catalog={2};Persist Security Info=False;User ID='{3}';MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Application Name=Azure-SQL-Connectivity-Checker;Authentication='Active Directory Interactive'",
+            $Server, $gatewayPort, $Database, $User)
+    }
+    if ('Active Directory Integrated' -eq $AuthenticationType) { 
+        return [string]::Format("Server=tcp:{0},{1};Initial Catalog={2};Persist Security Info=False;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Application Name=Azure-SQL-Connectivity-Checker;Authentication='Active Directory Integrated'",
+            $Server, $gatewayPort, $Database, $User)
+    }
+    if ('Active Directory Managed Identity' -eq $AuthenticationType -or 'Active Directory MSI' -eq $AuthenticationType) { 
+        Write-Host $AuthenticationType
+        return [string]::Format("Server=tcp:{0},{1};Initial Catalog={2};Persist Security Info=False;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Application Name=Azure-SQL-Connectivity-Checker;Authentication='Active Directory MSI'",
+            $Server, $gatewayPort, $Database)
+    }
+}
+
 function PrintSupportedCiphers() {
     Try {
         if ( ($PSVersionTable.PSVersion.Major -le 5 ) -or ($PSVersionTable.Platform -eq 'Windows')) {
@@ -761,7 +820,7 @@ function PrintSupportedCiphers() {
             Write-Host 'Client Tls Cipher Suites:'
             Write-Host $suites.Trim()
             Write-Host
-
+        
             $suites = Get-TlsCipherSuite
             $supportedSuites = @(
                 'TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384',
@@ -776,13 +835,13 @@ function PrintSupportedCiphers() {
                 'TLS_RSA_WITH_AES_128_CBC_SHA',
                 'TLS_RSA_WITH_3DES_EDE_CBC_SHA'
             )
-
+        
             if (($suites | Where-Object Name -in $supportedSuites | Measure-Object).Count -eq 0) {
                 Write-Host
                 $msg = "WARNING: Client machine may not have any supported cipher suite enabled!"
                 Write-Host $msg -Foreground Red
                 [void]$summaryLog.AppendLine($msg)
-                [void]$summaryRecommendedAction.AppendLine($msg)
+                [void]$summaryRecommendedAction.AppendLine($msg)            
                 Write-Host
                 Write-Host
                 $msg = 'Supported Tls Cipher Suites:'
@@ -851,7 +910,7 @@ function RunSqlMIPublicEndpointConnectivityTests($resolvedAddress) {
             $msg = ' Gateway connectivity to ' + $resolvedAddress + ':3342 succeed'
             [void]$summaryLog.AppendLine($msg)
             TrackWarningAnonymously 'SQLMI|PublicEndpoint|GatewayTestSucceeded'
-            RunConnectionToDatabaseTestsAndAdvancedTests $Server '3342' $Database $User $Password
+            RunConnectionToDatabaseTestsAndAdvancedTests $Server '3342' $Database $AuthenticationType $AuthenticationLibrary $User $Password
         }
         else {
             Write-Host ' -> TCP test FAILED' -ForegroundColor Red
@@ -997,7 +1056,7 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
             TrackWarningAnonymously 'SQLDB|PrivateLink'
         }
         else {
-            $msg = ' WARNING: ' + $resolvedAddress + ' does not seem to be a valid gateway address, please confirm it is part of the gateway address ranges'
+            $msg = ' WARNING: ' + $resolvedAddress + ' is not a valid gateway address'
             Write-Host $msg -Foreground Red
             [void]$summaryLog.AppendLine()
             [void]$summaryLog.AppendLine($msg)
@@ -1181,6 +1240,9 @@ function RunConnectivityPolicyTests($port) {
             Server                  = $Server
             Database                = $Database
             Port                    = $port
+            AuthenticationType      = $AuthenticationType
+            AuthenticationLibrary   = $AuthenticationLibrary
+            UserAssignedIdentityClientId = $UserAssignedIdentityClientId
             User                    = $User
             Password                = $Password
             EncryptionProtocol      = $EncryptionProtocol
@@ -1196,24 +1258,25 @@ function RunConnectivityPolicyTests($port) {
         }
 
         if ($Local) {
-            Copy-Item -Path $($LocalPath + './AdvancedConnectivityPolicyTests.ps1') -Destination ".\AdvancedConnectivityPolicyTests.ps1"
+            Copy-Item -Path $($LocalPath + '\AdvancedConnectivityPolicyTests.ps1') -Destination ".\AdvancedConnectivityPolicyTests.ps1"
         }
-        else {
-            try {
-                [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls11 -bor [Net.SecurityProtocolType]::Tls
-                Invoke-WebRequest -Uri $('https://raw.githubusercontent.com/Azure/SQL-Connectivity-Checker/' + $RepositoryBranch + '/AdvancedConnectivityPolicyTests.ps1') -OutFile ".\AdvancedConnectivityPolicyTests.ps1" -UseBasicParsing
-            }
-            catch {
-                $msg = $CannotDownloadAdvancedScript
-                Write-Host $msg -Foreground Yellow
-                [void]$summaryLog.AppendLine()
-                [void]$summaryLog.AppendLine($msg)
-                [void]$summaryRecommendedAction.AppendLine()
-                [void]$summaryRecommendedAction.AppendLine($msg)
-                TrackWarningAnonymously 'Advanced|CannotDownloadScript'
-                return
-            }
-        }
+        ### USING GITHUB HERE
+        # else {
+        #     try {
+        #         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls11 -bor [Net.SecurityProtocolType]::Tls
+        #         Invoke-WebRequest -Uri $('https://raw.githubusercontent.com/Azure/SQL-Connectivity-Checker/' + $RepositoryBranch + '/AdvancedConnectivityPolicyTests.ps1') -OutFile ".\AdvancedConnectivityPolicyTests.ps1" -UseBasicParsing
+        #     }
+        #     catch {
+        #         $msg = $CannotDownloadAdvancedScript
+        #         Write-Host $msg -Foreground Yellow
+        #         [void]$summaryLog.AppendLine()
+        #         [void]$summaryLog.AppendLine($msg)
+        #         [void]$summaryRecommendedAction.AppendLine()
+        #         [void]$summaryRecommendedAction.AppendLine($msg)
+        #         TrackWarningAnonymously 'Advanced|CannotDownloadScript'
+        #         return
+        #     }
+        # }
 
         TrackWarningAnonymously 'Advanced|Invoked'
         $job = Start-Job -ArgumentList $jobParameters -FilePath ".\AdvancedConnectivityPolicyTests.ps1"
@@ -1279,8 +1342,7 @@ function LookupDatabaseInSysDatabases($Server, $dbPort, $Database, $User, $Passw
     Try {
         Write-Host ' Checking if' $Database 'exist in sys.databases:' -ForegroundColor White
         $masterDbConnection = [System.Data.SqlClient.SQLConnection]::new()
-        $masterDbConnection.ConnectionString = [string]::Format("Server=tcp:{0},{1};Initial Catalog='master';Persist Security Info=False;User ID='{2}';Password='{3}';MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;Application Name=Azure-SQL-Connectivity-Checker;",
-            $Server, $dbPort, $User, $Password)
+        $masterDbConnection.ConnectionString = GetConnectionString $Server $gatewayPort $Database $AuthenticationType $User $Password
         $masterDbConnection.Open()
 
         $masterDbCommand = New-Object System.Data.SQLClient.SQLCommand
@@ -1300,16 +1362,16 @@ function LookupDatabaseInSysDatabases($Server, $dbPort, $Database, $User, $Passw
     }
 }
 
-function RunConnectionToDatabaseTestsAndAdvancedTests($Server, $dbPort, $Database, $User, $Password) {
+function RunConnectionToDatabaseTestsAndAdvancedTests($Server, $dbPort, $Database, $AuthenticationType, $AuthenticationLibrary, $User, $Password) {
     try {
         $customDatabaseNameWasSet = $Database -and $Database.Length -gt 0 -and $Database -ne 'master'
 
         #Test master database
-        $canConnectToMaster = TestConnectionToDatabase $Server $dbPort 'master' $User $Password
+        $canConnectToMaster = TestConnectionToDatabase $Server $dbPort 'master' $AuthenticationType $AuthenticationLibrary $User $Password
 
         if ($customDatabaseNameWasSet) {
             if ($canConnectToMaster) {
-                $databaseFound = LookupDatabaseInSysDatabases $Server $dbPort $Database $User $Password
+                $databaseFound = LookupDatabaseInSysDatabases $Server $dbPort $Database $AuthenticationType $User $Password
 
                 if ($databaseFound -eq $true) {
                     $msg = '  ' + $Database + ' was found in sys.databases of master database'
@@ -1318,7 +1380,7 @@ function RunConnectionToDatabaseTestsAndAdvancedTests($Server, $dbPort, $Databas
 
                     #Test database from parameter
                     if ($customDatabaseNameWasSet) {
-                        TestConnectionToDatabase $Server $dbPort $Database $User $Password | Out-Null
+                        TestConnectionToDatabase $Server $dbPort $Database $AuthenticationType $AuthenticationLibrary $User $Password | Out-Null
                     }
                 }
                 else {
@@ -1338,12 +1400,12 @@ function RunConnectionToDatabaseTestsAndAdvancedTests($Server, $dbPort, $Databas
             else {
                 #Test database from parameter anyway
                 if ($customDatabaseNameWasSet) {
-                    TestConnectionToDatabase $Server $dbPort $Database $User $Password | Out-Null
+                    TestConnectionToDatabase $Server $dbPort $Database $AuthenticationType $AuthenticationLibrary $User $Password | Out-Null
                 }
             }
-        }
+        } 
 
-        #Advanced Connectivity Tests
+        # Advanced Connectivity Tests
         if ($RunAdvancedConnectivityPolicyTests) {
             RunConnectivityPolicyTests $dbPort
         }
@@ -1413,15 +1475,27 @@ try {
         Write-Host Warning: Cannot write log file -ForegroundColor Yellow
     }
 
-    TrackWarningAnonymously 'v1.49'
+    TrackWarningAnonymously 'v1.46'
     TrackWarningAnonymously ('PowerShell ' + $PSVersionTable.PSVersion + '|' + $PSVersionTable.Platform + '|' + $PSVersionTable.OS )
 
     try {
         Write-Host '******************************************' -ForegroundColor Green
-        Write-Host '  Azure SQL Connectivity Checker v1.49  ' -ForegroundColor Green
+        Write-Host '  Azure SQL Connectivity Checker v1.46  ' -ForegroundColor Green
         Write-Host '******************************************' -ForegroundColor Green
         Write-Host
         Write-Host 'Parameters' -ForegroundColor Yellow
+
+        if ($null -ne $AuthenticationType) {
+            Write-Host ' Authentication type:' $AuthenticationType -ForegroundColor Yellow
+        }
+        else {
+            Write-Host ' Authentication type: SQL Server Authentication' -ForegroundColor Yellow
+        }
+
+        if ($AuthenticationType -like "*Active Directory*") {
+            Write-Host ' Authentication library:' $AuthenticationLibrary -ForegroundColor Yellow
+        }
+
         Write-Host ' Server:' $Server -ForegroundColor Yellow
 
         if ($null -ne $Database) {
@@ -1462,7 +1536,7 @@ try {
             [void]$summaryRecommendedAction.AppendLine($msg)
 
             $msg = ' Note that the public endpoint host name comes in the format <mi_name>.public.<dns_zone>.database.windows.net and that the port used for the connection is 3342.
- Please specify port 3342 by setting Server parameter like: <mi_name>.public.<dns_zone>.database.windows.net,3342'
+                    Please specify port 3342 by setting Server parameter like: <mi_name>.public.<dns_zone>.database.windows.net,3342'
             Write-Host $msg -Foreground Red
             [void]$summaryRecommendedAction.AppendLine($msg)
             TrackWarningAnonymously 'ManagedInstancePublicEndpoint|WrongPort'
@@ -1554,27 +1628,12 @@ try {
                 [void]$summaryRecommendedAction.AppendLine($msg)
                 TrackWarningAnonymously 'DNSResolutionFailed'
             }
+            
             Write-Error '' -ErrorAction Stop
         }
+
         $resolvedAddress = $dnsResult.AddressList[0].IPAddressToString
         $dbPort = 1433
-
-        #Run connectivity tests
-        Write-Host
-        if ($isManagedInstance) {
-            if ($isManagedInstancePublicEndpoint) {
-                RunSqlMIPublicEndpointConnectivityTests $resolvedAddress
-                $dbPort = 3342
-            }
-            else {
-                if (!(RunSqlMIVNetConnectivityTests $resolvedAddress)) {
-                    throw
-                }
-            }
-        }
-        else {
-            RunSqlDBConnectivityTests $resolvedAddress
-        }
 
         Write-Host
         [void]$summaryLog.AppendLine()
@@ -1584,7 +1643,7 @@ try {
         $portOpen = $tcpClient.ConnectAsync("login.windows.net", 443).Wait(10000)
         if ($portOpen) {
             Write-Host ' -> TCP test succeeded' -ForegroundColor Green
-            $msg = ' Connectivity to login.windows.net:443 succeed (used for AAD Password and Integrated Authentication)'
+            $msg = ' Connectivity to login.windows.net:443 succeeded (used for AAD Password and Integrated Authentication)'
             [void]$summaryLog.AppendLine($msg)
         }
         else {
@@ -1607,7 +1666,7 @@ try {
         $portOpen = $tcpClient.ConnectAsync("login.microsoftonline.com", 443).Wait(10000)
         if ($portOpen) {
             Write-Host ' -> TCP test succeeded' -ForegroundColor Green
-            $msg = ' Connectivity to login.microsoftonline.com:443 succeed (used for AAD Universal with MFA authentication)'
+            $msg = ' Connectivity to login.microsoftonline.com:443 succeeded (used for AAD Universal with MFA authentication)'
             [void]$summaryLog.AppendLine($msg)
         }
         else {
@@ -1642,6 +1701,23 @@ try {
             [void]$summaryRecommendedAction.AppendLine()
             [void]$summaryRecommendedAction.AppendLine($msg)
             TrackWarningAnonymously 'AAD|secure.aadcdn.microsoftonline-p.com'
+        }
+
+        #Run connectivity tests
+        Write-Host
+        if ($isManagedInstance) {
+            if ($isManagedInstancePublicEndpoint) {
+                RunSqlMIPublicEndpointConnectivityTests $resolvedAddress
+                $dbPort = 3342
+            }
+            else {
+                if (!(RunSqlMIVNetConnectivityTests $resolvedAddress)) {
+                    throw
+                }
+            }
+        }
+        else {
+            RunSqlDBConnectivityTests $resolvedAddress
         }
 
         Write-Host

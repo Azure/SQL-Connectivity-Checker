@@ -7,6 +7,7 @@
 namespace TDSClient.TDS.Tokens
 {
     using System.IO;
+    
     using TDSClient.TDS.Interfaces;
 
     /// <summary>

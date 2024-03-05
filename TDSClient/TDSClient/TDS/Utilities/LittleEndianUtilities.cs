@@ -6,7 +6,8 @@
 
 namespace TDSClient.TDS.Utilities
 {
-    using System.IO;
+using System.IO;
+using System.Text;
 
     /// <summary>
     /// Utility class used for read and write operations on a stream containing data in little-endian byte order
@@ -68,5 +69,108 @@ namespace TDSClient.TDS.Utilities
             
             return result;
         }
+
+        /// <summary>
+        /// Read a password string and decrypt it
+        /// </summary>
+        internal static string ReadPasswordString(Stream source, ushort length)
+        {
+            byte[] byteString = new byte[length];
+
+            source.Read(byteString, 0, byteString.Length);
+
+            // Perform password decryption
+            for (int i = 0; i < byteString.Length; i++)
+            {
+                // XOR first
+                byteString[i] ^= 0xA5;
+
+                // Swap 4 high bits with 4 low bits
+                byteString[i] = (byte)(((byteString[i] & 0xf0) >> 4) | ((byteString[i] & 0xf) << 4));
+            }
+
+            // Convert
+            return Encoding.Unicode.GetString(byteString, 0, byteString.Length);
+        }
+
+        /// <summary>
+        /// Read string from the packet
+        /// </summary>
+        internal static string ReadString(Stream source, ushort length)
+        {
+            if (length == 0)
+            {
+                return null;
+            }
+
+            byte[] byteString = new byte[length];
+
+            source.Read(byteString, 0, byteString.Length);
+
+            return Encoding.Unicode.GetString(byteString, 0, byteString.Length);
+        }
+
+        /// <summary>
+        /// Write password string encrypted into the packet
+        /// </summary>
+        internal static void WritePasswordString(Stream destination, string value)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                return;
+            }
+
+            byte[] byteString = Encoding.Unicode.GetBytes(value);
+
+            // Perform password decryption
+            for (int i = 0; i < byteString.Length; i++)
+            {
+                // Swap 4 high bits with 4 low bits
+                byteString[i] = (byte)(((byteString[i] & 0xf0) >> 4) | ((byteString[i] & 0xf) << 4));
+
+                // XOR
+                byteString[i] ^= 0xA5;
+            }
+
+            destination.Write(byteString, 0, byteString.Length);
+        }
+
+        /// <summary>
+        /// Write string from into the packet
+        /// </summary>
+        internal static void WriteString(Stream destination, string value)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                return;
+            }
+
+            byte[] byteString = Encoding.Unicode.GetBytes(value);
+
+            destination.Write(byteString, 0, byteString.Length);
+        }
+
+        /// <summary>
+        /// Read signed integer from the packet
+        /// </summary>
+        internal static int ReadInt(Stream source)
+        {
+            return source.ReadByte()
+                + source.ReadByte() << 8
+                + source.ReadByte() << 16
+                + source.ReadByte() << 24;
+        }
+
+        /// <summary>
+        /// Write signed integer into the stream
+        /// </summary>
+        internal static void WriteInt(Stream destination, int value)
+        {
+            destination.WriteByte((byte)value);
+            destination.WriteByte((byte)(value >> 8));
+            destination.WriteByte((byte)(value >> 16));
+            destination.WriteByte((byte)(value >> 24));
+        }
+
     }
 }

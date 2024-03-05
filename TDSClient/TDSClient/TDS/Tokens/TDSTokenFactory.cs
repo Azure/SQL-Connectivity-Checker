@@ -8,7 +8,10 @@ namespace TDSClient.TDS.Tokens
 {
     using System;
     using System.IO;
+    
     using TDSClient.TDS.Utilities;
+    using TDSClient.TDS.FedAuthInfo;
+
 
     /// <summary>
     /// Factory used to read different tokens from a stream
@@ -46,6 +49,14 @@ namespace TDSClient.TDS.Tokens
                 case TDSTokenType.Info:
                     {
                         var token = new TDSInfoToken();
+                        token.Unpack(stream);
+
+                        return token;
+                    }
+
+                case TDSTokenType.FedAuthInfo:
+                    {
+                        var token = new TDSFedAuthInfoToken();
                         token.Unpack(stream);
 
                         return token;
@@ -89,7 +100,7 @@ namespace TDSClient.TDS.Tokens
                             throw new NotSupportedException();
                         }
 
-                        ushort length = LittleEndianUtilities.ReadUShort(stream);
+                        ushort length = tokenType == TDSTokenType.FeatureExtAck ? (ushort)6 : LittleEndianUtilities.ReadUShort(stream);
                         for (int i = 0; i < length; i++)
                         {
                             stream.ReadByte();

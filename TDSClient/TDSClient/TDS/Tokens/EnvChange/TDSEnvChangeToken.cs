@@ -11,6 +11,7 @@ namespace TDSClient.TDS.Tokens
     using System.IO;
     using System.Linq;
     using System.Text;
+    
     using TDSClient.TDS.Tokens.EnvChange;
     using TDSClient.TDS.Utilities;
 
@@ -26,8 +27,13 @@ namespace TDSClient.TDS.Tokens
         /// </summary>
         public TDSEnvChangeToken()
         {
-            this.Values = new Dictionary<string, string>();
+            Values = new Dictionary<string, string>();
         }
+
+        /// <summary>
+        /// Gets or sets TDS EnvChange Token Type
+        /// </summary>
+        public ushort TokenLength { get; set; }
 
         /// <summary>
         /// Gets or sets TDS EnvChange Token Type
@@ -46,7 +52,7 @@ namespace TDSClient.TDS.Tokens
         /// <returns>true if the specified object is equal to the current object; otherwise, false</returns>
         public override bool Equals(object obj)
         {
-            return this.Equals(obj as TDSEnvChangeToken);
+            return Equals(obj as TDSEnvChangeToken);
         }
 
         /// <summary>
@@ -88,8 +94,8 @@ namespace TDSClient.TDS.Tokens
         public override bool Unpack(MemoryStream stream)
         {
             var length = LittleEndianUtilities.ReadUShort(stream);
-            this.Type = (TDSEnvChangeType)stream.ReadByte();
-            switch (this.Type)
+            Type = (TDSEnvChangeType)stream.ReadByte();
+            switch (Type)
             {
                 case TDSEnvChangeType.Routing:
                     var routingDataValueLength = LittleEndianUtilities.ReadUShort(stream);
@@ -109,8 +115,8 @@ namespace TDSClient.TDS.Tokens
                     var temp = new byte[strLength];
                     stream.Read(temp, 0, strLength);
 
-                    this.Values["ProtocolProperty"] = string.Format("{0}", protocolProperty);
-                    this.Values["AlternateServer"] = Encoding.Unicode.GetString(temp);
+                    Values["ProtocolProperty"] = string.Format("{0}", protocolProperty);
+                    Values["AlternateServer"] = Encoding.Unicode.GetString(temp);
 
                     for (int i = 0; i < length - routingDataValueLength - sizeof(byte) - sizeof(ushort); i++)
                     {

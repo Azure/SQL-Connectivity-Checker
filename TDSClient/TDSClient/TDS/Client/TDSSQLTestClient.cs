@@ -12,50 +12,102 @@ namespace TDSClient.TDS.Client
     using System.Net;
     using System.Net.Sockets;
     using System.Security.Authentication;
+    using System.Collections.Generic;
+    using System.Text;
+    using System.Threading.Tasks;
+
     using TDSClient.TDS.Comms;
     using TDSClient.TDS.Header;
     using TDSClient.TDS.Login7;
     using TDSClient.TDS.PreLogin;
-    using TDSClient.TDS.Tokens;
     using TDSClient.TDS.Utilities;
+    using TDSClient.TDS.Interfaces;
+    using TDSClient.TDS.FedAuthInfo;
+    using TDSClient.TDS.FedAuthMessage;
+    using TDSClient.MSALHelper;
+    using TDSClient.ADALHelper;
+    using TDSClient.TDS.Tokens;
+
+    public enum TDSAuthenticationType
+        {
+            SQLServerAuthentication,
+            ADPassword,
+            ADIntegrated,
+            ADInteractive,
+            ADManagedIdentity
+        }
 
     /// <summary>
     /// SQL Test Client used to run diagnostics on SQL Server using TDS protocol.
     /// </summary>
     public class TDSSQLTestClient
     {
-        /// <summary>
-        /// Field describing whether reconnection is required
-        /// </summary>
-        private bool reconnect;
+        private static readonly Dictionary<string, TDSAuthenticationType> authTypeStringToEnum = new Dictionary<string, TDSAuthenticationType>
+        {
+            { "SQL Server Authentication", TDSAuthenticationType.SQLServerAuthentication },
+            { "Active Directory Password", TDSAuthenticationType.ADPassword },
+            { "Active Directory Integrated", TDSAuthenticationType.ADIntegrated },
+            { "Active Directory Interactive", TDSAuthenticationType.ADInteractive },
+            { "Active Directory Managed Identity", TDSAuthenticationType.ADManagedIdentity },
+            { "Active Directory MSI", TDSAuthenticationType.ADManagedIdentity }
+        };
 
-        private int connectionAttempt;
+        private bool Reconnect;
+        private int ConnectionAttempt;
+        private readonly TDSAuthenticationType AuthenticationType;
+        private readonly string AuthenticationLibrary;
+        private string Server;
+        private int Port;
+        private readonly string UserID;
+        private readonly string Password;
+        private readonly string Database;
+        private readonly string IdentityClientId;
+        private TDSCommunicator TdsCommunicator;
+        private TcpClient Client;
+        private readonly TDSClientVersion Version;
+        private readonly SslProtocols EncryptionProtocol;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TDSSQLTestClient"/> class.
         /// </summary>
         /// <param name="server">Server to connect to</param>
         /// <param name="port">Port to connect to</param>
+        /// <param name="authenticationType">Type of authentication to use</param>
         /// <param name="userID">Used ID</param>
         /// <param name="password">User password</param>
         /// <param name="database">Database to connect to</param>
         /// <param name="encryptionProtocol">Encryption Protocol</param>
-        public TDSSQLTestClient(string server, int port, string userID, string password, string database, SslProtocols encryptionProtocol = SslProtocols.Tls12)
+        public TDSSQLTestClient(
+            string server,
+            int port,
+            string authenticationType,
+            string authenticationLibrary,
+            string userID,
+            string password,
+            string database,
+            SslProtocols encryptionProtocol = SslProtocols.Tls12,
+            string identityClientId = null)
         {
-            if (string.IsNullOrEmpty(server) || string.IsNullOrEmpty(userID) || string.IsNullOrEmpty(password) || string.IsNullOrEmpty(database))
+            ValidateInputParameters(server, userID, password, database, authenticationType);
+
+            Client = null;
+            Version = new TDSClientVersion(1, 0, 0, 0);
+            Server = server;
+            Port = port;
+            UserID = userID;
+            Password = password;
+            Database = database;
+
+            if (identityClientId != null)
             {
-                throw new ArgumentNullException();
+                IdentityClientId = identityClientId;
             }
 
-            this.Client = null;
-            this.Version = new TDSClientVersion(1, 0, 0, 0);
-            this.Server = server;
-            this.Port = port;
-            this.UserID = userID;
-            this.Password = password;
-            this.Database = database;
-            this.EncryptionProtocol = encryptionProtocol;
-            this.connectionAttempt = 0;
+            EncryptionProtocol = encryptionProtocol;
+            ConnectionAttempt = 0;
+
+            AuthenticationType = authTypeStringToEnum[authenticationType];
+            AuthenticationLibrary = authenticationLibrary;
 
             LoggingUtilities.WriteLog($" Instantiating TDSSQLTestClient with the following parameters:");
 
@@ -63,87 +115,360 @@ namespace TDSClient.TDS.Client
             LoggingUtilities.WriteLog($"     Port: {port}.");
             LoggingUtilities.WriteLog($"     UserID: {userID}.");
             LoggingUtilities.WriteLog($"     Database: {database}.");
+            LoggingUtilities.WriteLog($"     Authentication type: {authenticationType}.");
         }
 
         /// <summary>
-        /// Gets or sets the Server.
+        /// Helper method for validating input parameters for client.
         /// </summary>
-        public string Server { get; set; }
+        /// <param name="server"></param>
+        /// <param name="userID"></param>
+        /// <param name="password"></param>
+        /// <param name="database"></param>
+        /// <param name="authenticationType"></param>
+        /// <exception cref="ArgumentNullException"></exception>
+        private void ValidateInputParameters(string server, string userID, string password, string database, string authenticationType)
+        {
+            if (string.IsNullOrEmpty(server) || string.IsNullOrEmpty(database) || string.IsNullOrEmpty(authenticationType))
+            {
+                throw new ArgumentNullException();
+            }
+            if (authenticationType.Contains("Azure Active Directory Password") || authenticationType.Contains("SQL Authentication"))
+            {
+                if (string.IsNullOrEmpty(userID) || string.IsNullOrEmpty(password))
+                {
+                    throw new ArgumentNullException();
+                }
+            }
+        }
 
         /// <summary>
-        /// Gets or sets the Port Number.
+        /// Connect to the server.
         /// </summary>
-        public int Port { get; set; }
+        public async Task<bool> Connect()
+        {
+            DateTime connectStartTime = DateTime.UtcNow;
+            bool preLoginDone = false;
+            var originalServerName = Server;
+            var originalPort = Port;
+
+            LoggingUtilities.WriteLog($"Connect initiated (attempt # {++ConnectionAttempt}).", writeToSummaryLog: true);
+
+            try
+            {
+                do
+                {
+                    var preLoginResponse = PerformPreLogin(ref preLoginDone);
+                    await PerformLogin(preLoginResponse);
+
+                    if (Reconnect)
+                    {
+                        Disconnect();
+                        LoggingUtilities.AddEmptyLine();
+                        LoggingUtilities.WriteLog($" Routing to: {Server}:{Port}.");
+                    }
+
+                    return true;
+                }
+                while (Reconnect);
+            }
+            catch (Exception ex)
+            {
+                if (!preLoginDone && DateTime.UtcNow >= connectStartTime.AddSeconds(5))
+                {
+                    LoggingUtilities.WriteLog($" SNI timeout detected, PreLogin phase was not complete after {(int)(DateTime.UtcNow - connectStartTime).TotalMilliseconds} milliseconds.",
+                        writeToSummaryLog: true);
+                }
+
+                LoggingUtilities.AddEmptyLine();
+                LoggingUtilities.WriteLog($"Exception:");
+                LoggingUtilities.WriteLog($"{ex.Message}");
+
+                if (ex.InnerException != null)
+                {
+                    LoggingUtilities.WriteLog($"InnerException: {ex.InnerException.Message}");
+                }
+
+                return false;
+
+            }
+            finally
+            {
+                Server = originalServerName;
+                Port = originalPort;
+            }
+        }
 
         /// <summary>
-        /// Gets or sets the User ID.
+        /// Execute the TDS Prelogin phase.
         /// </summary>
-        public string UserID { get; set; }
+        /// <param name="preLoginDone"></param>
+        /// <returns></returns>
+        private TDSPreLoginPacketData PerformPreLogin(ref bool preLoginDone)
+        {
+            Reconnect = false;
+
+            EstablishTCPConnection();
+
+            DateTime connectStartTime = DateTime.UtcNow;
+
+            SendPreLogin();
+            TDSPreLoginPacketData preLoginResponse = (TDSPreLoginPacketData)ReceivePreLoginResponse();
+
+            preLoginDone = true;
+            LoggingUtilities.AddEmptyLine();
+            LoggingUtilities.WriteLog($" PreLogin phase took {(int)(DateTime.UtcNow - connectStartTime).TotalMilliseconds} milliseconds.") ;
+
+            return preLoginResponse;
+        }
 
         /// <summary>
-        /// Gets or sets the Password.
+        /// Establishes TCP connection.
         /// </summary>
-        public string Password { get; set; }
+        private void EstablishTCPConnection()
+        {
+            MeasureDNSResolutionTime();
+            Client = new TcpClient(Server, Port);
+            ushort packetSize = 4096;
+            TdsCommunicator = new TDSCommunicator(Client.GetStream(), packetSize, AuthenticationType);
+
+            LoggingUtilities.WriteLog($"  TCP connection open between local {Client.Client.LocalEndPoint} and remote {Client.Client.RemoteEndPoint}", writeToVerboseLog: false, writeToSummaryLog: true);
+            LoggingUtilities.WriteLog($"  TCP connection open");
+            LoggingUtilities.WriteLog($"   Local endpoint is {Client.Client.LocalEndPoint}");
+            LoggingUtilities.WriteLog($"   Remote endpoint is {Client.Client.RemoteEndPoint}");
+        }
 
         /// <summary>
-        /// Gets or sets the Database.
+        /// Execute the login phase
         /// </summary>
-        public string Database { get; set; }
+        /// <param name="preLoginResponse"></param>
+        private async Task PerformLogin(TDSPreLoginPacketData preLoginResponse)
+        {
+            DateTime connectStartTime = DateTime.UtcNow;
+
+            SendLogin7();
+
+            // 1. If AAD authentication is used, client should receive a fed auth message from the server.
+            //    After that, the client tries to acquire an access token from AAD using ADAL/MSAL.
+            //    If it acquires it, it sends it to the server, and receives a Login response.
+            // 2. Else if SQL authentication is used, the client should receive a Login response.
+            //
+            if (preLoginResponse.Options.Exists(opt => opt.Type == TDSPreLoginOptionTokenType.FedAuthRequired) &&
+                preLoginResponse.FedAuthRequired == TdsPreLoginFedAuthRequiredOption.FedAuthRequired &&
+                IsAADAuthRequired())
+            {
+                Tuple<string, string> fedAuthInfoMessage = ReceiveFedAuthInfoMessage();
+                string authority = fedAuthInfoMessage.Item1;
+                string resource = fedAuthInfoMessage.Item2;
+
+                string accessToken = await GetJWTAccessToken(authority, resource);
+
+                SendFedAuthMessage(accessToken);
+            }
+
+            ReceiveLogin7Response();
+
+            LoggingUtilities.WriteLog($" Login phase took {(int)(DateTime.UtcNow - connectStartTime).TotalMilliseconds} milliseconds.");
+        }
 
         /// <summary>
-        /// Gets or sets the TDS Communicator.
+        /// Acquires JWT Access token.
         /// </summary>
-        public TDSCommunicator TdsCommunicator { get; set; }
+        /// <param name="authority"></param>
+        /// <param name="resource"></param>
+        /// <param name="clientID"></param>
+        /// <returns></returns>
+        private async Task<string> GetJWTAccessToken(string authority, string resource)
+        {
+            string accessToken = null;
+
+            switch(AuthenticationType)
+            {
+                case TDSAuthenticationType.ADIntegrated:
+                    accessToken = await GetAccessTokenForIntegratedAuth(authority, resource);
+                    break;
+                case TDSAuthenticationType.ADInteractive:
+                    accessToken = await GetAccessTokenForInteractiveAuth(authority);
+                    break;
+                case TDSAuthenticationType.ADPassword:
+                    accessToken = await GetAccessTokenForUsernamePassword(authority, resource);
+                    break;
+                case TDSAuthenticationType.ADManagedIdentity:
+                    accessToken = await GetAccessTokenForMSIAuth(authority);
+                    break;
+            }
+
+            return accessToken;
+        }
 
         /// <summary>
-        /// Gets or sets the TCP Client.
+        /// Acquires access token for AAD integrated authentication.
         /// </summary>
-        public TcpClient Client { get; set; }
+        /// <param name="authority"></param>
+        /// <param name="resource"></param>
+        /// <param name="clientID"></param>
+        /// <returns></returns>
+        private async Task<string> GetAccessTokenForIntegratedAuth(string authority, string resource)
+        {
+            return AuthenticationLibrary.Contains("MSAL") ?
+                await MSALHelper.GetSQLAccessTokenFromMSALUsingIntegratedAuth(authority, resource, UserID) :
+                await ADALHelper.GetSQLAccessTokenFromADALUsingIntegratedAuth(authority, resource);
+        }
 
         /// <summary>
-        /// Gets or sets the TDS Client Version.
+        /// Acquires access token for AAD username password authentication.
         /// </summary>
-        public TDSClientVersion Version { get; set; }
+        /// <param name="authority"></param>
+        /// <param name="resource"></param>
+        /// <param name="clientID"></param>
+        /// <returns></returns>
+        private async Task<string> GetAccessTokenForUsernamePassword(string authority, string resource)
+        {
+             return AuthenticationLibrary.Contains("MSAL") ?
+                await MSALHelper.GetSQLAccessTokenFromMSALUsingUsernamePassword(authority, resource, UserID, Password) :
+                throw new Exception("Username password authentication is not supported by ADAL.");
+        }
 
         /// <summary>
-        /// Gets or sets the Encryption Protocol.
+        /// Acquires access token for AAD integrated authentication.
         /// </summary>
-        public SslProtocols EncryptionProtocol { get; set; }
+        /// <param name="authority"></param>
+        /// <param name="resource"></param>
+        /// <param name="clientID"></param>
+        /// <returns></returns>
+        private async Task<string> GetAccessTokenForInteractiveAuth(string authority)
+        {
+            return await MSALHelper.GetSQLAccessTokenFromMSALInteractively(authority);
+        }
 
         /// <summary>
-        /// Sends PreLogin message to the server.
+        /// Acquires access token for AAD integrated authentication.
         /// </summary>
-        public void SendPreLogin()
+        /// <param name="authority"></param>
+        /// <param name="resource"></param>
+        /// <param name="clientID"></param>
+        /// <returns></returns>
+        private async Task<string> GetAccessTokenForMSIAuth(string authority)
+        {
+            return IdentityClientId != null ?
+                await MSALHelper.GetSQLAccessTokenFromMSALUsingUserAssignedManagedIdentity(authority, IdentityClientId) :
+                await MSALHelper.GetSQLAccessTokenFromMSALUsingSystemAssignedManagedIdentity(authority);
+        }
+
+        /// <summary>
+        /// Sends PreLogin request message to the server.
+        /// </summary>
+        private void SendPreLogin()
         {
             LoggingUtilities.AddEmptyLine();
             LoggingUtilities.WriteLog($" Building PreLogin message.");
-            var tdsMessageBody = new TDSPreLoginPacketData(this.Version);
 
-            tdsMessageBody.AddOption(TDSPreLoginOptionTokenType.Encryption, TDSEncryptionOption.EncryptOff);
-            tdsMessageBody.AddOption(TDSPreLoginOptionTokenType.TraceID, new TDSClientTraceID(Guid.NewGuid().ToByteArray(), Guid.NewGuid().ToByteArray(), 0));
+            var tdsMessageBody = new TDSPreLoginPacketData(Version);
+
+            tdsMessageBody.AddOption(TDSPreLoginOptionTokenType.Encryption,
+                                    TDSEncryptionOption.EncryptOff);
+
+            tdsMessageBody.AddOption(TDSPreLoginOptionTokenType.TraceID,
+                                    new TDSClientTraceID(Guid.NewGuid().ToByteArray(),
+                                                        Guid.NewGuid().ToByteArray(),
+                                                        0));
+
+            if (IsAADAuthRequired())
+            {
+                tdsMessageBody.AddOption(TDSPreLoginOptionTokenType.FedAuthRequired,
+                                        TdsPreLoginFedAuthRequiredOption.FedAuthRequired);
+            }
+
             tdsMessageBody.Terminate();
 
-            this.TdsCommunicator.SendTDSMessage(tdsMessageBody);
+            TdsCommunicator.SendTDSMessage(tdsMessageBody);
             LoggingUtilities.WriteLog($" PreLogin message sent.");
         }
 
         /// <summary>
-        /// Sends Login7 message to the server
+        /// Sends Login7 message to the server.
         /// </summary>
-        public void SendLogin7()
+        private void SendLogin7()
         {
             LoggingUtilities.AddEmptyLine();
             LoggingUtilities.WriteLog($" Building Login7 message.");
 
             var tdsMessageBody = new TDSLogin7PacketData();
 
-            tdsMessageBody.AddOption("HostName", Environment.MachineName);
-            tdsMessageBody.AddOption("UserName", this.UserID);
-            tdsMessageBody.AddOption("ServerName", this.Server);
-            tdsMessageBody.AddOption("Password", this.Password);
-            tdsMessageBody.AddOption("Database", this.Database);
-            tdsMessageBody.AddOption("CltIntName", "TDSSQLTestClient");
+            LoggingUtilities.WriteLog($" Adding option HostName with value [{Environment.MachineName}]");
+            tdsMessageBody.HostName = Environment.MachineName;
 
+            LoggingUtilities.WriteLog($"  Adding option ApplicationName with value [TDSSQLTestClient]");
+            tdsMessageBody.ApplicationName = "TDSSQLTestClient";
+
+            LoggingUtilities.WriteLog($"  Adding option ServerName with value [{Server}]");
+            tdsMessageBody.ServerName = Server;
+
+            LoggingUtilities.WriteLog($"  Adding option Database with value [{Database}]");
+            tdsMessageBody.Database = Database;
+
+            tdsMessageBody.ClientTimeZone = 480;
+
+            // If SQL authentication is used, a part of the Login message is a user id and a password.
+            //
+            if (!IsAADAuthRequired())
+            {
+                LoggingUtilities.WriteLog($"  Adding SQL Authentication options");
+                AddLogin7SQLAuthenticationOptions(tdsMessageBody);
+            }
+            else
+            {
+                LoggingUtilities.WriteLog($"  Adding AAD Authentication options");
+                AddLogin7AADAuthenticationOptions(tdsMessageBody);
+            }
+
+            LoggingUtilities.WriteLog($"  Adding common login options");
+            AddLogin7CommonOptions(tdsMessageBody);
+
+            TdsCommunicator.SendTDSMessage(tdsMessageBody);
+
+            LoggingUtilities.WriteLog($" Login7 message sent.");
+        }
+
+        /// <summary>
+        /// Adds options for SQL Authentication to TDS Login message.
+        /// </summary>
+        /// <param name="tdsMessageBody"></param>
+
+        private void AddLogin7SQLAuthenticationOptions(TDSLogin7PacketData tdsMessageBody)
+        {
+            LoggingUtilities.WriteLog($"  Adding option UserID with value [{UserID}]");
+            tdsMessageBody.UserID = UserID;
+
+            LoggingUtilities.WriteLog($"  Adding option Password");
+            tdsMessageBody.Password = Password;
+
+            tdsMessageBody.OptionFlags3.Extension = TDSLogin7OptionFlags3Extension.DoesntExist;
+        }
+
+        /// <summary>
+        /// Adds options for AAD Authentication to TDS Login message.
+        /// </summary>
+        /// <param name="tdsMessageBody"></param>
+        private void AddLogin7AADAuthenticationOptions(TDSLogin7PacketData tdsMessageBody)
+        {
+            TDSFedAuthADALWorkflow adalWorkflow = AuthenticationType.Equals(TDSAuthenticationType.ADIntegrated) ?
+                TDSFedAuthADALWorkflow.Integrated : TDSFedAuthADALWorkflow.UserPassword;
+
+            tdsMessageBody.OptionFlags3.Extension = TDSLogin7OptionFlags3Extension.Exists;
+
+            TDSLogin7FedAuthOptionToken featureOption = CreateLogin7FederatedAuthenticationFeatureExt(TDSFedAuthLibraryType.ADAL, adalWorkflow);
+
+            tdsMessageBody.FeatureExt ??= new TDSLogin7FeatureOptionsToken();
+            tdsMessageBody.FeatureExt.Add(featureOption);
+        }
+
+        /// <summary>
+        /// Helper method to add common login 7 options to Login7 message.
+        /// </summary>
+        /// <param name="tdsMessageBody"></param>
+        private void AddLogin7CommonOptions(TDSLogin7PacketData tdsMessageBody)
+        {
             tdsMessageBody.OptionFlags1.Char = TDSLogin7OptionFlags1Char.CharsetASCII;
             tdsMessageBody.OptionFlags1.Database = TDSLogin7OptionFlags1Database.InitDBFatal;
             tdsMessageBody.OptionFlags1.DumpLoad = TDSLogin7OptionFlags1DumpLoad.DumploadOn;
@@ -155,41 +480,103 @@ namespace TDSClient.TDS.Client
             tdsMessageBody.OptionFlags2.Language = TDSLogin7OptionFlags2Language.InitLangFatal;
             tdsMessageBody.OptionFlags2.ODBC = TDSLogin7OptionFlags2ODBC.OdbcOn;
             tdsMessageBody.OptionFlags2.UserType = TDSLogin7OptionFlags2UserType.UserNormal;
+            tdsMessageBody.OptionFlags2.IntSecurity = TDSLogin7OptionFlags2IntSecurity.IntegratedSecurityOff;
 
             tdsMessageBody.OptionFlags3.ChangePassword = TDSLogin7OptionFlags3ChangePassword.NoChangeRequest;
             tdsMessageBody.OptionFlags3.UserInstanceProcess = TDSLogin7OptionFlags3UserInstanceProcess.DontRequestSeparateProcess;
             tdsMessageBody.OptionFlags3.UnknownCollationHandling = TDSLogin7OptionFlags3UnknownCollationHandling.On;
-            tdsMessageBody.OptionFlags3.Extension = TDSLogin7OptionFlags3Extension.DoesntExist;
 
             tdsMessageBody.TypeFlags.OLEDB = TDSLogin7TypeFlagsOLEDB.On;
             tdsMessageBody.TypeFlags.SQLType = TDSLogin7TypeFlagsSQLType.DFLT;
             tdsMessageBody.TypeFlags.ReadOnlyIntent = TDSLogin7TypeFlagsReadOnlyIntent.On;
-
-            this.TdsCommunicator.SendTDSMessage(tdsMessageBody);
-
-            LoggingUtilities.WriteLog($" Login7 message sent.");
         }
+
+        /// <summary>
+        /// Receives and handles a federated authentication info response from server.
+        /// </summary>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
+        /// <exception cref="InvalidOperationException"></exception>
+        private Tuple<string, string> ReceiveFedAuthInfoMessage()
+        {
+            LoggingUtilities.AddEmptyLine();
+            LoggingUtilities.WriteLog($" Waiting for FedAuthInfoMessage response.");
+
+            if (TdsCommunicator.ReceiveTDSMessage() is TDSTokenStreamPacketData response)
+            {
+                foreach (var token in response.Tokens)
+                {
+                    if (token is TDSEnvChangeToken)
+                    {
+                        ProcessEnvChangeToken(token as TDSEnvChangeToken);
+                    }
+                    else if (token is TDSFedAuthInfoToken)
+                    {
+                        return ProcessFedAuthInfoToken(token as TDSFedAuthInfoToken);
+                    }
+                    else if (token is TDSErrorToken)
+                    {
+                        ProcessErrorToken(token as TDSErrorToken);
+                    }
+                }
+
+                throw new Exception("Server couldn't return a proper Fed Auth Info message.");
+
+            }
+            else
+            {
+                throw new InvalidOperationException();
+            }
+        }
+
+        /// <summary>
+        /// Send Fedauth message containing access token to the server
+        /// </summary>
+        /// <param name="accessToken"></param>
+        private void SendFedAuthMessage(string accessToken)
+        {
+            LoggingUtilities.WriteLog($"  Sending JWT token to the server.");
+            TDSFedAuthToken fedAuthToken = new TDSFedAuthToken(accessToken);
+            TdsCommunicator.SendTDSMessage(fedAuthToken);
+            LoggingUtilities.WriteLog($"  JWT token successfully sent.");
+        }
+
+        /// <summary>
+		/// Creates Fedauth feature extension for the login7 packet.
+		/// </summary>
+		private TDSLogin7FedAuthOptionToken CreateLogin7FederatedAuthenticationFeatureExt(TDSFedAuthLibraryType libraryType, TDSFedAuthADALWorkflow workflow = TDSFedAuthADALWorkflow.EMPTY)
+		{
+			// Create feature option
+			TDSLogin7FedAuthOptionToken featureOption =
+				new TDSLogin7FedAuthOptionToken(TdsPreLoginFedAuthRequiredOption.FedAuthRequired,
+												libraryType,
+												null,
+												null,
+												null,
+												false,
+												libraryType == TDSFedAuthLibraryType.ADAL,
+												workflow);
+
+			return featureOption;
+		}
 
         /// <summary>
         /// Receive PreLogin response from the server.
         /// </summary>
-        public void ReceivePreLoginResponse()
+        private ITDSPacketData ReceivePreLoginResponse()
         {
             LoggingUtilities.AddEmptyLine();
             LoggingUtilities.WriteLog($" Waiting for PreLogin response.");
 
-            if (this.TdsCommunicator.ReceiveTDSMessage() is TDSPreLoginPacketData response)
+            ITDSPacketData preLoginResponse = TdsCommunicator.ReceiveTDSMessage();
+            if (preLoginResponse is TDSPreLoginPacketData response)
             {
-                if (response.Options.Exists(opt => opt.Type == TDSPreLoginOptionTokenType.Encryption) && response.Encryption == TDSEncryptionOption.EncryptReq)
+                if (response.Options.Exists(opt => opt.Type == TDSPreLoginOptionTokenType.Encryption) &&
+                    response.Encryption == TDSEncryptionOption.EncryptReq)
                 {
                     LoggingUtilities.WriteLog($"  Server requires encryption, enabling encryption.");
-                    this.TdsCommunicator.EnableEncryption(this.Server, this.EncryptionProtocol);
+                    TdsCommunicator.EnableEncryption(Server, EncryptionProtocol);
                     LoggingUtilities.WriteLog($"  Encryption enabled.");
-                }
-
-                if (response.Options.Exists(opt => opt.Type == TDSPreLoginOptionTokenType.FedAuthRequired) && response.FedAuthRequired == true)
-                {
-                    throw new NotSupportedException("FedAuth is being requested but the client doesn't support FedAuth.");
                 }
             }
             else
@@ -198,59 +585,37 @@ namespace TDSClient.TDS.Client
             }
 
             LoggingUtilities.WriteLog($" PreLogin response received.");
+
+            return preLoginResponse;
         }
 
         /// <summary>
         /// Receive Login7 response from the server.
         /// </summary>
-        public void ReceiveLogin7Response()
+        private void ReceiveLogin7Response()
         {
             LoggingUtilities.AddEmptyLine();
             LoggingUtilities.WriteLog($" Waiting for Login7 response.");
 
-            if (this.TdsCommunicator.ReceiveTDSMessage() is TDSTokenStreamPacketData response)
+            if (TdsCommunicator.ReceiveTDSMessage() is TDSTokenStreamPacketData response)
             {
                 foreach (var token in response.Tokens)
                 {
                     if (token is TDSEnvChangeToken)
                     {
-                        var envChangeToken = token as TDSEnvChangeToken;
-                        if (envChangeToken.Type == Tokens.EnvChange.TDSEnvChangeType.Routing)
-                        {
-                            LoggingUtilities.WriteLog($" Client received EnvChange routing token, client is being routed.");
-                            this.Server = envChangeToken.Values["AlternateServer"];
-                            this.Port = int.Parse(envChangeToken.Values["ProtocolProperty"]);
-                            this.reconnect = true;
-                            LoggingUtilities.WriteLog($" Redirect to {this.Server}:{this.Port}", writeToSummaryLog: true, writeToVerboseLog: false);
-                        }
+                        ProcessEnvChangeToken(token as TDSEnvChangeToken);
+                    }
+                    else if (token is TDSLoginAckToken)
+                    {
+                        ProcessLoginAckToken(token as TDSLoginAckToken);
                     }
                     else if (token is TDSErrorToken)
                     {
-                        var errorToken = token as TDSErrorToken;
-                        LoggingUtilities.WriteLog($" Client received Error token, Number: {errorToken.Number}, State: {errorToken.State}", writeToSummaryLog: true); ;
-                        LoggingUtilities.WriteLog($"  MsgText: {errorToken.MsgText}");
-                        LoggingUtilities.WriteLog($"  Class: {errorToken.Class}");
-                        LoggingUtilities.WriteLog($"  ServerName: {errorToken.ServerName}");
-                        LoggingUtilities.WriteLog($"  ProcName: {errorToken.ProcName}");
-                        LoggingUtilities.WriteLog($"  LineNumber: {errorToken.LineNumber}");
-
-                        if (errorToken.Number == 18456)
-                        {
-                            throw new Exception("Login failure.");
-                        }
+                        ProcessErrorToken(token as TDSErrorToken);
                     }
                     else if (token is TDSInfoToken)
                     {
-                        var infoToken = token as TDSInfoToken;
-                        LoggingUtilities.WriteLog($"  Client received Info token:");
-
-                        LoggingUtilities.WriteLog($"     Number: {infoToken.Number}");
-                        LoggingUtilities.WriteLog($"     State: {infoToken.State}");
-                        LoggingUtilities.WriteLog($"     Class: {infoToken.Class}");
-                        LoggingUtilities.WriteLog($"     MsgText: {infoToken.MsgText}");
-                        LoggingUtilities.WriteLog($"     ServerName: {infoToken.ServerName}");
-                        LoggingUtilities.WriteLog($"     ProcName: {infoToken.ProcName}");
-                        LoggingUtilities.WriteLog($"     LineNumber: {infoToken.LineNumber}");
+                        ProcessInfoToken(token as TDSInfoToken);
                     }
                 }
             }
@@ -263,92 +628,114 @@ namespace TDSClient.TDS.Client
         }
 
         /// <summary>
-        /// Connect to the server.
+        /// Helper method which processes the login ack token recevied from the server.
         /// </summary>
-        public void Connect()
+        /// <param name="loginAck"></param>
+        /// 
+        private void ProcessLoginAckToken(TDSLoginAckToken loginAck)
         {
-            DateTime connectStartTime = DateTime.UtcNow;
-            bool preLoginDone = false;
-            var originalServerName = this.Server;
-            var originalPort = this.Port;
+            LoggingUtilities.WriteLog($"  Client received LoginAck token:");
+            LoggingUtilities.WriteLog(loginAck.ProgName);
+            LoggingUtilities.WriteLog(loginAck.ServerVersion.ToString());
+            LoggingUtilities.WriteLog(loginAck.TDSVersion.ToString());
 
-            LoggingUtilities.WriteLog($"Connect initiated (attempt # {++connectionAttempt}).", writeToSummaryLog: true);
+            LoggingUtilities.WriteLog("Logged in successfully.");
+        }
 
-            try
+        /// <summary>
+        /// Helper method which processes the info token recevied from the server.
+        /// </summary>
+        /// <param name="infoToken"></param>
+        private void ProcessInfoToken(TDSInfoToken infoToken)
+        {
+            LoggingUtilities.WriteLog($"  Client received Info token:");
+            LoggingUtilities.WriteLog($"     Number: {infoToken.Number}");
+            LoggingUtilities.WriteLog($"     State: {infoToken.State}");
+            LoggingUtilities.WriteLog($"     Class: {infoToken.Class}");
+            LoggingUtilities.WriteLog($"     MsgText: {infoToken.MsgText}");
+            LoggingUtilities.WriteLog($"     ServerName: {infoToken.ServerName}");
+            LoggingUtilities.WriteLog($"     ProcName: {infoToken.ProcName}");
+            LoggingUtilities.WriteLog($"     LineNumber: {infoToken.LineNumber}");
+        }
+
+        /// <summary>
+        /// Helper method which processes the error token recevied from the server.
+        /// </summary>
+        /// <param name="errorToken"></param>
+        /// <exception cref="Exception"></exception>
+        private void ProcessErrorToken(TDSErrorToken errorToken)
+        {
+            LoggingUtilities.WriteLog($" Client received Error token, Number: {errorToken.Number}, State: {errorToken.State}", writeToSummaryLog: true);
+            LoggingUtilities.WriteLog($"  MsgText: {errorToken.MsgText}");
+            LoggingUtilities.WriteLog($"  Class: {errorToken.Class}");
+            LoggingUtilities.WriteLog($"  ServerName: {errorToken.ServerName}");
+            LoggingUtilities.WriteLog($"  ProcName: {errorToken.ProcName}");
+            LoggingUtilities.WriteLog($"  LineNumber: {errorToken.LineNumber}");
+            LoggingUtilities.WriteLog($"  State: {errorToken.State}");
+
+            if (errorToken.Number == 18456)
             {
-                do
-                {
-                    preLoginDone = false;
-                    this.reconnect = false;
-
-                    MeasureDNSResolutionTime();
-                    this.Client = new TcpClient(this.Server, this.Port);
-                    this.TdsCommunicator = new TDSCommunicator(this.Client.GetStream(), 4096);
-                    LoggingUtilities.WriteLog($"  TCP connection open between local {this.Client.Client.LocalEndPoint} and remote {this.Client.Client.RemoteEndPoint}", writeToVerboseLog: false, writeToSummaryLog: true);
-                    LoggingUtilities.WriteLog($"  TCP connection open");
-                    LoggingUtilities.WriteLog($"   Local endpoint is {this.Client.Client.LocalEndPoint}");
-                    LoggingUtilities.WriteLog($"   Remote endpoint is {this.Client.Client.RemoteEndPoint}");
-                    connectStartTime = DateTime.UtcNow;
-                    this.SendPreLogin();
-                    this.ReceivePreLoginResponse();
-                    preLoginDone = true;
-                    LoggingUtilities.WriteLog($" PreLogin phase took {(int)(DateTime.UtcNow - connectStartTime).TotalMilliseconds} milliseconds.");
-                    this.SendLogin7();
-                    this.ReceiveLogin7Response();
-
-                    if (this.reconnect)
-                    {
-                        this.Disconnect();
-                        LoggingUtilities.AddEmptyLine();
-                        LoggingUtilities.WriteLog($" Routing to: {this.Server}:{this.Port}.");
-                    }
-                }
-                while (this.reconnect);
-
-                LoggingUtilities.WriteLog($" Connect done.", writeToSummaryLog: true);
-            }
-            catch (SocketException socketException)
-            {
-                LoggingUtilities.WriteLog($" Networking error {socketException.NativeErrorCode} while trying to connect to {this.Server}:{this.Port}.", writeToSummaryLog: true);
-            }
-            catch (Exception ex)
-            {
-                if (!preLoginDone && DateTime.UtcNow >= connectStartTime.AddSeconds(5))
-                {
-                    LoggingUtilities.WriteLog($" SNI timeout detected, PreLogin phase was not complete after {(int)(DateTime.UtcNow - connectStartTime).TotalMilliseconds} milliseconds.", writeToSummaryLog: true);
-                }
-                LoggingUtilities.WriteLog($"Exception:");
-                LoggingUtilities.WriteLog($"{ex.Message}");
-                if (ex.InnerException != null)
-                {
-                    LoggingUtilities.WriteLog($"InnerException: {ex.InnerException.Message}");
-                }
-                //throw ex;
-            }
-            finally
-            {
-                this.Server = originalServerName;
-                this.Port = originalPort;
+                throw new Exception("Login failure.");
             }
         }
 
-        private void MeasureDNSResolutionTime()
+        /// <summary>
+        /// Helper method which processes the env change token recevied from the server.
+        /// </summary>
+        /// <param name="envChangeToken"></param>
+        private void ProcessEnvChangeToken(TDSEnvChangeToken envChangeToken)
         {
-            try
+            if (envChangeToken.Type == Tokens.EnvChange.TDSEnvChangeType.Routing)
             {
-                var stopwatch = Stopwatch.StartNew();
-                var addresses = Dns.GetHostAddresses(this.Server);
-                stopwatch.Stop();
-                var addressListString = string.Join(",", addresses.AsEnumerable());
-                LoggingUtilities.WriteLog($"  DNS resolution took {stopwatch.ElapsedMilliseconds} ms, ({addressListString})", writeToSummaryLog: true);
+                LoggingUtilities.WriteLog($" Client received EnvChange routing token, client is being routed.");
+                Server = envChangeToken.Values["AlternateServer"];
+                Port = int.Parse(envChangeToken.Values["ProtocolProperty"]);
+                Reconnect = true;
+                LoggingUtilities.WriteLog($" Redirect to {Server}:{Port}", writeToSummaryLog: true, writeToVerboseLog: false);
             }
-            catch (SocketException socketException)
+        }
+
+        /// <summary>
+        /// Helper method which processes the fed auth info token recevied from the server.
+        /// </summary>
+        /// <param name="fedAuthInfoToken"></param>
+        /// <returns></returns>
+        private Tuple<string, string> ProcessFedAuthInfoToken(TDSFedAuthInfoToken fedAuthInfoToken)
+        {
+            LoggingUtilities.WriteLog($"   Client received FedAuthInfo token");
+
+            string STSUrl = null;
+            string SPN = null;
+
+            foreach (KeyValuePair<int, TDSFedAuthInfoOption> option in fedAuthInfoToken.Options)
             {
-                LoggingUtilities.WriteLog($" DNS resolution failed with \"{socketException.Message}\", error {socketException.NativeErrorCode} for address {this.Server}", writeToSummaryLog: true);
+                ProcessFedAuthInfoOption(option, ref STSUrl, ref SPN);
             }
-            catch (Exception ex)
+
+            return new Tuple<string, string>(STSUrl, SPN);
+        }
+
+        /// <summary>
+        /// Helper method which processes the fed auth info option token recevied from the server.
+        /// </summary>
+        /// <param name="option"></param>
+        /// <param name="STSUrl"></param>
+        /// <param name="SPN"></param>
+        private void ProcessFedAuthInfoOption(KeyValuePair<int, TDSFedAuthInfoOption> option, ref string STSUrl, ref string SPN)
+        {
+            if (option.Value.FedAuthInfoId == TDSFedAuthInfoId.STSURL)
             {
-                LoggingUtilities.WriteLog($" DNS resolution failed with \"{ex.Message}\", for address {this.Server}", writeToSummaryLog: true);
+                TDSFedAuthInfoOptionSTSURL optionSTSURL = option.Value as TDSFedAuthInfoOptionSTSURL;
+                var output = optionSTSURL.StsUrl.Where(b => b != 0).ToArray();
+                STSUrl = Encoding.UTF8.GetString(output);
+                LoggingUtilities.WriteLog($"     STSURL: {STSUrl}");
+            }
+            else if (option.Value.FedAuthInfoId == TDSFedAuthInfoId.SPN)
+            {
+                TDSFedAuthInfoOptionSPN optionSPN = option.Value as TDSFedAuthInfoOptionSPN;
+                var output = optionSPN.ServicePrincipalName.Where(b => b != 0).ToArray();
+                SPN = Encoding.UTF8.GetString(output);
+                LoggingUtilities.WriteLog($"     Service Principal Name: {SPN}");
             }
         }
 
@@ -357,12 +744,51 @@ namespace TDSClient.TDS.Client
         /// </summary>
         public void Disconnect()
         {
-            if (this.Client != null)
+            if (Client != null)
             {
+                LoggingUtilities.AddEmptyLine();
                 LoggingUtilities.WriteLog($" Disconnect initiated.");
-                this.Client.Close();
-                this.Client = null;
+                Client.Close();
+                Client = null;
                 LoggingUtilities.WriteLog($" Disconnect done.");
+            }
+        }
+
+        /// <summary>
+        /// Check if the requested authentication is AAD authentication.
+        /// </summary>
+        /// <returns></returns>
+        private bool IsAADAuthRequired()
+        {
+            var aadAuthTypes = new TDSAuthenticationType[] { 
+                TDSAuthenticationType.ADPassword,
+                TDSAuthenticationType.ADIntegrated,
+                TDSAuthenticationType.ADInteractive,
+                TDSAuthenticationType.ADManagedIdentity };
+
+            return aadAuthTypes.Contains(AuthenticationType);
+        }
+
+        /// <summary>
+        /// Measure time needed for DNS resolution.
+        /// </summary>
+        private void MeasureDNSResolutionTime()
+        {
+            try
+            {
+                var stopwatch = Stopwatch.StartNew();
+                var addresses = Dns.GetHostAddresses(this.Server);
+                stopwatch.Stop();
+                var addressListString = string.Join(",", addresses.AsEnumerable());
+                LoggingUtilities.WriteLog($" DNS resolution took {stopwatch.ElapsedMilliseconds} ms, ({addressListString})", writeToSummaryLog: true);
+            }
+            catch (SocketException socketException)
+            {
+                LoggingUtilities.WriteLog($" DNS resolution failed with \"{socketException.Message}\", error {socketException.NativeErrorCode} for address {this.Server}", writeToSummaryLog: true);
+            }
+            catch (Exception ex)
+            {
+                LoggingUtilities.WriteLog($" DNS resolution failed with \"{ex.Message}\", for address {this.Server}", writeToSummaryLog: true);
             }
         }
     }

@@ -9,6 +9,7 @@ namespace TDSClient.TDS.Tokens
     using System;
     using System.IO;
     using System.Text;
+    
     using TDSClient.TDS.Utilities;
 
     /// <summary>
@@ -62,7 +63,7 @@ namespace TDSClient.TDS.Tokens
         /// <returns>true if the specified object is equal to the current object; otherwise, false</returns>
         public override bool Equals(object obj)
         {
-            return this.Equals(obj as TDSErrorToken);
+            return Equals(obj as TDSErrorToken);
         }
 
         /// <summary>
@@ -73,13 +74,13 @@ namespace TDSClient.TDS.Tokens
         public bool Equals(TDSErrorToken other)
         {
             return other != null &&
-                   this.Number == other.Number &&
-                   this.State == other.State &&
-                   this.Class == other.Class &&
-                   this.MsgText == other.MsgText &&
-                   this.ServerName == other.ServerName &&
-                   this.ProcName == other.ProcName &&
-                   this.LineNumber == other.LineNumber;
+                   Number == other.Number &&
+                   State == other.State &&
+                   Class == other.Class &&
+                   MsgText == other.MsgText &&
+                   ServerName == other.ServerName &&
+                   ProcName == other.ProcName &&
+                   LineNumber == other.LineNumber;
         }
 
         /// <summary>
@@ -108,26 +109,26 @@ namespace TDSClient.TDS.Tokens
         public override bool Unpack(MemoryStream stream)
         {
             LittleEndianUtilities.ReadUShort(stream);
-            this.Number = (int)LittleEndianUtilities.ReadUInt(stream);
-            this.State = Convert.ToByte(stream.ReadByte());
-            this.Class = Convert.ToByte(stream.ReadByte());
+            Number = (int)LittleEndianUtilities.ReadUInt(stream);
+            State = Convert.ToByte(stream.ReadByte());
+            Class = Convert.ToByte(stream.ReadByte());
 
             int length = LittleEndianUtilities.ReadUShort(stream) * 2;
             var buffer = new byte[length];
             stream.Read(buffer, 0, length);
-            this.MsgText = Encoding.Unicode.GetString(buffer);
+            MsgText = Encoding.Unicode.GetString(buffer);
 
             length = stream.ReadByte() * 2;
             buffer = new byte[length];
             stream.Read(buffer, 0, length);
-            this.ServerName = Encoding.Unicode.GetString(buffer);
+            ServerName = Encoding.Unicode.GetString(buffer);
 
             length = stream.ReadByte() * 2;
             buffer = new byte[length];
             stream.Read(buffer, 0, length);
-            this.ProcName = Encoding.Unicode.GetString(buffer);
+            ProcName = Encoding.Unicode.GetString(buffer);
 
-            this.LineNumber = LittleEndianUtilities.ReadUInt(stream);
+            LineNumber = LittleEndianUtilities.ReadUInt(stream);
 
             return true;
         }

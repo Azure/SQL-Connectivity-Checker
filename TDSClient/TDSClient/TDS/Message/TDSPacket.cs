@@ -22,7 +22,7 @@ namespace TDSClient.TDS.Message
         /// </summary>
         public TDSPacket()
         {
-            this.Header = new TDSPacketHeader();
+            Header = new TDSPacketHeader();
         }
 
         /// <summary>
@@ -32,8 +32,8 @@ namespace TDSClient.TDS.Message
         /// <param name="data">TDS Packet Data</param>
         public TDSPacket(TDSPacketHeader header, ITDSPacketData data)
         {
-            this.Header = header;
-            this.Data = data;
+            Header = header;
+            Data = data;
         }
 
         /// <summary>
@@ -52,8 +52,8 @@ namespace TDSClient.TDS.Message
         /// <param name="stream">MemoryStream in which IPackageable is packet into.</param>
         public void Pack(MemoryStream stream)
         {
-            this.Header.Pack(stream);
-            this.Data.Pack(stream);
+            Header.Pack(stream);
+            Data.Pack(stream);
         }
 
         /// <summary>
@@ -63,9 +63,9 @@ namespace TDSClient.TDS.Message
         /// <returns>Returns true if successful.</returns>
         public bool Unpack(MemoryStream stream)
         {
-            this.Header = new TDSPacketHeader();
-            this.Header.Unpack(stream);
-            switch (this.Header.Type)
+            Header = new TDSPacketHeader();
+            Header.Unpack(stream);
+            switch (Header.Type)
             {
                 case TDSMessageType.AttentionSignal:
                     {
@@ -84,8 +84,8 @@ namespace TDSClient.TDS.Message
 
                 case TDSMessageType.PreLogin:
                     {
-                        this.Data = new TDSPreLoginPacketData();
-                        this.Data.Unpack(stream);
+                        Data = new TDSPreLoginPacketData();
+                        Data.Unpack(stream);
                         break;
                     }
 

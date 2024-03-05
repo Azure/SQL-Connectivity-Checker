@@ -189,6 +189,9 @@ function TrackWarningAnonymously ([String] $warningCode) {
 $parameters = $args[0]
 $Server = $parameters['Server']
 $Port = $parameters['Port']
+$AuthenticationType = $parameters['AuthenticationType']
+$AuthenticationLibrary = $parameters['AuthenticationLibrary']
+$UserAssignedIdentityClientId = $parameters['UserAssignedIdentityClientId']
 $User = $parameters['User']
 $Password = $parameters['Password']
 $Database = $parameters['Database']
@@ -223,19 +226,22 @@ try {
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls11 -bor [Net.SecurityProtocolType]::Tls
 
     $TDSClientPath = Join-Path ((Get-Location).Path) "TDSClient.dll"
+    Write-Host $TDSClientPath
+    Write-Host $Local
     if ($Local) {
-        Copy-Item -Path $($LocalPath + '/netstandard2.0/TDSClient.dll') -Destination $TDSClientPath
+        Copy-Item -Path $($LocalPath + '\netstandard2.0\TDSClient.dll') -Destination $TDSClientPath
     }
-    else {
-        Invoke-WebRequest -Uri $('https://github.com/Azure/SQL-Connectivity-Checker/raw/' + $RepositoryBranch + '/netstandard2.0/TDSClient.dll') -OutFile $TDSClientPath -UseBasicParsing
-    }
-    $assembly = [System.IO.File]::ReadAllBytes($TDSClientPath)
+    # else {
+    #     Invoke-WebRequest -Uri $('https://github.com/Azure/SQL-Connectivity-Checker/raw/' + $RepositoryBranch + '/net472/TDSClient.dll') -OutFile $TDSClientPath -UseBasicParsing
+    # }
+    $assembly = [System.IO.File]::ReadAllBytes("D:\ConnectivityChecker\SQL-Connectivity-Checker\netstandard2.0\TDSClient.dll")
     [System.Reflection.Assembly]::Load($assembly) | Out-Null
 
     $fullLogPath = Join-Path ((Get-Location).Path) 'AdvancedTests_FullLog.txt'
     $logPath = Join-Path ((Get-Location).Path) 'AdvancedTests_LastRunLog.txt'
     $summaryLogPath = Join-Path ((Get-Location).Path) 'AdvancedTests_SummaryLog.txt'
     $summaryLog = [System.IO.File]::CreateText($summaryLogPath)
+
     [TDSClient.TDS.Utilities.LoggingUtilities]::SetSummaryLog($summaryLog)
 
     try {
@@ -262,13 +268,14 @@ try {
                 $encryption = [System.Security.Authentication.SslProtocols]::Tls12 -bor [System.Security.Authentication.SslProtocols]::Tls11 -bor [System.Security.Authentication.SslProtocols]::Default
             }
         }
-        $tdsClient = [TDSClient.TDS.Client.TDSSQLTestClient]::new($Server, $Port, $User, $Password, $Database, $encryption)
+        $tdsClient = [TDSClient.TDS.Client.TDSSQLTestClient]::new($Server, $Port, $AuthenticationType, $AuthenticationLibrary, $User, $Password, $Database, $encryption, $UserAssignedIdentityClientId)
 
         for ($i = 1; $i -le $ConnectionAttempts; ++$i) {
             $log = [System.IO.File]::CreateText($logPath)
             [TDSClient.TDS.Utilities.LoggingUtilities]::SetVerboseLog($log)
 
-            $tdsClient.Connect()
+            $result = $tdsClient.Connect().GetAwaiter().GetResult()
+            Write-Host 
             $tdsClient.Disconnect()
 
             $log.Close()
@@ -277,10 +284,10 @@ try {
             Write-Host $result
             Add-Content -Path $fullLogPath -Value $result
 
-            if ($i -lt $ConnectionAttempts) {
-                Write-Host ('Waiting ' + $DelayBetweenConnections + ' second(s)...')
-                Start-Sleep -Seconds $DelayBetweenConnections
-            }
+            # if ($i -lt $ConnectionAttempts) {
+            #     Write-Host ('Waiting ' + $DelayBetweenConnections + ' second(s)...')
+            #     Start-Sleep -Seconds $DelayBetweenConnections
+            # }
         }
         TrackWarningAnonymously ('Advanced|TDSClient|ConnectAndDisconnect')
     }
