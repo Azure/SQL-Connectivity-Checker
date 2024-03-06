@@ -8,10 +8,8 @@ namespace TDSClient.TDS.Tokens
 {
     using System;
     using System.IO;
-    
+    using TDSClient.TDS.Tokens.FedAuthInfoToken;
     using TDSClient.TDS.Utilities;
-    using TDSClient.TDS.FedAuthInfo;
-
 
     /// <summary>
     /// Factory used to read different tokens from a stream

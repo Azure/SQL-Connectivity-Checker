@@ -23,18 +23,11 @@ namespace TDSClient.TDS.Client
     using TDSClient.TDS.PreLogin;
     using TDSClient.TDS.Utilities;
     using TDSClient.TDS.Interfaces;
-    using TDSClient.TDS.FedAuthInfo;
     using TDSClient.TDS.FedAuthMessage;
     using TDSClient.TDS.Tokens;
+    using TDSClient.TDS.Tokens.FedAuthInfoToken;
 
-    public enum TDSAuthenticationType
-        {
-            SQLServerAuthentication,
-            ADPassword,
-            ADIntegrated,
-            ADInteractive,
-            ADManagedIdentity
-        }
+    using static TDSClient.AuthenticationProvider.AuthenticationProvider;
 
     /// <summary>
     /// SQL Test Client used to run diagnostics on SQL Server using TDS protocol.

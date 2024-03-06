@@ -7,6 +7,15 @@ namespace TDSClient.AuthenticationProvider
 {
     public class AuthenticationProvider
     {
+        public enum TDSAuthenticationType
+        {
+            SQLServerAuthentication,
+            ADPassword,
+            ADIntegrated,
+            ADInteractive,
+            ADManagedIdentity
+        }
+
         readonly string AuthenticationLibrary;
         readonly TDSAuthenticationType AuthenticationType;
         readonly string UserID;

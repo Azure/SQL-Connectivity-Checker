@@ -20,7 +20,8 @@ namespace TDSClient.TDS.Comms
     using TDSClient.TDS.Utilities;
     using TDSClient.TDS.FedAuthMessage;
     using System.Linq;
-    using TDSClient.TDS.Client;
+
+    using static TDSClient.AuthenticationProvider.AuthenticationProvider;
 
     /// <summary>
     /// Class that implements TDS communication.

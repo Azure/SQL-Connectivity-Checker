@@ -4,7 +4,7 @@
 //  </copyright>
 //  ---------------------------------------------------------------------------
 
-namespace TDSClient.TDS.FedAuthInfo
+namespace TDSClient.TDS.Tokens.FedAuthInfoToken
 {
     using System.IO;
     using System.Collections.Generic;
@@ -19,7 +19,7 @@ namespace TDSClient.TDS.FedAuthInfo
     /// </summary>
 #pragma warning disable CS0659
     public class TDSFedAuthInfoToken : TDSToken
-    #pragma warning restore CS0659
+#pragma warning restore CS0659
     {
         /// <summary>
         /// Collection of feature extension acknowledged options
@@ -124,7 +124,7 @@ namespace TDSClient.TDS.FedAuthInfo
 
             // Length of all of the options' FedAuthInfoID, FedAuthInfoDataLen, and FedAuthInfoDataOffset fields.
             // For each option, 1 byte for ID, 4 bytes for DataLen, 4 bytes for offset.
-            uint optionsLen = ((uint)Options.Count) * (sizeof(uint) + sizeof (uint) + sizeof(byte));
+            uint optionsLen = (uint)Options.Count * (sizeof(uint) + sizeof(uint) + sizeof(byte));
 
             // Total length of the token, not including token identifier.
             // 4 bytes for CountOfInfoIDs, plus optionsLen. FedAuthInfoData length is added below.
@@ -167,7 +167,7 @@ namespace TDSClient.TDS.FedAuthInfo
         /// Returns Fed Auth Info Token length.
         /// </summary>
         /// <returns>Returns Fed Auth Info Token length</returns>
-        public override ushort Length() 
+        public override ushort Length()
         {
             return (ushort)(TokenLength + sizeof(byte) + sizeof(uint));
         }

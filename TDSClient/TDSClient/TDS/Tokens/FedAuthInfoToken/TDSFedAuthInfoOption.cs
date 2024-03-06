@@ -4,7 +4,7 @@
 //  </copyright>
 //  ---------------------------------------------------------------------------
 
-namespace TDSClient.TDS.FedAuthInfo
+namespace TDSClient.TDS.Tokens.FedAuthInfoToken
 {
     using System.IO;
 

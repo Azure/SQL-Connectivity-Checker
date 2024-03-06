@@ -1,41 +1,42 @@
 ﻿//  ---------------------------------------------------------------------------
-//  <copyright file="TDSFedAuthInfoOptionSPN.cs" company="Microsoft">
+//  <copyright file="TDSFedAuthInfoOptionSTSURL.cs" company="Microsoft">
 //     Copyright (c) Microsoft Corporation.  All rights reserved.
 //  </copyright>
 //  ---------------------------------------------------------------------------
 
-namespace TDSClient.TDS.FedAuthInfo
+namespace TDSClient.TDS.Tokens.FedAuthInfoToken
 {
     using System;
     using System.IO;
     using System.Text;
 
     /// <summary>
-    /// TDS FedAuth Info Option for SPN
+    /// TDS FedAuth Info Option for STS URL
     /// </summary>
-    public class TDSFedAuthInfoOptionSPN : TDSFedAuthInfoOption
+    public class TDSFedAuthInfoOptionSTSURL : TDSFedAuthInfoOption
     {
         /// <summary>
-        /// Service Principal Name (SPN)
+        /// STS URL
         /// </summary>
-        public byte[] ServicePrincipalName { get; set; }
-
-        /// <summary>
-        /// Return the SPN as a unicode string.
-        /// </summary>
-        public string GetSPNString => ServicePrincipalName != null
-            ? Encoding.Unicode.GetString(ServicePrincipalName)
-            : null;
+        public byte[] StsUrl { get; set; }
 
         /// <summary>
         /// Return the FedAuthInfo Id.
         /// </summary>
-        public override TDSFedAuthInfoId FedAuthInfoId => TDSFedAuthInfoId.SPN;
+        public override TDSFedAuthInfoId FedAuthInfoId => TDSFedAuthInfoId.STSURL;
+
+
+        /// <summary>
+        /// Return the STSURL as a unicode string.
+        /// </summary>
+        public string STSURL => StsUrl != null
+            ? Encoding.Unicode.GetString(StsUrl)
+            : null;
 
         /// <summary>
         /// Default public contructor
         /// </summary>
-        public TDSFedAuthInfoOptionSPN()
+        public TDSFedAuthInfoOptionSTSURL()
         {
         }
 
@@ -43,8 +44,7 @@ namespace TDSClient.TDS.FedAuthInfo
         /// Constructor
         /// </summary>
         /// <param name="infoDataLength">Info Data Length</param>
-        public TDSFedAuthInfoOptionSPN(uint infoDataLength)
-            : this()
+        public TDSFedAuthInfoOptionSTSURL(uint infoDataLength) : this()
         {
             InfoDataLength = infoDataLength;
         }
@@ -52,17 +52,17 @@ namespace TDSClient.TDS.FedAuthInfo
         /// <summary>
         /// Constructor
         /// </summary>
-        /// <param name="spn">SPN string</param>
-        public TDSFedAuthInfoOptionSPN(string spn)
+        /// <param name="stsurl">STSURL string</param>
+        public TDSFedAuthInfoOptionSTSURL(string stsurl)
             : this()
         {
-            if (spn == null)
+            if (stsurl == null)
             {
-                throw new ArgumentNullException(nameof(spn));
+                throw new ArgumentNullException(nameof(stsurl));
             }
 
-            ServicePrincipalName = Encoding.Unicode.GetBytes(spn);
-            InfoDataLength = (uint)ServicePrincipalName.Length;
+            StsUrl = Encoding.Unicode.GetBytes(stsurl);
+            InfoDataLength = (uint)StsUrl.Length;
         }
 
         /// <summary>
@@ -77,8 +77,8 @@ namespace TDSClient.TDS.FedAuthInfo
 
             if (InfoDataLength > 0)
             {
-                ServicePrincipalName = new byte[InfoDataLength];
-                source.Read(ServicePrincipalName, 0, ServicePrincipalName.Length);
+                StsUrl = new byte[InfoDataLength];
+                source.Read(StsUrl, 0, StsUrl.Length);
             }
 
             return true;
@@ -94,10 +94,10 @@ namespace TDSClient.TDS.FedAuthInfo
             {
                 throw new ArgumentNullException(nameof(source));
             }
-            
+
             if (InfoDataLength > 0)
             {
-                source.Write(ServicePrincipalName, 0, ServicePrincipalName.Length);
+                source.Write(StsUrl, 0, StsUrl.Length);
             }
         }
     }
