@@ -199,6 +199,10 @@ namespace TDSClient.TDS.Comms
             return result;
         }
 
+        /// <summary>
+        /// Send TDS Message to the server.
+        /// </summary>
+        /// <param name="data"></param>
         public void SendTDSMessage(ITDSPacketData data)
         {
             HandleMessageData(data);
@@ -209,9 +213,13 @@ namespace TDSClient.TDS.Comms
             InnerStream.Write(buffer, 0, buffer.Length);
             
             UpdateCommunicatorState();
-
         }
 
+        /// <summary>
+        /// Handle TDS Message Data.
+        /// </summary>
+        /// <param name="data"></param>
+        /// <exception cref="InvalidOperationException"></exception>
         private void HandleMessageData(ITDSPacketData data)
         {
             switch (CommunicatorState)
@@ -235,9 +243,11 @@ namespace TDSClient.TDS.Comms
                 default:
                     throw new InvalidOperationException();
             }
-
         }
 
+        /// <summary>
+        /// Update Communicator State.
+        /// </summary>
         private void UpdateCommunicatorState()
         {
             switch (CommunicatorState)
@@ -263,6 +273,11 @@ namespace TDSClient.TDS.Comms
             }
         }
 
+        /// <summary>
+        /// Check if the authentication type is AAD.
+        /// </summary>
+        /// <param name="authenticationType"></param>
+        /// <returns></returns>
         private bool IsAADAuth(TDSAuthenticationType authenticationType)
         {
             var aadAuthTypes = new TDSAuthenticationType[] { 
@@ -274,6 +289,11 @@ namespace TDSClient.TDS.Comms
             return aadAuthTypes.Contains(authenticationType);
         }
 
+        /// <summary>
+        /// Handle Initial Send State.
+        /// </summary>
+        /// <param name="data"></param>
+        /// <exception cref="InvalidDataException"></exception>
         private void HandleInitialSendState(ITDSPacketData data)
         {
             if (!(data is TDSPreLoginPacketData))
@@ -284,6 +304,11 @@ namespace TDSClient.TDS.Comms
             InnerTdsStream.CurrentOutboundMessageType = TDSMessageType.PreLogin;
         }
 
+        /// <summary>
+        /// Handle Sent Initial PreLogin State.
+        /// </summary>
+        /// <param name="data"></param>
+        /// <exception cref="InvalidDataException"></exception>
         private void HandleSentInitialPreLoginState(ITDSPacketData data)
         {
             if (!(data is TDSLogin7PacketData))
@@ -294,6 +319,11 @@ namespace TDSClient.TDS.Comms
             InnerTdsStream.CurrentOutboundMessageType = TDSMessageType.TDS7Login;
         }
 
+        /// <summary>
+        /// Handle Sent Login Record State.
+        /// </summary>
+        /// <param name="data"></param>
+        /// <exception cref="InvalidDataException"></exception>
         private void HandleSentLoginRecordState(ITDSPacketData data)
         {
             if (!(data is TDSFedAuthToken))
@@ -304,6 +334,10 @@ namespace TDSClient.TDS.Comms
             InnerTdsStream.CurrentOutboundMessageType = TDSMessageType.FedAuthToken;
         }
 
+        /// <summary>
+        /// Handle Logged In State.
+        /// </summary>
+        /// <exception cref="NotSupportedException"></exception>
         private void HandleLoggedInState()
         {
             throw new NotSupportedException();

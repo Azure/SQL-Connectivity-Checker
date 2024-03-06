@@ -218,7 +218,7 @@ namespace TDSClient.TDS.Client
 
             preLoginDone = true;
             LoggingUtilities.AddEmptyLine();
-            LoggingUtilities.WriteLog($" PreLogin phase took {(int)(DateTime.UtcNow - connectStartTime).TotalMilliseconds} milliseconds.") ;
+            LoggingUtilities.WriteLog($" PreLogin phase took {(int)(DateTime.UtcNow - connectStartTime).TotalMilliseconds} milliseconds.", writeToSummaryLog: true) ;
 
             return preLoginResponse;
         }
@@ -245,6 +245,8 @@ namespace TDSClient.TDS.Client
         /// <param name="preLoginResponse"></param>
         private async Task PerformLogin(TDSPreLoginPacketData preLoginResponse)
         {
+            LoggingUtilities.WriteLog($" Starting Login phase.", writeToSummaryLog: true);
+
             DateTime connectStartTime = DateTime.UtcNow;
 
             SendLogin7();
@@ -651,10 +653,10 @@ namespace TDSClient.TDS.Client
             if (Client != null)
             {
                 LoggingUtilities.AddEmptyLine();
-                LoggingUtilities.WriteLog($" Disconnect initiated.");
+                LoggingUtilities.WriteLog($" Disconnect initiated.", writeToSummaryLog: true);
                 Client.Close();
                 Client = null;
-                LoggingUtilities.WriteLog($" Disconnect done.");
+                LoggingUtilities.WriteLog($" Disconnect done.", writeToSummaryLog: true);
             }
         }
 

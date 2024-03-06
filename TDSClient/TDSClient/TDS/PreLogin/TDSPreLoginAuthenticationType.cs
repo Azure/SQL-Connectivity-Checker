@@ -11,8 +11,17 @@ namespace TDSClient.TDS.PreLogin
     /// </summary>
     public enum TdsPreLoginFedAuthRequiredOption : byte
     {
+        /// <summary>
+        /// FedAuthNotRequired.
+        /// </summary>
         FedAuthNotRequired = 0x00,
+        /// <summary>
+        /// FedAuthRequired.
+        /// </summary>
         FedAuthRequired = 0x01,
+        /// <summary>
+        /// Illegal.
+        /// </summary>
         Illegal = 0x02
     }
 }

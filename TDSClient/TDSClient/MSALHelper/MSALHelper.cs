@@ -21,7 +21,7 @@ namespace TDSClient.MSALHelper
         /// <summary>
         /// Gets AAD access token to Azure SQL using user credentials (username and password).
         /// </summary>
-        /// <param name="authoritystring"></param>
+        /// <param name="authority"></param>
         /// <param name="clientId"></param>
         /// <param name="userId"></param>
         /// <param name="password"></param>
@@ -39,17 +39,24 @@ namespace TDSClient.MSALHelper
                 throw new ArgumentException("Password cannot be null or empty.", nameof(password));
 
             var app = CreateClientApp(authority);
-
             string[] scopes = new[] { resource + "/.default"};
 
-  
-                LoggingUtilities.WriteLog("Attempting to acquire access token using username and password.");
+            LoggingUtilities.WriteLog("Attempting to acquire access token using username and password.");
+
+            try
+            {
                 var result = await app.AcquireTokenByUsernamePassword(scopes, userId, password)
                     .ExecuteAsync()
                     .ConfigureAwait(false);
 
                 LoggingUtilities.WriteLog("Successfully acquired access token.");
                 return result.AccessToken;
+            }
+            catch (MsalServiceException ex)
+            {
+                HandleException(ex);
+                throw;
+            }
         }
 
         /// <summary>
@@ -57,6 +64,7 @@ namespace TDSClient.MSALHelper
         /// </summary>
         /// <param name="authority"></param>
         /// <param name="clientId"></param>
+        /// <param name="userId"></param>
         /// <returns></returns>
         public static async Task<string> GetSQLAccessTokenFromMSALUsingIntegratedAuth(string authority, string resource, string userId)
         {
@@ -85,7 +93,6 @@ namespace TDSClient.MSALHelper
             catch (MsalServiceException ex)
             {
                 HandleException(ex);
-
                 throw;
             }
         }
@@ -93,7 +100,7 @@ namespace TDSClient.MSALHelper
         /// <summary>
         /// Gets AAD access token to Azure SQL using interactive authentication.
         /// </summary>
-        /// <param name="authority"></param>
+        /// <param name="resource"></param>
         /// <returns></returns>
         public static async Task<string> GetSQLAccessTokenFromMSALInteractively(string resource)
         {
@@ -124,15 +131,16 @@ namespace TDSClient.MSALHelper
         }
 
         /// <summary>
-        /// Gets AAD access token to Azure SQL using managed identity.
+        /// Gets AAD access token to Azure SQL using system assigned managed identity.
         /// </summary>
-        /// <param name="authority"></param>
+        /// <param name="resource"></param>
         /// <returns></returns>
         public static async Task<string> GetSQLAccessTokenFromMSALUsingSystemAssignedManagedIdentity(string resource)
         {
             LoggingUtilities.WriteLog("Attempting to acquire access token using system assigned managed identity auth.");
 
-            var app = ManagedIdentityApplicationBuilder.Create(ManagedIdentityId.SystemAssigned)
+            var app = ManagedIdentityApplicationBuilder
+                .Create(ManagedIdentityId.SystemAssigned)
                 .Build();
 
             try
@@ -182,10 +190,9 @@ namespace TDSClient.MSALHelper
         }
 
         /// <summary>
-        /// 
+        /// Creates a public client application using the authority.
         /// </summary>
         /// <param name="authority"></param>
-        /// <param name="clientId"></param>
         /// <returns></returns>
         private static IPublicClientApplication CreateClientApp(string authority)
         {
@@ -197,12 +204,11 @@ namespace TDSClient.MSALHelper
 
         private static void LogCallback(LogLevel level, string message, bool containsPii)
         {
-            // Customize how you handle logs here
-            LoggingUtilities.WriteLog($"[{level}] {(containsPii ? "[PII]" : "")} {message}");
+            LoggingUtilities.WriteLog($"[{level}] {(containsPii ? "[PII]" : "")} {message}", writeToVerboseLog: false, writeToSummaryLog: false, writeToMsalLog: true);
         }
 
         /// <summary>
-        /// 
+        /// Handles exceptions thrown by MSAL.
         /// </summary>
         /// <param name="ex"></param>
         private static void HandleException(Exception ex)
@@ -223,36 +229,4 @@ namespace TDSClient.MSALHelper
             }
         }
     }
-
-    // public class MsalLogger : IIdentityLogger
-    // {
-    //     public EventLogLevel MinLogLevel { get; }
-
-    //     public MsalLogger()
-    //     {
-    //         //Retrieve the log level from an environment variable
-    //         var msalEnvLogLevel = Environment.GetEnvironmentVariable("MSAL_LOG_LEVEL");
-
-    //         if (Enum.TryParse(msalEnvLogLevel, out EventLogLevel msalLogLevel))
-    //         {
-    //             MinLogLevel = msalLogLevel;
-    //         }
-    //         else
-    //         {
-    //             //Recommended default log level
-    //             MinLogLevel = EventLogLevel.Verbose;
-    //         }
-    //     }
-
-    //     public bool IsEnabled(EventLogLevel eventLogLevel)
-    //     {
-    //         return eventLogLevel <= MinLogLevel;
-    //     }
-
-    //     public void Log(LogEntry entry)
-    //     {
-    //         //Log Message here:
-    //         LoggingUtilities.WriteLog(entry.Message);
-    //     }
-    // }
 }

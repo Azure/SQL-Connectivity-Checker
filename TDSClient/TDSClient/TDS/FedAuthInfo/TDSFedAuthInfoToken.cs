@@ -14,6 +14,9 @@ namespace TDSClient.TDS.FedAuthInfo
     using TDSClient.TDS.Tokens;
     using System;
 
+    /// <summary>
+    /// TDS Fed Auth Info Token.
+    /// </summary>
 #pragma warning disable CS0659
     public class TDSFedAuthInfoToken : TDSToken
     #pragma warning restore CS0659
@@ -201,6 +204,10 @@ namespace TDSClient.TDS.FedAuthInfo
             return StructuralComparisons.StructuralEqualityComparer.Equals(dict1, dict2);
         }
 
+        /// <summary>
+        /// Process token.
+        /// </summary>
+        /// <exception cref="NotImplementedException"></exception>
         public override void ProcessToken()
         {
             throw new NotImplementedException();

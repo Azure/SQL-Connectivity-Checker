@@ -184,6 +184,9 @@ namespace TDSClient.TDS.Tokens
                     && ProgName.Equals(obj.ProgName);
 		}
 
+        /// <summary>
+        /// Process token.
+        /// </summary>
         public override void ProcessToken()
         {
             LoggingUtilities.WriteLog($"  Client received LoginAck token:");

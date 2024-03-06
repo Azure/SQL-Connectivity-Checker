@@ -54,8 +54,6 @@ namespace TDSClient.TDS.Client
             ActivitySequence = activitySequence;
         }
 
-
-
         /// <summary>
         /// Determines whether the specified object is equal to the current object.
         /// </summary>

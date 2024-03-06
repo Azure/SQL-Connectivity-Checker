@@ -245,6 +245,10 @@ namespace TDSClient.TDS.Comms
             InnerStream.SetLength(value);
         }
 
+        /// <summary>
+        /// Disposes the stream.
+        /// </summary>
+        /// <param name="disposing"></param>
         protected override void Dispose(bool disposing)
         {
             if (disposing)
@@ -257,12 +261,19 @@ namespace TDSClient.TDS.Comms
             }
         }
 
+        /// <summary>
+        /// Disposes the stream.
+        /// </summary>
         public void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
         }
 
+        /// <summary>
+        /// Ensures that inner stream is not null.
+        /// </summary>
+        /// <exception cref="ObjectDisposedException"></exception>
         private void EnsureInnerStreamIsNotNull()
         {
             if (InnerStream == null)

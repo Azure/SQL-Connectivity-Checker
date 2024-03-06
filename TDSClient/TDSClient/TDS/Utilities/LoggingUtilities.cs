@@ -32,6 +32,11 @@ namespace TDSClient.TDS.Utilities
         private static readonly WeakReference<TextWriter> VerboseLog = new WeakReference<TextWriter>(null);
 
         /// <summary>
+        /// MSAL log output.
+        /// </summary>
+        private static readonly WeakReference<TextWriter> MsalLog = new WeakReference<TextWriter>(null);
+
+        /// <summary>
         /// Datetime format use in the logs.
         /// </summary>
         private static readonly string DatetimeFormat = "yyyy.MM.dd HH:mm:ss.ffff";
@@ -69,12 +74,28 @@ namespace TDSClient.TDS.Utilities
         }
 
         /// <summary>
+        /// Used to set Msal Log output.
+        /// </summary>
+        /// <param name="log">Msal log output.</param>
+        public static void SetMsalLog(TextWriter log)
+        {
+            if (!VerboseLog.TryGetTarget(out TextWriter temp) || temp == null)
+            {
+                VerboseLog.SetTarget(log);
+            }
+            else
+            {
+                throw new InvalidOperationException("MsalLog is already set!");
+            }
+        }
+
+        /// <summary>
         /// Used to write message to Log and Verbose Log. 
         /// </summary>
         /// <param name="message">Message to write to Log.</param>
         /// <param name="writeToVerboseLog">Option to write to verbose log.</param>
         /// <param name="writeToSummaryLog">Option to write to summary log.</param>
-        public static void WriteLog(string message, bool writeToVerboseLog = true, bool writeToSummaryLog = false)
+        public static void WriteLog(string message, bool writeToVerboseLog = true, bool writeToSummaryLog = false, bool writeToMsalLog = false)
         {
             var timestamp = DateTime.UtcNow.ToString(DatetimeFormat, DateTimeFormatInfo.InvariantInfo);
             if (writeToSummaryLog && SummaryLog.TryGetTarget(out TextWriter temp) && temp != null)
@@ -83,6 +104,11 @@ namespace TDSClient.TDS.Utilities
             }
 
             if (writeToVerboseLog && VerboseLog.TryGetTarget(out temp) && temp != null)
+            {
+                temp.WriteLine($"[{timestamp}] {message}");
+            }
+
+            if (writeToMsalLog && MsalLog.TryGetTarget(out temp) && temp != null)
             {
                 temp.WriteLine($"[{timestamp}] {message}");
             }
@@ -118,6 +144,14 @@ namespace TDSClient.TDS.Utilities
         /// Used to remove Verbose Log output.
         /// </summary>
         public static void ClearVerboseLog()
+        {
+            VerboseLog.SetTarget(null);
+        }
+
+        /// <summary>
+        /// Used to remove Msal Log output.
+        /// </summary>
+        public static void ClearMsalLog()
         {
             VerboseLog.SetTarget(null);
         }

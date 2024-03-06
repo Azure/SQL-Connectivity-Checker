@@ -13,7 +13,6 @@ namespace TDSClient.TDS.FedAuthMessage
 
 	using TDSClient.TDS.Utilities;
 	using TDSClient.TDS.Interfaces;
-    using TDSClient.TDS.Login7;
 
     /// <summary>
     /// FedAuthToken Message definition.

@@ -101,6 +101,10 @@ namespace TDSClient.TDS.Tokens
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Process token.
+        /// </summary>
+        /// <exception cref="Exception"></exception>
         public override void ProcessToken()
         {
             LoggingUtilities.WriteLog($" Client received Error token, Number: {Number}, State: {State}", writeToSummaryLog: true);

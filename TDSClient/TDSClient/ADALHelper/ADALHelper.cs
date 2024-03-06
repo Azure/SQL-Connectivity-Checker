@@ -70,19 +70,9 @@ namespace TDSClient.ADALHelper
                 LoggingUtilities.WriteLog("Successfully acquired access token.");
                 return result.AccessToken;
             }
-            catch (AdalServiceException ex)
-            {
-                LogException("Service exception occurred when trying to acquire a JWT token", ex);
-                throw;
-            }
-            catch (AdalException ex)
-            {
-                LogException("Client exception occurred when trying to acquire a JWT token", ex);
-                throw;
-            }
             catch (Exception ex)
             {
-                LogException("An unexpected error occurred when trying to acquire a JWT token", ex);
+                LogException(ex);
                 throw;
             }
         }
@@ -91,18 +81,21 @@ namespace TDSClient.ADALHelper
         /// Logs possible ADAL exception message.
         /// </summary>
         /// <param name="message">Custom message</param>
-        /// <param name="ex">Exception</param>
-        private static void LogException(string message, Exception ex)
+        private static void LogException(Exception ex)
         {
             if (ex is AdalException adalException)
             {
-                LoggingUtilities.WriteLog($"{message}: {adalException.Message}");
+                LoggingUtilities.WriteLog($"Client exception occurred when trying to acquire a JWT token: {adalException.Message}");
                 LoggingUtilities.WriteLog($"Error code: {adalException.ErrorCode}");
             }
-
-            if (ex is AdalServiceException serviceException)
+            else if (ex is AdalServiceException serviceException)
             {
+                LoggingUtilities.WriteLog($"Service exception occurred when trying to acquire a JWT token: {serviceException.Message}");
                 LoggingUtilities.WriteLog($"HTTP status code: {serviceException.StatusCode}");
+            }
+            else
+            {
+                LoggingUtilities.WriteLog($"An unexpected error occurred when trying to acquire a JWT token: {ex.Message}");
             }
         }
     }

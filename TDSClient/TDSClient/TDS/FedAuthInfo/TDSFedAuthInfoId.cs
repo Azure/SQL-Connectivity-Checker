@@ -6,6 +6,9 @@
 
 namespace TDSClient.TDS.FedAuthInfo
 {
+    /// <summary>
+    /// TDS Fed Auth Info Id.
+    /// </summary>
     public enum TDSFedAuthInfoId
     {
         /// <summary>
