@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 using TDSClient.TDS.Client;
@@ -7,6 +8,9 @@ namespace TDSClient.AuthenticationProvider
 {
     public class AuthenticationProvider
     {
+        /// <summary>
+        /// Type of authentication.
+        /// </summary>
         public enum TDSAuthenticationType
         {
             SQLServerAuthentication,
@@ -16,6 +20,19 @@ namespace TDSClient.AuthenticationProvider
             ADManagedIdentity
         }
 
+        /// <summary>
+        /// Authentication type string to enum mapping.
+        /// </summary>
+        public static readonly Dictionary<string, TDSAuthenticationType> AuthTypeStringToEnum = new Dictionary<string, TDSAuthenticationType>
+        {
+            { "SQL Server Authentication", TDSAuthenticationType.SQLServerAuthentication },
+            { "Active Directory Password", TDSAuthenticationType.ADPassword },
+            { "Active Directory Integrated", TDSAuthenticationType.ADIntegrated },
+            { "Active Directory Interactive", TDSAuthenticationType.ADInteractive },
+            { "Active Directory Managed Identity", TDSAuthenticationType.ADManagedIdentity },
+            { "Active Directory MSI", TDSAuthenticationType.ADManagedIdentity }
+        };
+
         readonly string AuthenticationLibrary;
         readonly TDSAuthenticationType AuthenticationType;
         readonly string UserID;
@@ -24,7 +41,22 @@ namespace TDSClient.AuthenticationProvider
         readonly string Resource;
         readonly string IdentityClientId;
 
-        public AuthenticationProvider(string authenticationLibrary, TDSAuthenticationType authenticationType, string userId, string password, string aadAuthorityAudience, string resource)
+        /// <summary>
+        /// AuthenticationProvider constructor.
+        /// </summary>
+        /// <param name="authenticationLibrary"></param>
+        /// <param name="authenticationType"></param>
+        /// <param name="userId"></param>
+        /// <param name="password"></param>
+        /// <param name="aadAuthorityAudience"></param>
+        /// <param name="resource"></param>
+        public AuthenticationProvider(
+            string authenticationLibrary,
+            TDSAuthenticationType authenticationType,
+            string userId,
+            string password,
+            string aadAuthorityAudience,
+            string resource)
         {
             AuthenticationLibrary = authenticationLibrary;
             AuthenticationType = authenticationType;
@@ -37,10 +69,7 @@ namespace TDSClient.AuthenticationProvider
         /// <summary>
         /// Acquires JWT Access token.
         /// </summary>
-        /// <param name="authority"></param>
-        /// <param name="resource"></param>
-        /// <param name="clientID"></param>
-        /// <returns></returns>
+        /// <returns>Access token as a string</returns>
         public async Task<string> GetJWTAccessToken()
         {
             string accessToken = null;
@@ -67,10 +96,7 @@ namespace TDSClient.AuthenticationProvider
         /// <summary>
         /// Acquires access token for AAD integrated authentication.
         /// </summary>
-        /// <param name="authority"></param>
-        /// <param name="resource"></param>
-        /// <param name="clientID"></param>
-        /// <returns></returns>
+        /// <returns>Access token as a string</returns>
         private async Task<string> GetAccessTokenForIntegratedAuth()
         {
             return AuthenticationLibrary.Contains("MSAL") ?
@@ -81,9 +107,6 @@ namespace TDSClient.AuthenticationProvider
         /// <summary>
         /// Acquires access token for AAD username password authentication.
         /// </summary>
-        /// <param name="authority"></param>
-        /// <param name="resource"></param>
-        /// <param name="clientID"></param>
         /// <returns></returns>
         private async Task<string> GetAccessTokenForUsernamePassword()
         {
@@ -95,9 +118,6 @@ namespace TDSClient.AuthenticationProvider
         /// <summary>
         /// Acquires access token for AAD integrated authentication.
         /// </summary>
-        /// <param name="authority"></param>
-        /// <param name="resource"></param>
-        /// <param name="clientID"></param>
         /// <returns></returns>
         private async Task<string> GetAccessTokenForInteractiveAuth()
         {
@@ -107,9 +127,6 @@ namespace TDSClient.AuthenticationProvider
         /// <summary>
         /// Acquires access token for AAD integrated authentication.
         /// </summary>
-        /// <param name="authority"></param>
-        /// <param name="resource"></param>
-        /// <param name="clientID"></param>
         /// <returns></returns>
         private async Task<string> GetAccessTokenForMSIAuth()
         {

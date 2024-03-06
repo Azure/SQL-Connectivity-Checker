@@ -14,7 +14,9 @@ namespace TDSClient.TDS.Login7
 
     using TDSClient.TDS.Interfaces;
     using TDSClient.TDS.Login7.Options;
+    using TDSClient.TDS.PreLogin;
     using TDSClient.TDS.Utilities;
+    using static TDSClient.AuthenticationProvider.AuthenticationProvider;
 
     /// <summary>
     /// Data portion of the TDS Login7 packet
@@ -32,7 +34,17 @@ namespace TDSClient.TDS.Login7
         /// <param name="connectionID">Connection ID</param>
         /// <param name="clientLCID">Client LCID</param>
         /// <param name="clientID">Client ID</param>
-        public TDSLogin7PacketData(uint tdsVersion = 1946157060, uint packetSize = 4096, uint clientProgVer = 117440512, uint connectionID = 0, uint clientLCID = 1033, byte[] clientID = null)
+        public TDSLogin7PacketData(
+            string hostName,
+            string appName,
+            string server,
+            string database,
+            uint tdsVersion = 1946157060,
+            uint packetSize = 4096,
+            uint clientProgVer = 117440512,
+            uint connectionID = 0,
+            uint clientLCID = 1033,
+            byte[] clientID = null)
         {
             TDSVersion = tdsVersion;
             PacketSize = packetSize;
@@ -61,6 +73,74 @@ namespace TDSClient.TDS.Login7
             {
                 ClientID = clientID;
             }
+
+            LoggingUtilities.WriteLog($" Adding option HostName with value [{Environment.MachineName}]");
+            HostName = Environment.MachineName;
+
+            LoggingUtilities.WriteLog($"  Adding option ApplicationName with value [{appName}]");
+            ApplicationName = hostName;
+
+            LoggingUtilities.WriteLog($"  Adding option ServerName with value [{server}]");
+            ServerName = server;
+
+            LoggingUtilities.WriteLog($"  Adding option Database with value [{database}]");
+            Database = database;
+
+            ClientTimeZone = 480;
+        }
+
+        /// <summary>
+        /// Adds options for SQL Authentication to TDS Login message.
+        /// </summary>
+        /// <param name="tdsMessageBody"></param>
+
+        public void AddLogin7SQLAuthenticationOptions(string userId, string password)
+        {
+            LoggingUtilities.WriteLog($"  Adding option UserID with value [{userId}]");
+            UserID = userId;
+
+            LoggingUtilities.WriteLog($"  Adding option Password");
+            Password = password;
+
+            OptionFlags3.Extension = TDSLogin7OptionFlags3Extension.DoesntExist;
+        }
+
+        /// <summary>
+        /// Adds options for AAD Authentication to TDS Login message.
+        /// </summary>
+        /// <param name="tdsMessageBody"></param>
+        public void AddLogin7AADAuthenticationOptions(TDSAuthenticationType authenticationType)
+        {
+            TDSFedAuthADALWorkflow adalWorkflow = authenticationType.Equals(TDSAuthenticationType.ADIntegrated) ?
+                TDSFedAuthADALWorkflow.Integrated : TDSFedAuthADALWorkflow.UserPassword;
+
+            OptionFlags3.Extension = TDSLogin7OptionFlags3Extension.Exists;
+
+            TDSLogin7FedAuthOptionToken featureOption = CreateLogin7FederatedAuthenticationFeatureExt(TDSFedAuthLibraryType.ADAL, adalWorkflow);
+
+            FeatureExt ??= new TDSLogin7FeatureOptionsToken();
+            FeatureExt.Add(featureOption);
+        }
+
+        /// <summary>
+        /// Creates Fedauth feature extension for the login7 packet.
+        /// </summary>
+        private TDSLogin7FedAuthOptionToken CreateLogin7FederatedAuthenticationFeatureExt(
+            TDSFedAuthLibraryType libraryType,
+            TDSFedAuthADALWorkflow workflow = TDSFedAuthADALWorkflow.EMPTY)
+        {
+            TDSLogin7FedAuthOptionToken featureOption =
+                new TDSLogin7FedAuthOptionToken(
+                    TdsPreLoginFedAuthRequiredOption.FedAuthRequired,
+                    libraryType,
+                    null,
+                    null,
+                    null,
+                    false,
+                    libraryType == TDSFedAuthLibraryType.ADAL,
+                    workflow);
+
+            return featureOption;
         }
 
         /// <summary>

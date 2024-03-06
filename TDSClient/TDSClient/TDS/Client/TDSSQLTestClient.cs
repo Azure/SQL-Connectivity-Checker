@@ -34,16 +34,6 @@ namespace TDSClient.TDS.Client
     /// </summary>
     public class TDSSQLTestClient
     {
-        private static readonly Dictionary<string, TDSAuthenticationType> authTypeStringToEnum = new Dictionary<string, TDSAuthenticationType>
-        {
-            { "SQL Server Authentication", TDSAuthenticationType.SQLServerAuthentication },
-            { "Active Directory Password", TDSAuthenticationType.ADPassword },
-            { "Active Directory Integrated", TDSAuthenticationType.ADIntegrated },
-            { "Active Directory Interactive", TDSAuthenticationType.ADInteractive },
-            { "Active Directory Managed Identity", TDSAuthenticationType.ADManagedIdentity },
-            { "Active Directory MSI", TDSAuthenticationType.ADManagedIdentity }
-        };
-
         private bool Reconnect;
         private int ConnectionAttempt;
         private readonly TDSAuthenticationType AuthenticationType;
@@ -93,7 +83,7 @@ namespace TDSClient.TDS.Client
             IdentityClientId = identityClientId;
             EncryptionProtocol = encryptionProtocol;
             ConnectionAttempt = 0;
-            AuthenticationType = authTypeStringToEnum[authenticationType];
+            AuthenticationType = AuthTypeStringToEnum[authenticationType];
             AuthenticationLibrary = authenticationLibrary;
 
             LoggingUtilities.WriteLog($" Instantiating TDSSQLTestClient with the following parameters:");
@@ -222,7 +212,9 @@ namespace TDSClient.TDS.Client
             ushort packetSize = 4096;
             TdsCommunicator = new TDSCommunicator(Client.GetStream(), packetSize, AuthenticationType);
 
-            LoggingUtilities.WriteLog($"  TCP connection open between local {Client.Client.LocalEndPoint} and remote {Client.Client.RemoteEndPoint}", writeToVerboseLog: false, writeToSummaryLog: true);
+            LoggingUtilities.WriteLog($"  TCP connection open between local {Client.Client.LocalEndPoint} and remote {Client.Client.RemoteEndPoint}",
+                writeToVerboseLog: false,
+                writeToSummaryLog: true);
             LoggingUtilities.WriteLog($"  TCP connection open");
             LoggingUtilities.WriteLog($"   Local endpoint is {Client.Client.LocalEndPoint}");
             LoggingUtilities.WriteLog($"   Remote endpoint is {Client.Client.RemoteEndPoint}");
@@ -295,73 +287,23 @@ namespace TDSClient.TDS.Client
             LoggingUtilities.AddEmptyLine();
             LoggingUtilities.WriteLog($" Building Login7 message.");
 
-            var tdsMessageBody = new TDSLogin7PacketData();
+            var tdsMessageBody = new TDSLogin7PacketData(Environment.MachineName, "TDSSQLTestClient", Server, Database);
 
-            LoggingUtilities.WriteLog($" Adding option HostName with value [{Environment.MachineName}]");
-            tdsMessageBody.HostName = Environment.MachineName;
-
-            LoggingUtilities.WriteLog($"  Adding option ApplicationName with value [TDSSQLTestClient]");
-            tdsMessageBody.ApplicationName = "TDSSQLTestClient";
-
-            LoggingUtilities.WriteLog($"  Adding option ServerName with value [{Server}]");
-            tdsMessageBody.ServerName = Server;
-
-            LoggingUtilities.WriteLog($"  Adding option Database with value [{Database}]");
-            tdsMessageBody.Database = Database;
-
-            tdsMessageBody.ClientTimeZone = 480;
-
-            // If SQL authentication is used, a part of the Login message is a user id and a password.
+            // If SQL Authentication is used, a part of the Login message are user id and password.
             //
             if (!IsAADAuthRequired())
             {
                 LoggingUtilities.WriteLog($"  Adding SQL Authentication options");
-                AddLogin7SQLAuthenticationOptions(tdsMessageBody);
+                tdsMessageBody.AddLogin7SQLAuthenticationOptions(UserID, Password);
             }
             else
             {
                 LoggingUtilities.WriteLog($"  Adding AAD Authentication options");
-                AddLogin7AADAuthenticationOptions(tdsMessageBody);
+                tdsMessageBody.AddLogin7AADAuthenticationOptions(AuthenticationType);
             }
 
-            LoggingUtilities.WriteLog($"  Adding common login options");
-
             TdsCommunicator.SendTDSMessage(tdsMessageBody);
-
             LoggingUtilities.WriteLog($" Login7 message sent.");
-        }
-
-        /// <summary>
-        /// Adds options for SQL Authentication to TDS Login message.
-        /// </summary>
-        /// <param name="tdsMessageBody"></param>
-
-        private void AddLogin7SQLAuthenticationOptions(TDSLogin7PacketData tdsMessageBody)
-        {
-            LoggingUtilities.WriteLog($"  Adding option UserID with value [{UserID}]");
-            tdsMessageBody.UserID = UserID;
-
-            LoggingUtilities.WriteLog($"  Adding option Password");
-            tdsMessageBody.Password = Password;
-
-            tdsMessageBody.OptionFlags3.Extension = TDSLogin7OptionFlags3Extension.DoesntExist;
-        }
-
-        /// <summary>
-        /// Adds options for AAD Authentication to TDS Login message.
-        /// </summary>
-        /// <param name="tdsMessageBody"></param>
-        private void AddLogin7AADAuthenticationOptions(TDSLogin7PacketData tdsMessageBody)
-        {
-            TDSFedAuthADALWorkflow adalWorkflow = AuthenticationType.Equals(TDSAuthenticationType.ADIntegrated) ?
-                TDSFedAuthADALWorkflow.Integrated : TDSFedAuthADALWorkflow.UserPassword;
-
-            tdsMessageBody.OptionFlags3.Extension = TDSLogin7OptionFlags3Extension.Exists;
-
-            TDSLogin7FedAuthOptionToken featureOption = CreateLogin7FederatedAuthenticationFeatureExt(TDSFedAuthLibraryType.ADAL, adalWorkflow);
-
-            tdsMessageBody.FeatureExt ??= new TDSLogin7FeatureOptionsToken();
-            tdsMessageBody.FeatureExt.Add(featureOption);
         }
 
         /// <summary>
@@ -412,25 +354,6 @@ namespace TDSClient.TDS.Client
             TDSFedAuthToken fedAuthToken = new TDSFedAuthToken(accessToken);
             TdsCommunicator.SendTDSMessage(fedAuthToken);
             LoggingUtilities.WriteLog($"  JWT token successfully sent.");
-        }
-
-        /// <summary>
-        /// Creates Fedauth feature extension for the login7 packet.
-        /// </summary>
-        private TDSLogin7FedAuthOptionToken CreateLogin7FederatedAuthenticationFeatureExt(TDSFedAuthLibraryType libraryType, TDSFedAuthADALWorkflow workflow = TDSFedAuthADALWorkflow.EMPTY)
-        {
-            // Create feature option
-            TDSLogin7FedAuthOptionToken featureOption =
-                new TDSLogin7FedAuthOptionToken(TdsPreLoginFedAuthRequiredOption.FedAuthRequired,
-                                                libraryType,
-                                                null,
-                                                null,
-                                                null,
-                                                false,
-                                                libraryType == TDSFedAuthLibraryType.ADAL,
-                                                workflow);
-
-            return featureOption;
         }
 
         /// <summary>

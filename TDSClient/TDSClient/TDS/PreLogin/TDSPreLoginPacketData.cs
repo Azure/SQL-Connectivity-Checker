@@ -15,7 +15,9 @@ namespace TDSClient.TDS.PreLogin
     using TDSClient.TDS.Comms;
     using TDSClient.TDS.Header;
     using TDSClient.TDS.Interfaces;
+    using TDSClient.TDS.Login7;
     using TDSClient.TDS.Utilities;
+    using static TDSClient.AuthenticationProvider.AuthenticationProvider;
 
     /// <summary>
     /// Class describing data portion of the PreLogin packet
@@ -49,9 +51,9 @@ namespace TDSClient.TDS.PreLogin
                                     TDSEncryptionOption.EncryptOff);
 
             AddOption(TDSPreLoginOptionTokenType.TraceID,
-                                    new TDSClientTraceID(Guid.NewGuid().ToByteArray(),
-                                                        Guid.NewGuid().ToByteArray(),
-                                                        0));
+                      new TDSClientTraceID(Guid.NewGuid().ToByteArray(),
+                                           Guid.NewGuid().ToByteArray(),
+                                           0));
         }
 
         /// <summary>
