@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using TDSClient.TDS.Utilities;
 
-namespace TDSClient.ADALHelper
+namespace TDSClient.AuthenticationProvider
 {
     public class ADALHelper
     {

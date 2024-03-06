@@ -16,6 +16,7 @@ namespace TDSClient.TDS.Client
     using System.Text;
     using System.Threading.Tasks;
 
+    using TDSClient.AuthenticationProvider;
     using TDSClient.TDS.Comms;
     using TDSClient.TDS.Header;
     using TDSClient.TDS.Login7;
@@ -24,8 +25,6 @@ namespace TDSClient.TDS.Client
     using TDSClient.TDS.Interfaces;
     using TDSClient.TDS.FedAuthInfo;
     using TDSClient.TDS.FedAuthMessage;
-    using TDSClient.MSALHelper;
-    using TDSClient.ADALHelper;
     using TDSClient.TDS.Tokens;
 
     public enum TDSAuthenticationType
@@ -98,20 +97,13 @@ namespace TDSClient.TDS.Client
             UserID = userID;
             Password = password;
             Database = database;
-
-            if (identityClientId != null)
-            {
-                IdentityClientId = identityClientId;
-            }
-
+            IdentityClientId = identityClientId;
             EncryptionProtocol = encryptionProtocol;
             ConnectionAttempt = 0;
-
             AuthenticationType = authTypeStringToEnum[authenticationType];
             AuthenticationLibrary = authenticationLibrary;
 
             LoggingUtilities.WriteLog($" Instantiating TDSSQLTestClient with the following parameters:");
-
             LoggingUtilities.WriteLog($"     Server: {server}.");
             LoggingUtilities.WriteLog($"     Port: {port}.");
             LoggingUtilities.WriteLog($"     UserID: {userID}.");
@@ -207,8 +199,12 @@ namespace TDSClient.TDS.Client
         /// <returns></returns>
         private TDSPreLoginPacketData PerformPreLogin(ref bool preLoginDone)
         {
-            Reconnect = false;
+            if (preLoginDone)
+            {
+                return null;
+            }
 
+            Reconnect = false;
             EstablishTCPConnection();
 
             DateTime connectStartTime = DateTime.UtcNow;
@@ -264,7 +260,9 @@ namespace TDSClient.TDS.Client
                 string authority = fedAuthInfoMessage.Item1;
                 string resource = fedAuthInfoMessage.Item2;
 
-                string accessToken = await GetJWTAccessToken(authority, resource);
+                AuthenticationProvider authenticationProvider = new AuthenticationProvider(AuthenticationLibrary, AuthenticationType, UserID, Password, authority, resource);
+
+                string accessToken = await authenticationProvider.GetJWTAccessToken();
 
                 SendFedAuthMessage(accessToken);
             }
@@ -272,90 +270,6 @@ namespace TDSClient.TDS.Client
             ReceiveLogin7Response();
 
             LoggingUtilities.WriteLog($" Login phase took {(int)(DateTime.UtcNow - connectStartTime).TotalMilliseconds} milliseconds.");
-        }
-
-        /// <summary>
-        /// Acquires JWT Access token.
-        /// </summary>
-        /// <param name="authority"></param>
-        /// <param name="resource"></param>
-        /// <param name="clientID"></param>
-        /// <returns></returns>
-        private async Task<string> GetJWTAccessToken(string authority, string resource)
-        {
-            string accessToken = null;
-
-            switch(AuthenticationType)
-            {
-                case TDSAuthenticationType.ADIntegrated:
-                    accessToken = await GetAccessTokenForIntegratedAuth(authority, resource);
-                    break;
-                case TDSAuthenticationType.ADInteractive:
-                    accessToken = await GetAccessTokenForInteractiveAuth(authority);
-                    break;
-                case TDSAuthenticationType.ADPassword:
-                    accessToken = await GetAccessTokenForUsernamePassword(authority, resource);
-                    break;
-                case TDSAuthenticationType.ADManagedIdentity:
-                    accessToken = await GetAccessTokenForMSIAuth(authority);
-                    break;
-            }
-
-            return accessToken;
-        }
-
-        /// <summary>
-        /// Acquires access token for AAD integrated authentication.
-        /// </summary>
-        /// <param name="authority"></param>
-        /// <param name="resource"></param>
-        /// <param name="clientID"></param>
-        /// <returns></returns>
-        private async Task<string> GetAccessTokenForIntegratedAuth(string authority, string resource)
-        {
-            return AuthenticationLibrary.Contains("MSAL") ?
-                await MSALHelper.GetSQLAccessTokenFromMSALUsingIntegratedAuth(authority, resource, UserID) :
-                await ADALHelper.GetSQLAccessTokenFromADALUsingIntegratedAuth(authority, resource);
-        }
-
-        /// <summary>
-        /// Acquires access token for AAD username password authentication.
-        /// </summary>
-        /// <param name="authority"></param>
-        /// <param name="resource"></param>
-        /// <param name="clientID"></param>
-        /// <returns></returns>
-        private async Task<string> GetAccessTokenForUsernamePassword(string authority, string resource)
-        {
-             return AuthenticationLibrary.Contains("MSAL") ?
-                await MSALHelper.GetSQLAccessTokenFromMSALUsingUsernamePassword(authority, resource, UserID, Password) :
-                throw new Exception("Username password authentication is not supported by ADAL.");
-        }
-
-        /// <summary>
-        /// Acquires access token for AAD integrated authentication.
-        /// </summary>
-        /// <param name="authority"></param>
-        /// <param name="resource"></param>
-        /// <param name="clientID"></param>
-        /// <returns></returns>
-        private async Task<string> GetAccessTokenForInteractiveAuth(string authority)
-        {
-            return await MSALHelper.GetSQLAccessTokenFromMSALInteractively(authority);
-        }
-
-        /// <summary>
-        /// Acquires access token for AAD integrated authentication.
-        /// </summary>
-        /// <param name="authority"></param>
-        /// <param name="resource"></param>
-        /// <param name="clientID"></param>
-        /// <returns></returns>
-        private async Task<string> GetAccessTokenForMSIAuth(string authority)
-        {
-            return IdentityClientId != null ?
-                await MSALHelper.GetSQLAccessTokenFromMSALUsingUserAssignedManagedIdentity(authority, IdentityClientId) :
-                await MSALHelper.GetSQLAccessTokenFromMSALUsingSystemAssignedManagedIdentity(authority);
         }
 
         /// <summary>

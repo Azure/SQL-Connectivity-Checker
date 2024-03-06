@@ -7,12 +7,13 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Identity.Client;
 
+using Microsoft.Identity.Client;
 using Microsoft.Identity.Client.AppConfig;
+
 using TDSClient.TDS.Utilities;
 
-namespace TDSClient.MSALHelper
+namespace TDSClient.AuthenticationProvider
 {
     public class MSALHelper
     {
