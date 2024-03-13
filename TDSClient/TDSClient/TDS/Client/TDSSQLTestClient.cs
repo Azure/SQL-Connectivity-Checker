@@ -121,7 +121,7 @@ namespace TDSClient.TDS.Client
         /// <summary>
         /// Connect to the server.
         /// </summary>
-        public async Task<bool> Connect()
+        public async Task Connect()
         {
             DateTime connectStartTime = DateTime.UtcNow;
             bool preLoginDone = false;
@@ -143,8 +143,6 @@ namespace TDSClient.TDS.Client
                         LoggingUtilities.AddEmptyLine();
                         LoggingUtilities.WriteLog($" Routing to: {Server}:{Port}.");
                     }
-
-                    return true;
                 }
                 while (Reconnect);
             }
@@ -164,9 +162,6 @@ namespace TDSClient.TDS.Client
                 {
                     LoggingUtilities.WriteLog($"InnerException: {ex.InnerException.Message}");
                 }
-
-                return false;
-
             }
             finally
             {
