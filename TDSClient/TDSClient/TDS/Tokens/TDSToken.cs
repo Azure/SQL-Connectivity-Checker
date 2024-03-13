@@ -44,7 +44,7 @@ namespace TDSClient.TDS.Tokens
         public override abstract bool Equals(object obj);
 
         /// <summary>
-        /// 
+        /// Processes a token.
         /// </summary>
         public abstract void ProcessToken();
     }
