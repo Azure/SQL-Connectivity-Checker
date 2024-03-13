@@ -26,6 +26,136 @@ namespace TDSClient.TDS.Login7
 #pragma warning restore CS0659 // Type overrides Object.Equals(object o) but does not override Object.GetHashCode()
     {
         /// <summary>
+        /// Gets or sets the highest TDS version being used by the client
+        /// </summary>
+        public uint TDSVersion { get; set; }
+
+        /// <summary>
+        /// Gets or sets the packet size being requested by the client.
+        /// </summary>
+        public uint PacketSize { get; set; }
+
+        /// <summary>
+        /// Gets or sets the version of the interface library (for example, ODBC or OLEDB) being used by the client.
+        /// </summary>
+        public uint ClientProgVer { get; set; }
+
+        /// <summary>
+        /// Gets or sets the process ID of the client application.
+        /// </summary>
+        public uint ClientPID { get; set; }
+
+        /// <summary>
+        /// Gets or sets the connection ID of the primary Server. Used when connecting to an "Always Up" backup
+        /// server.
+        /// </summary>
+        public uint ConnectionID { get; set; }
+
+        /// <summary>
+        /// Gets or sets Option Flags 1.
+        /// </summary>
+        public TDSLogin7OptionFlags1 OptionFlags1 { get; set; }
+
+        /// <summary>
+        /// Gets or sets Option Flags 2.
+        /// </summary>
+        public TDSLogin7OptionFlags2 OptionFlags2 { get; set; }
+
+        /// <summary>
+        /// Gets or sets Type Flags.
+        /// </summary>
+        public TDSLogin7TypeFlags TypeFlags { get; set; }
+
+        /// <summary>
+        /// Gets or sets Option Flags 3.
+        /// </summary>
+        public TDSLogin7OptionFlags3 OptionFlags3 { get; set; }
+
+        /// <summary>
+        /// Gets or sets ClientTimeZone.
+        /// This field is not used and can be set to zero.
+        /// </summary>
+        public uint ClientTimeZone { get; set; }
+
+        /// <summary>
+        /// Gets or sets Client LCID.
+        /// The language code identifier (LCID) value for the client collation. 
+        /// If ClientLCID is specified, the specified collation is set as the 
+        /// session collation.
+        /// </summary>
+        public uint ClientLCID { get; set; }
+
+        /// <summary>
+        /// Client host name
+        /// </summary>
+        public string HostName { get; set; }
+
+        /// <summary>
+        /// User ID
+        /// </summary>
+        public string UserID { get; set; }
+
+        /// <summary>
+        /// Password
+        /// </summary>
+        public string Password { get; set; }
+
+        /// <summary>
+        /// Application name
+        /// </summary>
+        public string ApplicationName { get; set; }
+
+        /// <summary>
+        /// Server name
+        /// </summary>
+        public string ServerName { get; set; }
+
+        /// <summary>
+        /// Client library name
+        /// </summary>
+        public string LibraryName { get; set; }
+
+        /// <summary>
+        /// User language
+        /// </summary>
+        public string Language { get; set; }
+
+        /// <summary>
+        /// User database
+        /// </summary>
+        public string Database { get; set; }
+
+        /// <summary>
+        /// Gets or sets Client ID
+        /// </summary>
+        public byte[] ClientID { get; set; }
+
+        /// <summary>
+        /// Attach database file
+        /// </summary>
+        public string AttachDatabaseFile { get; set; }
+
+        /// <summary>
+        /// Change password
+        /// </summary>
+        public string ChangePassword { get; set; }
+
+        /// <summary>
+        /// SSPI authentication blob
+        /// </summary>
+        public byte[] SSPI { get; set; }
+
+        /// <summary>
+        /// Feature extension in the login7
+        /// </summary>
+        public TDSLogin7FeatureOptionsToken FeatureExt { get; set; }
+
+        /// <summary>
+        /// Gets or sets the variable portion of this message. A stream of bytes in the order shown, indicates the offset
+        /// (from the start of the message) and length of various parameters
+        /// </summary>
+        public List<TDSLogin7Option> Options { get; set; }
+        /// <summary>
         /// Initializes a new instance of the <see cref="TDSLogin7PacketData" /> class.
         /// </summary>
         /// <param name="tdsVersion">TDS Version</param>
@@ -230,136 +360,7 @@ namespace TDSClient.TDS.Login7
             return (ushort)(FixedLength + notFixed);
         }
 
-        /// <summary>
-        /// Gets or sets the highest TDS version being used by the client
-        /// </summary>
-        public uint TDSVersion { get; set; }
-
-        /// <summary>
-        /// Gets or sets the packet size being requested by the client.
-        /// </summary>
-        public uint PacketSize { get; set; }
-
-        /// <summary>
-        /// Gets or sets the version of the interface library (for example, ODBC or OLEDB) being used by the client.
-        /// </summary>
-        public uint ClientProgVer { get; set; }
-
-        /// <summary>
-        /// Gets or sets the process ID of the client application.
-        /// </summary>
-        public uint ClientPID { get; set; }
-
-        /// <summary>
-        /// Gets or sets the connection ID of the primary Server. Used when connecting to an "Always Up" backup
-        /// server.
-        /// </summary>
-        public uint ConnectionID { get; set; }
-
-        /// <summary>
-        /// Gets or sets Option Flags 1.
-        /// </summary>
-        public TDSLogin7OptionFlags1 OptionFlags1 { get; set; }
-
-        /// <summary>
-        /// Gets or sets Option Flags 2.
-        /// </summary>
-        public TDSLogin7OptionFlags2 OptionFlags2 { get; set; }
-
-        /// <summary>
-        /// Gets or sets Type Flags.
-        /// </summary>
-        public TDSLogin7TypeFlags TypeFlags { get; set; }
-
-        /// <summary>
-        /// Gets or sets Option Flags 3.
-        /// </summary>
-        public TDSLogin7OptionFlags3 OptionFlags3 { get; set; }
-
-        /// <summary>
-        /// Gets or sets ClientTimeZone.
-        /// This field is not used and can be set to zero.
-        /// </summary>
-        public uint ClientTimeZone { get; set; }
-
-        /// <summary>
-        /// Gets or sets Client LCID.
-        /// The language code identifier (LCID) value for the client collation. 
-        /// If ClientLCID is specified, the specified collation is set as the 
-        /// session collation.
-        /// </summary>
-        public uint ClientLCID { get; set; }
-
-        /// <summary>
-        /// Client host name
-        /// </summary>
-        public string HostName { get; set; }
-
-        /// <summary>
-        /// User ID
-        /// </summary>
-        public string UserID { get; set; }
-
-        /// <summary>
-        /// Password
-        /// </summary>
-        public string Password { get; set; }
-
-        /// <summary>
-        /// Application name
-        /// </summary>
-        public string ApplicationName { get; set; }
-
-        /// <summary>
-        /// Server name
-        /// </summary>
-        public string ServerName { get; set; }
-
-        /// <summary>
-        /// Client library name
-        /// </summary>
-        public string LibraryName { get; set; }
-
-        /// <summary>
-        /// User language
-        /// </summary>
-        public string Language { get; set; }
-
-        /// <summary>
-        /// User database
-        /// </summary>
-        public string Database { get; set; }
-
-        /// <summary>
-        /// Gets or sets Client ID
-        /// </summary>
-        public byte[] ClientID { get; set; }
-
-        /// <summary>
-        /// Attach database file
-        /// </summary>
-        public string AttachDatabaseFile { get; set; }
-
-        /// <summary>
-        /// Change password
-        /// </summary>
-        public string ChangePassword { get; set; }
-
-        /// <summary>
-        /// SSPI authentication blob
-        /// </summary>
-        public byte[] SSPI { get; set; }
-
-        /// <summary>
-        /// Feature extension in the login7
-        /// </summary>
-        public TDSLogin7FeatureOptionsToken FeatureExt { get; set; }
-
-        /// <summary>
-        /// Gets or sets the variable portion of this message. A stream of bytes in the order shown, indicates the offset
-        /// (from the start of the message) and length of various parameters
-        /// </summary>
-        public List<TDSLogin7Option> Options { get; set; }
+        
 
         /// <summary>
         /// Determines whether the specified object is equal to the current object.

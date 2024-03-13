@@ -221,13 +221,12 @@ namespace TDSClient.TDS.Client
         }
 
         /// <summary>
-        /// Execute the login phase
+        /// Execute the login phase.
         /// </summary>
         /// <param name="preLoginResponse"></param>
         private async Task PerformLogin(TDSPreLoginPacketData preLoginResponse)
         {
             LoggingUtilities.WriteLog($" Starting Login phase.", writeToSummaryLog: true);
-
             DateTime connectStartTime = DateTime.UtcNow;
 
             SendLogin7();
@@ -246,14 +245,12 @@ namespace TDSClient.TDS.Client
                 string resource = fedAuthInfoMessage.Item2;
 
                 AuthenticationProvider authenticationProvider = new AuthenticationProvider(AuthenticationLibrary, AuthenticationType, UserID, Password, authority, resource);
-
                 string accessToken = await authenticationProvider.GetJWTAccessToken();
 
                 SendFedAuthMessage(accessToken);
             }
 
             ReceiveLogin7Response();
-
             LoggingUtilities.WriteLog($" Login phase took {(int)(DateTime.UtcNow - connectStartTime).TotalMilliseconds} milliseconds.");
         }
 
@@ -336,7 +333,6 @@ namespace TDSClient.TDS.Client
                 }
 
                 throw new Exception("Server couldn't return a proper Fed Auth Info message.");
-
             }
             else
             {

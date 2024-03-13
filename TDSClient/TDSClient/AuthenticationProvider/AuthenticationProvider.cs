@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-using TDSClient.TDS.Client;
-
 namespace TDSClient.AuthenticationProvider
 {
     public class AuthenticationProvider
@@ -33,13 +31,13 @@ namespace TDSClient.AuthenticationProvider
             { "Active Directory MSI", TDSAuthenticationType.ADManagedIdentity }
         };
 
-        readonly string AuthenticationLibrary;
-        readonly TDSAuthenticationType AuthenticationType;
-        readonly string UserID;
-        readonly string Password;
-        readonly string AadAuthorityAudience;
-        readonly string Resource;
-        readonly string IdentityClientId;
+        private readonly string AuthenticationLibrary;
+        private readonly TDSAuthenticationType AuthenticationType;
+        private readonly string UserID;
+        private readonly string Password;
+        private readonly string AadAuthorityAudience;
+        private readonly string Resource;
+        private readonly string IdentityClientId;
 
         /// <summary>
         /// AuthenticationProvider constructor.

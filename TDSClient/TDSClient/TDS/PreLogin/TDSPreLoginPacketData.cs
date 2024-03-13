@@ -12,12 +12,9 @@ namespace TDSClient.TDS.PreLogin
     using System.Linq;
     
     using TDSClient.TDS.Client;
-    using TDSClient.TDS.Comms;
     using TDSClient.TDS.Header;
     using TDSClient.TDS.Interfaces;
-    using TDSClient.TDS.Login7;
     using TDSClient.TDS.Utilities;
-    using static TDSClient.AuthenticationProvider.AuthenticationProvider;
 
     /// <summary>
     /// Class describing data portion of the PreLogin packet
@@ -305,15 +302,7 @@ namespace TDSClient.TDS.PreLogin
 
                     case TDSPreLoginOptionTokenType.MARS:
                         {
-                            if (MARS)
-                            {
-                                stream.WriteByte(0x01);
-                            }
-                            else
-                            {
-                                stream.WriteByte(0x00);
-                            }
-
+                            stream.WriteByte(MARS ? (byte)0x01 : (byte)0x00);
                             break;
                         }
 

@@ -226,22 +226,19 @@ try {
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls11 -bor [Net.SecurityProtocolType]::Tls
 
     $TDSClientPath = Join-Path ((Get-Location).Path) "TDSClient.dll"
-    Write-Host $TDSClientPath
-    Write-Host $Local
     if ($Local) {
         Copy-Item -Path $($LocalPath + '\netstandard2.0\TDSClient.dll') -Destination $TDSClientPath
     }
-    # else {
-    #     Invoke-WebRequest -Uri $('https://github.com/Azure/SQL-Connectivity-Checker/raw/' + $RepositoryBranch + '/net472/TDSClient.dll') -OutFile $TDSClientPath -UseBasicParsing
-    # }
-    $assembly = [System.IO.File]::ReadAllBytes("D:\ConnectivityChecker\SQL-Connectivity-Checker\netstandard2.0\TDSClient.dll")
+    else {
+        Invoke-WebRequest -Uri $('https://github.com/Azure/SQL-Connectivity-Checker/raw/' + $RepositoryBranch + '/netstandard2.0/TDSClient.dll') -OutFile $TDSClientPath -UseBasicParsing
+    }
+    $assembly = [System.IO.File]::ReadAllBytes($TDSClientPath)
     [System.Reflection.Assembly]::Load($assembly) | Out-Null
 
     $fullLogPath = Join-Path ((Get-Location).Path) 'AdvancedTests_FullLog.txt'
     $logPath = Join-Path ((Get-Location).Path) 'AdvancedTests_LastRunLog.txt'
     $summaryLogPath = Join-Path ((Get-Location).Path) 'AdvancedTests_SummaryLog.txt'
     $summaryLog = [System.IO.File]::CreateText($summaryLogPath)
-
     [TDSClient.TDS.Utilities.LoggingUtilities]::SetSummaryLog($summaryLog)
 
     try {

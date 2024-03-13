@@ -18,6 +18,26 @@ namespace TDSClient.TDS.Login7.Options
 #pragma warning restore CS0659 // Type overrides Object.Equals(object o) but does not override Object.GetHashCode()
     {
         /// <summary>
+        /// Gets or sets option name
+        /// </summary>
+        public string Name { get; set; }
+
+        /// <summary>
+        /// Gets or sets option position within the packet
+        /// </summary>
+        public ushort Position { get; set; }
+
+        /// <summary>
+        /// Gets or sets option data length
+        /// </summary>
+        public ushort Length { get; set; }
+
+        /// <summary>
+        /// Gets or sets option true data length (in bytes)
+        /// </summary>
+        public ushort TrueLength { get; set; }
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="TDSLogin7Option" /> class.
         /// </summary>
         public TDSLogin7Option()
@@ -38,26 +58,6 @@ namespace TDSClient.TDS.Login7.Options
             Length = length;
             TrueLength = trueLength;
         }
-
-        /// <summary>
-        /// Gets or sets option name
-        /// </summary>
-        public string Name { get; set; }
-
-        /// <summary>
-        /// Gets or sets option position within the packet
-        /// </summary>
-        public ushort Position { get; set; }
-
-        /// <summary>
-        /// Gets or sets option data length
-        /// </summary>
-        public ushort Length { get; set; }
-
-        /// <summary>
-        /// Gets or sets option true data length (in bytes)
-        /// </summary>
-        public ushort TrueLength { get; set; }
 
         /// <summary>
         /// Determines whether the specified object is equal to the current object.

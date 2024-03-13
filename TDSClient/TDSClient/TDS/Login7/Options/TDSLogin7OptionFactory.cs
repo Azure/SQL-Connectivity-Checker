@@ -110,13 +110,8 @@ namespace TDSClient.TDS.Login7.Options
 
                 switch (option)
                 {
-                    case "HostName":
-                    case "UserName":
-                    case "AppName":
-                    case "ServerName":
-                    case "CltIntName":
-                    case "Language":
-                    case "Database":
+                    case var textOption when TextOptions.Contains(textOption):
+                    case var passwordOption when PasswordOptions.Contains(passwordOption):
                         {
                             position = LittleEndianUtilities.ReadUShort(stream);
                             length = LittleEndianUtilities.ReadUShort(stream);

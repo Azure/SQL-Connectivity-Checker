@@ -23,24 +23,16 @@ namespace TDSClient.AuthenticationProvider
         /// Gets AAD access token to Azure SQL using user credentials (username and password).
         /// </summary>
         /// <param name="authority"></param>
-        /// <param name="clientId"></param>
+        /// <param name="resource"></param>
         /// <param name="userId"></param>
         /// <param name="password"></param>
         /// <returns></returns>
         public static async Task<string> GetSQLAccessTokenFromMSALUsingUsernamePassword(string authority, string resource, string userId, string password)
         {
-            // Validate input parameters
-            if (string.IsNullOrEmpty(authority))
-                throw new ArgumentException("Authority cannot be null or empty.", nameof(authority));
-            
-            if (string.IsNullOrEmpty(userId))
-                throw new ArgumentException("UserId cannot be null or empty.", nameof(userId));
-            
-            if (string.IsNullOrEmpty(password))
-                throw new ArgumentException("Password cannot be null or empty.", nameof(password));
+            ValidateInputParameters(authority, userId, password);
 
             var app = CreateClientApp(authority);
-            string[] scopes = new[] { resource + "/.default"};
+            string[] scopes = new[] { resource + "/.default" };
 
             LoggingUtilities.WriteLog("Attempting to acquire access token using username and password.");
 
@@ -64,14 +56,12 @@ namespace TDSClient.AuthenticationProvider
         /// Gets AAD access token to Azure SQL using integrated authentication.
         /// </summary>
         /// <param name="authority"></param>
-        /// <param name="clientId"></param>
+        /// <param name="resource"></param>
         /// <param name="userId"></param>
         /// <returns></returns>
         public static async Task<string> GetSQLAccessTokenFromMSALUsingIntegratedAuth(string authority, string resource, string userId)
         {
-            // Validate input parameters
-            if (string.IsNullOrEmpty(authority))
-                throw new ArgumentException("Authority cannot be null or empty.", nameof(authority));
+            ValidateInputParameters(authority);
 
             LoggingUtilities.WriteLog("Attempting to acquire access token using integrated auth.");
 
@@ -105,9 +95,7 @@ namespace TDSClient.AuthenticationProvider
         /// <returns></returns>
         public static async Task<string> GetSQLAccessTokenFromMSALInteractively(string resource)
         {
-            // Validate input parameters
-            if (string.IsNullOrEmpty(resource))
-                throw new ArgumentException("Authority cannot be null or empty.", nameof(resource));
+            ValidateInputParameters(resource);
 
             string[] scopes = new string[] { resource + "/.default" };
 
@@ -163,7 +151,8 @@ namespace TDSClient.AuthenticationProvider
         /// <summary>
         /// Gets AAD access token to Azure SQL using managed identity.
         /// </summary>
-        /// <param name="authority"></param>
+        /// <param name="resource"></param>
+        /// <param name="identityClientId"></param>
         /// <returns></returns>
         public static async Task<string> GetSQLAccessTokenFromMSALUsingUserAssignedManagedIdentity(string resource, string identityClientId)
         {
@@ -205,7 +194,7 @@ namespace TDSClient.AuthenticationProvider
 
         private static void LogCallback(LogLevel level, string message, bool containsPii)
         {
-            LoggingUtilities.WriteLog($"[{level}] {(containsPii ? "[PII]" : "")} {message}", writeToVerboseLog: false, writeToSummaryLog: false, writeToMsalLog: true);
+            LoggingUtilities.WriteLog($"[{level}] {(containsPii ? "[PII]" : "")} {message}");
         }
 
         /// <summary>
@@ -228,6 +217,24 @@ namespace TDSClient.AuthenticationProvider
             {
                 LoggingUtilities.WriteLog($"An unexpected error occurred: {ex.Message}");
             }
+        }
+
+        /// <summary>
+        /// Validates the input parameters.
+        /// </summary>
+        /// <param name="authority"></param>
+        /// <param name="userId"></param>
+        /// <param name="password"></param>
+        private static void ValidateInputParameters(string authority, string userId = null, string password = null)
+        {
+            if (string.IsNullOrEmpty(authority))
+                throw new ArgumentException("Authority cannot be null or empty.", nameof(authority));
+
+            if (userId != null && string.IsNullOrEmpty(userId))
+                throw new ArgumentException("UserId cannot be null or empty.", nameof(userId));
+
+            if (password != null && string.IsNullOrEmpty(password))
+                throw new ArgumentException("Password cannot be null or empty.", nameof(password));
         }
     }
 }

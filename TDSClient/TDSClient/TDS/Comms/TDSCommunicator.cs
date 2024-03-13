@@ -7,6 +7,7 @@
 namespace TDSClient.TDS.Comms
 {
     using System;
+    using System.Linq;
     using System.IO;
     using System.Net.Security;
     using System.Security.Authentication;
@@ -19,7 +20,6 @@ namespace TDSClient.TDS.Comms
     using TDSClient.TDS.Tokens;
     using TDSClient.TDS.Utilities;
     using TDSClient.TDS.FedAuthMessage;
-    using System.Linq;
 
     using static TDSClient.AuthenticationProvider.AuthenticationProvider;
 

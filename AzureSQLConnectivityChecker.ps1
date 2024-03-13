@@ -13,21 +13,21 @@ using namespace System.net.Sockets
 using namespace System.Collections.Generic
 using namespace System.Diagnostics
 using namespace System.Diagnostics.Tracing
-using namespace Microsoft.Data.SqlClient
+using namespace System.Data.SqlClient
 
 # Parameter region for when script is run directly
 # Supports Single, Elastic Pools and Managed Instance (please provide FQDN, MI public endpoint is supported)
 # Supports Azure Synapse / Azure SQL Data Warehouse (*.sql.azuresynapse.net / *.database.windows.net)
 # Supports Public Cloud (*.database.windows.net), Azure China (*.database.chinacloudapi.cn), Azure Germany (*.database.cloudapi.de) and Azure Government (*.database.usgovcloudapi.net)
-$AuthenticationType = 'Active Directory Password'
+$AuthenticationType = ''
 # Set the type of authentication you wish to use:
     # 'SQL Server Authentication' (default),
     # 'Active Directory Password', (supported only with MSAL)
     # 'Active Directory Integrated',
     # 'Active Directory Interactive',
     # 'Active Directory Managed Identity' ('Active Directory MSI') NOTE: Managed Identity authentication works only when your application is running as an Azure resource, not with your personal account
-$AuthenticationLibrary = 'MSAL' # Set the authentication library you wish to use: 'ADAL' or 'MSAL'. Default is 'ADAL'.
-$Server = 'identity-test-instance.public.72e285ecfe96.database.windows.net,3342' # or any other supported FQDN
+$AuthenticationLibrary = '' # Set the authentication library you wish to use: 'ADAL' or 'MSAL'. Default is 'ADAL'.
+$Server = '' # or any other supported FQDN
 $Database = ''  # Set the name of the database you wish to test, 'master' will be used by default if nothing is set
 $User = ''  # Set the login username you wish to use, 'AzSQLConnCheckerUser' will be used by default if nothing is set
 $Password = ''  # Set the login password you wish to use, 'AzSQLConnCheckerPassword' will be used by default if nothing is set
@@ -47,7 +47,7 @@ $EncryptionProtocol = 'Tls 1.2'  # Supported values: 'Tls 1.0', 'Tls 1.1', 'Tls 
 
 ### Just for testing
 $Local = $true
-$LocalPath = "E:\ConnectivityChecker\SQL-Connectivity-Checker\"
+$LocalPath = $PSScriptRoot
 
 # Parameter region when Invoke-Command -ScriptBlock is used
 $parameters = $args[0]
@@ -71,12 +71,12 @@ if ($null -ne $parameters) {
     if ($null -ne $parameters['EncryptionProtocol']) {
         $EncryptionProtocol = $parameters['EncryptionProtocol']
     }
-    # if ($null -ne $parameters['Local']) {
-    #     $Local = $parameters['Local']
-    # }
-    # if ($null -ne $parameters['LocalPath']) {
-    #     $LocalPath = $parameters['LocalPath']
-    # }
+    if ($null -ne $parameters['Local']) {
+        $Local = $parameters['Local']
+    }
+    if ($null -ne $parameters['LocalPath']) {
+        $LocalPath = $parameters['LocalPath']
+    }
     if ($null -ne $parameters['RepositoryBranch']) {
         $RepositoryBranch = $parameters['RepositoryBranch']
     }
@@ -109,7 +109,6 @@ if ($null -eq $Password -or '' -eq $Password) {
 if ($null -eq $Database -or '' -eq $Database) {
     $Database = 'master'
 }
-
 
 if ($null -eq $RepositoryBranch) {
     $RepositoryBranch = 'master'
@@ -623,13 +622,13 @@ function TestConnectionToDatabase($Server, $gatewayPort, $Database, $Authenticat
     [void]$summaryLog.AppendLine()
     Write-Host ([string]::Format("Testing connecting to {0} database (please wait):", $Database)) -ForegroundColor Green
     Try {
-        $masterDbConnection = [Microsoft.Data.SqlClient.SqlConnection]::new()
+        $DbConnection = [System.Data.SqlClient.SQLConnection]::new()
         Write-Host $Database
         Write-Host $AuthenticationType
         Write-Host $AuthenticationLibrary
         Write-Host $User
-        $masterDbConnection.ConnectionString = GetConnectionString $Server $gatewayPort $Database $AuthenticationType $User $Password $UserAssignedIdentityClientId
-        $masterDbConnection.Open()
+        $DbConnection.ConnectionString = GetConnectionString $Server $gatewayPort $Database $AuthenticationType $User $Password $UserAssignedIdentityClientId
+        $DbConnection.Open()
         Write-Host ([string]::Format(" The connection attempt succeeded", $Database))
         [void]$summaryLog.AppendLine([string]::Format(" The connection attempt to {0} database succeeded", $Database))
         return $true
@@ -1261,22 +1260,22 @@ function RunConnectivityPolicyTests($port) {
             Copy-Item -Path $($LocalPath + '\AdvancedConnectivityPolicyTests.ps1') -Destination ".\AdvancedConnectivityPolicyTests.ps1"
         }
         ### USING GITHUB HERE
-        # else {
-        #     try {
-        #         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls11 -bor [Net.SecurityProtocolType]::Tls
-        #         Invoke-WebRequest -Uri $('https://raw.githubusercontent.com/Azure/SQL-Connectivity-Checker/' + $RepositoryBranch + '/AdvancedConnectivityPolicyTests.ps1') -OutFile ".\AdvancedConnectivityPolicyTests.ps1" -UseBasicParsing
-        #     }
-        #     catch {
-        #         $msg = $CannotDownloadAdvancedScript
-        #         Write-Host $msg -Foreground Yellow
-        #         [void]$summaryLog.AppendLine()
-        #         [void]$summaryLog.AppendLine($msg)
-        #         [void]$summaryRecommendedAction.AppendLine()
-        #         [void]$summaryRecommendedAction.AppendLine($msg)
-        #         TrackWarningAnonymously 'Advanced|CannotDownloadScript'
-        #         return
-        #     }
-        # }
+        else {
+            try {
+                [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls11 -bor [Net.SecurityProtocolType]::Tls
+                Invoke-WebRequest -Uri $('https://raw.githubusercontent.com/Azure/SQL-Connectivity-Checker/' + $RepositoryBranch + '/AdvancedConnectivityPolicyTests.ps1') -OutFile ".\AdvancedConnectivityPolicyTests.ps1" -UseBasicParsing
+            }
+            catch {
+                $msg = $CannotDownloadAdvancedScript
+                Write-Host $msg -Foreground Yellow
+                [void]$summaryLog.AppendLine()
+                [void]$summaryLog.AppendLine($msg)
+                [void]$summaryRecommendedAction.AppendLine()
+                [void]$summaryRecommendedAction.AppendLine($msg)
+                TrackWarningAnonymously 'Advanced|CannotDownloadScript'
+                return
+            }
+        }
 
         TrackWarningAnonymously 'Advanced|Invoked'
         $job = Start-Job -ArgumentList $jobParameters -FilePath ".\AdvancedConnectivityPolicyTests.ps1"

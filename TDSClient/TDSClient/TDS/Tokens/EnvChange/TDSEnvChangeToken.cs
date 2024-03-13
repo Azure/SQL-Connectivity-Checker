@@ -63,9 +63,9 @@ namespace TDSClient.TDS.Tokens
         public bool Equals(TDSEnvChangeToken other)
         {
             return other != null &&
-                   this.Type == other.Type &&
-                   this.Values.Count == other.Values.Count &&
-                   !this.Values.Except(other.Values).Any();
+                   Type == other.Type &&
+                   Values.Count == other.Values.Count &&
+                   !Values.Except(other.Values).Any();
         }
 
         /// <summary>

@@ -6,6 +6,7 @@
 
 using System;
 using System.Threading.Tasks;
+
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using TDSClient.TDS.Utilities;
 
@@ -14,27 +15,6 @@ namespace TDSClient.AuthenticationProvider
     public class ADALHelper
     {
         private static readonly string AdoClientId = "4d079b4c-cab7-4b7c-a115-8fd51b6f8239";
-
-        /// NOTE: not possible to use username password with ADAL in netstandard 2.0 (.net framework possible)
-        /// <summary>
-        /// Gets JWT access token using ADAL with username and password.
-        /// </summary>
-        /// <param name="authority"></param>
-        /// <param name="resource"></param>
-        /// <param name="clientId"></param>
-        /// <param name="userId"></param>
-        /// <param name="password"></param>
-        /// <returns></returns>
-        // public static async Task<string> GetSQLAccessTokenFromADALUsingUsernamePassword(
-        //     string authority,
-        //     string resource,
-        //     string clientId,
-        //     string userId,
-        //     string password)
-        // {
-        //     UserPasswordCredential userCredentials = new UserPasswordCredential(userId, password);
-        //     return await GetAccessToken(authority, resource, clientId, userCredentials).ConfigureAwait(false);
-        // }
 
         /// <summary>
         /// Gets JWT access token using ADAL with integrated authentication.

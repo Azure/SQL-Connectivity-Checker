@@ -11,28 +11,31 @@ namespace TDSClient.TDS.Login7
     using TDSClient.TDS.Interfaces;
 
     /// <summary>
-    /// Class that defines a a feature option which is delivered in the login packet FeatureExt block
+    /// Class that defines a feature option which is delivered in the login packet FeatureExt block
     /// </summary>
     public abstract class TDSLogin7FeatureOptionToken : IPackageable
     {
         /// <summary>
-        /// Size of the data read during inflation operation. It is needed to properly parse the option stream.
+        /// Gets or sets the size of the data read during inflation operation. It is needed to properly parse the option stream.
         /// </summary>
-        internal uint Size { get; set; }
-        
+        public uint Size { get; set; }
+
         /// <summary>
-        /// Feature type
+        /// Gets the feature ID.
         /// </summary>
         public virtual TDSFeatureID FeatureID { get; protected set; }
 
         /// <summary>
-        /// Unpack the Feature option
+        /// Unpacks the Feature option from the given source stream.
         /// </summary>
+        /// <param name="source">The source stream.</param>
+        /// <returns>True if the unpacking is successful; otherwise, false.</returns>
         public abstract bool Unpack(MemoryStream source);
 
         /// <summary>
-        /// Pack the token
+        /// Packs the token into the given destination stream.
         /// </summary>
+        /// <param name="destination">The destination stream.</param>
         public abstract void Pack(MemoryStream destination);
     }
 }
