@@ -82,10 +82,10 @@ namespace TDSClient.TDS.Login7.Options
 
             switch (optionName)
             {
-                case var option when TextOptions.Contains(option):
+                case string option when TextOptions.Contains(option):
                     return new TDSLogin7TextOption(option, 0, Convert.ToUInt16(data.Length), data);
 
-                case var option when PasswordOptions.Contains(option):
+                case string option when PasswordOptions.Contains(option):
                     return new TDSLogin7PasswordOption(option, 0, Convert.ToUInt16(data.Length), data);
 
                 default:
@@ -110,8 +110,8 @@ namespace TDSClient.TDS.Login7.Options
 
                 switch (option)
                 {
-                    case var textOption when TextOptions.Contains(textOption):
-                    case var passwordOption when PasswordOptions.Contains(passwordOption):
+                    case string textOption when TextOptions.Contains(textOption):
+                    case string passwordOption when PasswordOptions.Contains(passwordOption):
                         {
                             position = LittleEndianUtilities.ReadUShort(stream);
                             length = LittleEndianUtilities.ReadUShort(stream);

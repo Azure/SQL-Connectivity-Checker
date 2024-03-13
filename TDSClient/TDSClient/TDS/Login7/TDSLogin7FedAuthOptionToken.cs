@@ -67,6 +67,17 @@ namespace TDSClient.TDS.Login7
         {
         }
 
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <param name="echo"></param>
+        /// <param name="libraryType"></param>
+        /// <param name="token"></param>
+        /// <param name="nonce"></param>
+        /// <param name="channelBindingToken"></param>
+        /// <param name="fIncludeSignature"></param>
+        /// <param name="fRequestingFurtherInfo"></param>
+        /// <param name="workflow"></param>
         public TDSLogin7FedAuthOptionToken(TdsPreLoginFedAuthRequiredOption echo,
                                             TDSFedAuthLibraryType libraryType,
                                             byte[] token,
@@ -97,6 +108,11 @@ namespace TDSClient.TDS.Login7
             Unpack(source);
         }
 
+        /// <summary>
+        /// Unpack the data from the stream, when receiving this token.
+        /// </summary>
+        /// <param name="source"></param>
+        /// <returns></returns>
         public override bool Unpack(MemoryStream source)
         {
             Size = 0;
@@ -104,7 +120,10 @@ namespace TDSClient.TDS.Login7
             Size += sizeof(uint);
             byte temp = (byte)source.ReadByte();
             Size += sizeof(byte);
+
+            // Echo is the last bit of the byte read
             Echo = (TdsPreLoginFedAuthRequiredOption)(temp & 0x01);
+            // Library is the first 7 bits of the byte read
             Library = (TDSFedAuthLibraryType)(temp >> 1);
 
             if (Library != TDSFedAuthLibraryType.ADAL)
@@ -138,6 +157,10 @@ namespace TDSClient.TDS.Login7
             }
         }
 
+        /// <summary>
+        /// Pack the token.
+        /// </summary>
+        /// <param name="destination"></param>
         public override void Pack(MemoryStream destination)
         {
             destination.WriteByte((byte)FeatureID);
@@ -187,6 +210,12 @@ namespace TDSClient.TDS.Login7
             }
         }
 
+        /// <summary>
+        /// Read the security token login.
+        /// </summary>
+        /// <param name="source"></param>
+        /// <param name="optionDataLength"></param>
+        /// <returns></returns>
         private bool ReadSecurityTokenLogin(Stream source, uint optionDataLength)
         {
             if (optionDataLength > Size)
@@ -199,6 +228,11 @@ namespace TDSClient.TDS.Login7
             return true;
         }
 
+        /// <summary>
+        /// Generate random bytes.
+        /// </summary>
+        /// <param name="count"></param>
+        /// <returns></returns>
         private byte[] GenerateRandomBytes(int count)
         {
             byte[] randomBytes = new byte[count];

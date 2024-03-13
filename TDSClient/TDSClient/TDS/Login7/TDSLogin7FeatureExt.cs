@@ -84,13 +84,6 @@ namespace TDSClient.TDS.Login7
         }
 
         /// <summary>
-        /// Determines whether the specified object is equal to the current object.
-        /// </summary>
-        /// <param name="obj">The object to compare with the current object.</param>
-        /// <returns>true if the specified object is equal to the current object; otherwise, false</returns>
-        //public abstract bool Equals(object obj);
-
-        /// <summary>
         /// Used to pack IPackageable to a stream.
         /// </summary>
         /// <param name="stream">MemoryStream in which IPackageable is packet into.</param>

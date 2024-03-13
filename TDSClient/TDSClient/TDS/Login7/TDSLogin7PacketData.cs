@@ -216,7 +216,7 @@ namespace TDSClient.TDS.Login7
             LoggingUtilities.WriteLog($"  Adding option Database with value [{database}]");
             Database = database;
 
-            ClientTimeZone = 480;
+            ClientTimeZone = 0;
         }
 
         /// <summary>

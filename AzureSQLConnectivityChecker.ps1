@@ -797,12 +797,17 @@ function GetConnectionString ($Server, $gatewayPort, $Database, $AuthenticationT
     }
     if ('Active Directory Integrated' -eq $AuthenticationType) { 
         return [string]::Format("Server=tcp:{0},{1};Initial Catalog={2};Persist Security Info=False;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Application Name=Azure-SQL-Connectivity-Checker;Authentication='Active Directory Integrated'",
-            $Server, $gatewayPort, $Database, $User)
-    }
-    if ('Active Directory Managed Identity' -eq $AuthenticationType -or 'Active Directory MSI' -eq $AuthenticationType) { 
-        Write-Host $AuthenticationType
-        return [string]::Format("Server=tcp:{0},{1};Initial Catalog={2};Persist Security Info=False;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Application Name=Azure-SQL-Connectivity-Checker;Authentication='Active Directory MSI'",
             $Server, $gatewayPort, $Database)
+    }
+    if ('Active Directory Managed Identity' -eq $AuthenticationType -or 'Active Directory MSI' -eq $AuthenticationType) {
+        if ($null -neq $UserAssignedIdentityClientId -and '' -neq $UserAssignedIdentityClientId) {
+            return [string]::Format("Server=tcp:{0},{1};Initial Catalog={2};Persist Security Info=False;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Application Name=Azure-SQL-Connectivity-Checker;Authentication='Active Directory MSI';User ID={3}",
+                $Server, $gatewayPort, $Database, $UserAssignedIdentityClientId)
+        }
+        else {
+            return [string]::Format("Server=tcp:{0},{1};Initial Catalog={2};Persist Security Info=False;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Application Name=Azure-SQL-Connectivity-Checker;Authentication='Active Directory MSI'",
+            $Server, $gatewayPort, $Database)
+        }
     }
 }
 
@@ -814,7 +819,7 @@ function PrintSupportedCiphers() {
             Write-Host 'Client Tls Cipher Suites:'
             Write-Host $suites.Trim()
             Write-Host
-        
+
             $suites = Get-TlsCipherSuite
             $supportedSuites = @(
                 'TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384',
@@ -829,7 +834,7 @@ function PrintSupportedCiphers() {
                 'TLS_RSA_WITH_AES_128_CBC_SHA',
                 'TLS_RSA_WITH_3DES_EDE_CBC_SHA'
             )
-        
+
             if (($suites | Where-Object Name -in $supportedSuites | Measure-Object).Count -eq 0) {
                 Write-Host
                 $msg = "WARNING: Client machine may not have any supported cipher suite enabled!"
@@ -1469,12 +1474,12 @@ try {
         Write-Host Warning: Cannot write log file -ForegroundColor Yellow
     }
 
-    TrackWarningAnonymously 'v1.46'
+    TrackWarningAnonymously 'v2.00'
     TrackWarningAnonymously ('PowerShell ' + $PSVersionTable.PSVersion + '|' + $PSVersionTable.Platform + '|' + $PSVersionTable.OS )
 
     try {
         Write-Host '******************************************' -ForegroundColor Green
-        Write-Host '  Azure SQL Connectivity Checker v1.46  ' -ForegroundColor Green
+        Write-Host '  Azure SQL Connectivity Checker v2.00  ' -ForegroundColor Green
         Write-Host '******************************************' -ForegroundColor Green
         Write-Host
         Write-Host 'Parameters' -ForegroundColor Yellow
