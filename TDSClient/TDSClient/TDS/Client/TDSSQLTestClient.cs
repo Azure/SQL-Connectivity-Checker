@@ -37,7 +37,7 @@ namespace TDSClient.TDS.Client
         private bool Reconnect;
         private int ConnectionAttempt;
         private readonly TDSAuthenticationType AuthenticationType;
-        private readonly string AuthenticationLibrary;
+        private readonly TDSAuthenticationLibrary AuthenticationLibrary;
         private string Server;
         private int Port;
         private readonly string UserID;
@@ -84,7 +84,7 @@ namespace TDSClient.TDS.Client
             EncryptionProtocol = encryptionProtocol;
             ConnectionAttempt = 0;
             AuthenticationType = AuthTypeStringToEnum[authenticationType];
-            AuthenticationLibrary = authenticationLibrary;
+            AuthenticationLibrary = AuthLibStringToEnum[authenticationLibrary];
 
             LoggingUtilities.WriteLog($" Instantiating TDSSQLTestClient with the following parameters:");
             LoggingUtilities.WriteLog($"     Server: {server}.");

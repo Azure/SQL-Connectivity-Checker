@@ -127,11 +127,6 @@ else {
     }
 }
 
-if ($AuthenticationType -eq "Active Directory Password" -and $AuthenticationLibrary -eq "ADAL") {
-    Write-Host "Active Directory Password authentication is not supported with ADAL library, switching to MSAL library"
-    $AuthenticationLibrary = "MSAL"
-}
-
 $SQLDBGateways = @(
     New-Object PSObject -Property @{Region = "Australia Central"; Gateways = ("20.36.105.0", "20.36.104.6", "20.36.104.7"); TRs = ('tr1', 'tr3', 'tr27', 'tr136'); Cluster = 'australiacentral1-a.worker.database.windows.net'; }
     New-Object PSObject -Property @{Region = "Australia Central2"; Gateways = ("20.36.113.0", "20.36.112.6"); TRs = ('tr21', 'tr51'); Cluster = 'australiacentral2-a.worker.database.windows.net'; }
@@ -1484,12 +1479,25 @@ try {
         Write-Host
         Write-Host 'Parameters' -ForegroundColor Yellow
 
-        if ($null -ne $AuthenticationType) {
-            Write-Host ' Authentication type:' $AuthenticationType -ForegroundColor Yellow
+        if ($AuthenticationType -NotIn "Active Directory Password", "Active Directory Interactive", "Active Directory ManagedIdentity", "Active Directory MSI", "SQL Server Authentication") {
+            $msg = "Authentication type " + $AuthenticationType + " is not supported, switching to SQL Server Authentication"
+            Write-Host $msg -ForegroundColor Green
+            $AuthenticationLibrary = "SQL Server Authentication"
         }
-        else {
-            Write-Host ' Authentication type: SQL Server Authentication' -ForegroundColor Yellow
+
+        if ($AuthenticationType -in ("Active Directory Password", "Active Directory Interactive", "Active Directory ManagedIdentity", "Active Directory MSI") -and $AuthenticationLibrary -NotIn ("ADAL", "MSAL")) {
+            $msg = $AuthenticationLibrary + "authentication library is not supported with " + $AuthenticationType + " authentication, switching to MSAL library"
+            Write-Host $msg -ForegroundColor Green
+            $AuthenticationLibrary = "MSAL"
         }
+
+        if (($AuthenticationType -eq "Active Directory Password" -or $AuthenticationType -eq "Active Directory Interactive" -or $AuthenticationType -eq "Active Directory ManagedIdentity" -or $AuthenticationType -eq "Active Directory MSI") -and $AuthenticationLibrary -eq "ADAL") {
+            $msg = $AuthenticationType + " authentication is not supported with ADAL library, switching to MSAL library"
+            Write-Host $msg -ForegroundColor Green
+            $AuthenticationLibrary = "MSAL"
+        }
+
+        Write-Host ' Authentication type:' $AuthenticationType -ForegroundColor Yellow
 
         if ($AuthenticationType -like "*Active Directory*") {
             Write-Host ' Authentication library:' $AuthenticationLibrary -ForegroundColor Yellow

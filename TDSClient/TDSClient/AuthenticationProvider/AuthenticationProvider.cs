@@ -19,6 +19,15 @@ namespace TDSClient.AuthenticationProvider
         }
 
         /// <summary>
+        /// Type of authentication library.
+        /// </summary>
+        public enum TDSAuthenticationLibrary
+        {
+            ADAL,
+            MSAL
+        }
+
+        /// <summary>
         /// Authentication type string to enum mapping.
         /// </summary>
         public static readonly Dictionary<string, TDSAuthenticationType> AuthTypeStringToEnum = new Dictionary<string, TDSAuthenticationType>
@@ -31,7 +40,16 @@ namespace TDSClient.AuthenticationProvider
             { "Active Directory MSI", TDSAuthenticationType.ADManagedIdentity }
         };
 
-        private readonly string AuthenticationLibrary;
+        /// <summary>
+        /// Authentication type string to enum mapping.
+        /// </summary>
+        public static readonly Dictionary<string, TDSAuthenticationLibrary> AuthLibStringToEnum = new Dictionary<string, TDSAuthenticationLibrary>
+        {
+            { "ADAL", TDSAuthenticationLibrary.ADAL },
+            { "MSAL", TDSAuthenticationLibrary.MSAL }
+        };
+
+        private readonly TDSAuthenticationLibrary AuthenticationLibrary;
         private readonly TDSAuthenticationType AuthenticationType;
         private readonly string UserID;
         private readonly string Password;
@@ -49,7 +67,7 @@ namespace TDSClient.AuthenticationProvider
         /// <param name="aadAuthorityAudience"></param>
         /// <param name="resource"></param>
         public AuthenticationProvider(
-            string authenticationLibrary,
+            TDSAuthenticationLibrary authenticationLibrary,
             TDSAuthenticationType authenticationType,
             string userId,
             string password,
@@ -97,7 +115,7 @@ namespace TDSClient.AuthenticationProvider
         /// <returns>Access token as a string</returns>
         private async Task<string> GetAccessTokenForIntegratedAuth()
         {
-            return AuthenticationLibrary.Contains("MSAL") ?
+            return AuthenticationLibrary == TDSAuthenticationLibrary.MSAL ?
                 await MSALHelper.GetSQLAccessTokenFromMSALUsingIntegratedAuth(AadAuthorityAudience, Resource, UserID) :
                 await ADALHelper.GetSQLAccessTokenFromADALUsingIntegratedAuth(AadAuthorityAudience, Resource);
         }
@@ -108,7 +126,7 @@ namespace TDSClient.AuthenticationProvider
         /// <returns></returns>
         private async Task<string> GetAccessTokenForUsernamePassword()
         {
-            return AuthenticationLibrary.Contains("MSAL") ?
+            return AuthenticationLibrary == TDSAuthenticationLibrary.MSAL ?
                await MSALHelper.GetSQLAccessTokenFromMSALUsingUsernamePassword(AadAuthorityAudience, Resource, UserID, Password) :
                throw new Exception("Username password authentication is not supported by ADAL.");
         }
