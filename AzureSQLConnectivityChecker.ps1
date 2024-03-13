@@ -840,7 +840,7 @@ function PrintSupportedCiphers() {
                 $msg = "WARNING: Client machine may not have any supported cipher suite enabled!"
                 Write-Host $msg -Foreground Red
                 [void]$summaryLog.AppendLine($msg)
-                [void]$summaryRecommendedAction.AppendLine($msg)            
+                [void]$summaryRecommendedAction.AppendLine($msg)
                 Write-Host
                 Write-Host
                 $msg = 'Supported Tls Cipher Suites:'
