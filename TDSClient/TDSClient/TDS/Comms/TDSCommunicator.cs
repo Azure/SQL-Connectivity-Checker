@@ -233,12 +233,6 @@ namespace TDSClient.TDS.Comms
                     }
 
                 case TDSCommunicatorState.SentLogin7RecordWithFederatedAuthenticationInformationRequest:
-                    {
-                        result = new TDSTokenStreamPacketData();
-                        result.Unpack(new MemoryStream(resultBuffer));
-                        break;
-                    }
-
                 case TDSCommunicatorState.SentLogin7RecordWithCompleteAuthenticationToken:
                     {
                         result = new TDSTokenStreamPacketData();

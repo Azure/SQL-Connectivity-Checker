@@ -221,6 +221,7 @@ namespace TDSClient.TDS.Client
         /// <param name="preLoginResponse"></param>
         private async Task PerformLogin(TDSPreLoginPacketData preLoginResponse)
         {
+            LoggingUtilities.AddEmptyLine();
             LoggingUtilities.WriteLog($" Starting Login phase.", writeToSummaryLog: true);
             DateTime connectStartTime = DateTime.UtcNow;
 
@@ -239,7 +240,7 @@ namespace TDSClient.TDS.Client
                 string authority = fedAuthInfoMessage.Item1;
                 string resource = fedAuthInfoMessage.Item2;
 
-                AuthenticationProvider authenticationProvider = new AuthenticationProvider(AuthenticationLibrary, AuthenticationType, UserID, Password, authority, resource);
+                AuthenticationProvider authenticationProvider = new AuthenticationProvider(AuthenticationLibrary, AuthenticationType, UserID, Password, authority, resource, IdentityClientId);
                 string accessToken = await authenticationProvider.GetJWTAccessToken();
 
                 SendFedAuthMessage(accessToken);
@@ -341,6 +342,7 @@ namespace TDSClient.TDS.Client
         /// <param name="accessToken"></param>
         private void SendFedAuthMessage(string accessToken)
         {
+            LoggingUtilities.AddEmptyLine();
             LoggingUtilities.WriteLog($"  Sending JWT token to the server.");
             TDSFedAuthToken fedAuthToken = new TDSFedAuthToken(accessToken);
             TdsCommunicator.SendTDSMessage(fedAuthToken);
@@ -412,13 +414,15 @@ namespace TDSClient.TDS.Client
         /// <param name="envChangeToken"></param>
         private void ProcessEnvChangeToken(TDSEnvChangeToken envChangeToken)
         {
+            LoggingUtilities.WriteLog($"  Processing EnvChange {envChangeToken.Type} token.");
+
             if (envChangeToken.Type == Tokens.EnvChange.TDSEnvChangeType.Routing)
             {
-                LoggingUtilities.WriteLog($" Client received EnvChange routing token, client is being routed.");
+                LoggingUtilities.WriteLog($"     Client is being routed.");
                 Server = envChangeToken.Values["AlternateServer"];
                 Port = int.Parse(envChangeToken.Values["ProtocolProperty"]);
                 Reconnect = true;
-                LoggingUtilities.WriteLog($" Redirect to {Server}:{Port}", writeToSummaryLog: true, writeToVerboseLog: false);
+                LoggingUtilities.WriteLog($"     Redirect to {Server}:{Port}", writeToSummaryLog: true, writeToVerboseLog: false);
             }
         }
 
@@ -464,6 +468,8 @@ namespace TDSClient.TDS.Client
                 SPN = Encoding.UTF8.GetString(output);
                 LoggingUtilities.WriteLog($"     Service Principal Name: {SPN}");
             }
+
+            LoggingUtilities.AddEmptyLine();
         }
 
         /// <summary>

@@ -82,9 +82,9 @@ namespace TDSClient.TDS.Tokens
         }
 
         /// <summary>
-        /// TDS Error Token Length
+        /// TDS Info Token Length
         /// </summary>
-        /// <returns>Returns TDS Error Token Length</returns>
+        /// <returns>Returns TDS Info Token Length</returns>
         public override ushort Length()
         {
             throw new NotImplementedException();
@@ -99,9 +99,12 @@ namespace TDSClient.TDS.Tokens
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// Process Info token.
+        /// </summary>
         public override void ProcessToken()
         {
-            LoggingUtilities.WriteLog($"  Client received Info token:");
+            LoggingUtilities.WriteLog($"  Processing Info token:");
             LoggingUtilities.WriteLog($"     Number: {Number}");
             LoggingUtilities.WriteLog($"     State: {State}");
             LoggingUtilities.WriteLog($"     Class: {Class}");

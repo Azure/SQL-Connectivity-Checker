@@ -185,16 +185,16 @@ namespace TDSClient.TDS.Tokens
 		}
 
         /// <summary>
-        /// Process token.
+        /// Process login ack token.
         /// </summary>
         public override void ProcessToken()
         {
-            LoggingUtilities.WriteLog($"  Client received LoginAck token:");
-            LoggingUtilities.WriteLog(ProgName);
-            LoggingUtilities.WriteLog(ServerVersion.ToString());
-            LoggingUtilities.WriteLog(TDSVersion.ToString());
-
-            LoggingUtilities.WriteLog("Logged in successfully.");
+            LoggingUtilities.WriteLog($"  Processing LoginAck token:");
+            LoggingUtilities.WriteLog($"     Interface: {Interface}");
+            LoggingUtilities.WriteLog($"     ProgName: {ProgName}");
+            LoggingUtilities.WriteLog($"     ServerVersion: {ServerVersion}");
+            LoggingUtilities.WriteLog($"     TDSVersion: {TDSVersion}");
+            LoggingUtilities.WriteLog($"  Logged in successfully.");
         }
     }
 }

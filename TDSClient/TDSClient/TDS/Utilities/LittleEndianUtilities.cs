@@ -172,5 +172,34 @@ using System.Text;
             destination.WriteByte((byte)(value >> 24));
         }
 
+        /// <summary>
+        /// Read unsigned long from the stream
+        /// </summary>
+        internal static ulong ReadULong(Stream source)
+        {
+            return (ulong)(source.ReadByte()
+                + (source.ReadByte() << 8)
+                + (source.ReadByte() << 16)
+                + (source.ReadByte() << 24)
+                + (source.ReadByte() << 32)
+                + (source.ReadByte() << 40)
+                + (source.ReadByte() << 48)
+                + (source.ReadByte() << 56));
+        }
+
+        /// <summary>
+        /// Write unsigned long into the stream
+        /// </summary>
+        internal static void WriteULong(Stream destination, ulong value)
+        {
+            destination.WriteByte((byte)(value & 0xff));
+            destination.WriteByte((byte)((value >> 8) & 0xff));
+            destination.WriteByte((byte)((value >> 16) & 0xff));
+            destination.WriteByte((byte)((value >> 24) & 0xff));
+            destination.WriteByte((byte)((value >> 32) & 0xff));
+            destination.WriteByte((byte)((value >> 40) & 0xff));
+            destination.WriteByte((byte)((value >> 48) & 0xff));
+            destination.WriteByte((byte)((value >> 56) & 0xff));
+        }
     }
 }

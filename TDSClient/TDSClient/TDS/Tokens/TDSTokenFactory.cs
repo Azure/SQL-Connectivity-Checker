@@ -60,6 +60,22 @@ namespace TDSClient.TDS.Tokens
                         return token;
                     }
 
+                case TDSTokenType.LoginAck:
+                    {
+                        var token = new TDSLoginAckToken();
+                        token.Unpack(stream);
+
+                        return token;
+                    }
+
+                case TDSTokenType.Done:
+                    {
+                        var token = new TDSDoneToken();
+                        token.Unpack(stream);
+
+                        return token;
+                    }
+
                 default:
                     {
                         IgnoreToken(tokenType, stream);

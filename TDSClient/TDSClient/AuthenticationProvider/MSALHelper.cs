@@ -167,7 +167,8 @@ namespace TDSClient.AuthenticationProvider
                 var result = await app.AcquireTokenForManagedIdentity(resource)
                     .ExecuteAsync();
 
-                LoggingUtilities.WriteLog($"  Successfully acquired access token.");
+                LoggingUtilities.AddEmptyLine();
+                LoggingUtilities.WriteLog($"    Successfully acquired access token.");
 
                 return result.AccessToken;
             }

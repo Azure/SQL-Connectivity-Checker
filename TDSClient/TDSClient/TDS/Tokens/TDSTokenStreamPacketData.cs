@@ -12,6 +12,7 @@ namespace TDSClient.TDS.Tokens
     using System.Linq;
     
     using TDSClient.TDS.Interfaces;
+    using TDSClient.TDS.Utilities;
 
     /// <summary>
     /// Class describing data portion of a TDS Token Stream

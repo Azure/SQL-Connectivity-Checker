@@ -72,7 +72,8 @@ namespace TDSClient.AuthenticationProvider
             string userId,
             string password,
             string aadAuthorityAudience,
-            string resource)
+            string resource,
+            string identityClientId = null)
         {
             AuthenticationLibrary = authenticationLibrary;
             AuthenticationType = authenticationType;
@@ -80,6 +81,7 @@ namespace TDSClient.AuthenticationProvider
             Password = password;
             AadAuthorityAudience = aadAuthorityAudience;
             Resource = resource;
+            IdentityClientId = identityClientId;
         }
 
         /// <summary>

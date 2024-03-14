@@ -800,7 +800,7 @@ function GetConnectionString ($Server, $gatewayPort, $Database, $AuthenticationT
             $Server, $gatewayPort, $Database)
     }
     if ('Active Directory Managed Identity' -eq $AuthenticationType -or 'Active Directory MSI' -eq $AuthenticationType) {
-        if ($null -neq $UserAssignedIdentityClientId -and '' -neq $UserAssignedIdentityClientId) {
+        if ($null -ne $UserAssignedIdentityClientId -and '' -ne $UserAssignedIdentityClientId) {
             return [string]::Format("Server=tcp:{0},{1};Initial Catalog={2};Persist Security Info=False;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Application Name=Azure-SQL-Connectivity-Checker;Authentication='Active Directory MSI';User ID={3}",
                 $Server, $gatewayPort, $Database, $UserAssignedIdentityClientId)
         }
@@ -1804,4 +1804,4 @@ finally {
             Invoke-Item (Get-Location).Path
         }
     }
-}
+})
