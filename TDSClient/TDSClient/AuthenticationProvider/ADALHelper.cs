@@ -14,7 +14,7 @@ namespace TDSClient.AuthenticationProvider
 {
     public class ADALHelper
     {
-        private static readonly string AdoClientId = "4d079b4c-cab7-4b7c-a115-8fd51b6f8239";
+        private static readonly string AdoClientId = "2fd908ad-0664-4344-b9be-cd3e8b574c38";
 
         /// <summary>
         /// Gets JWT access token using ADAL with integrated authentication.

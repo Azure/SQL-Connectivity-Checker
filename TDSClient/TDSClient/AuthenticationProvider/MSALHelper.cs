@@ -17,7 +17,7 @@ namespace TDSClient.AuthenticationProvider
 {
     public class MSALHelper
     {
-        private static readonly string AdoClientId = "4d079b4c-cab7-4b7c-a115-8fd51b6f8239";
+        private static readonly string AdoClientId = "2fd908ad-0664-4344-b9be-cd3e8b574c38";
 
         /// <summary>
         /// Gets AAD access token to Azure SQL using user credentials (username and password).
@@ -71,12 +71,14 @@ namespace TDSClient.AuthenticationProvider
 
             try
             {
-                var result = userId == null ? await app.AcquireTokenByIntegratedWindowsAuth(scopes)
-                    .ExecuteAsync(CancellationToken.None)
-                    .ConfigureAwait(false) : await app.AcquireTokenByIntegratedWindowsAuth(scopes)
-                    .WithUsername(userId)
-                    .ExecuteAsync(CancellationToken.None)
-                    .ConfigureAwait(false);
+                var result = userId == null ?
+                    await app.AcquireTokenByIntegratedWindowsAuth(scopes)
+                        .ExecuteAsync(CancellationToken.None)
+                        .ConfigureAwait(false) :
+                    await app.AcquireTokenByIntegratedWindowsAuth(scopes)
+                        .WithUsername(userId)
+                        .ExecuteAsync(CancellationToken.None)
+                        .ConfigureAwait(false);
 
                 LoggingUtilities.WriteLog("Successfully acquired access token.");
                 return result.AccessToken;
@@ -93,7 +95,7 @@ namespace TDSClient.AuthenticationProvider
         /// </summary>
         /// <param name="resource"></param>
         /// <returns></returns>
-        public static async Task<string> GetSQLAccessTokenFromMSALInteractively(string resource)
+        public static async Task<string> GetSQLAccessTokenFromMSALInteractively(string resource, string authority)
         {
             ValidateInputParameters(resource);
 
@@ -101,7 +103,9 @@ namespace TDSClient.AuthenticationProvider
 
             LoggingUtilities.WriteLog("Attempting to acquire access token using interactive auth.");
             var app = PublicClientApplicationBuilder.Create(AdoClientId)
+                .WithAuthority(authority)
                 .WithRedirectUri("http://localhost")
+                .WithLogging(LogCallback, LogLevel.Verbose, true)
                 .Build();
 
             try

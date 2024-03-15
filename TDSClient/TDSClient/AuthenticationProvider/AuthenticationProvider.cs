@@ -139,7 +139,7 @@ namespace TDSClient.AuthenticationProvider
         /// <returns></returns>
         private async Task<string> GetAccessTokenForInteractiveAuth()
         {
-            return await MSALHelper.GetSQLAccessTokenFromMSALInteractively(AadAuthorityAudience);
+            return await MSALHelper.GetSQLAccessTokenFromMSALInteractively(Resource, AadAuthorityAudience);
         }
 
         /// <summary>
