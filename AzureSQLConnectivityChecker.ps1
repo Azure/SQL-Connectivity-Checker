@@ -94,7 +94,7 @@ if ($null -eq $AuthenticationLibrary -or '' -eq $AuthenticationLibrary) {
     $AuthenticationLibrary = 'MSAL'
 }
 
-if ($null -eq $User -or '' -eq $User) {
+if (($null -eq $User -or '' -eq $User) -and $AuthenticationType -ne "Active Directory Authentication") {
     $User = 'AzSQLConnCheckerUser'
 }
 
@@ -1484,7 +1484,7 @@ try {
         Write-Host
         Write-Host 'Parameters' -ForegroundColor Yellow
 
-        if ($AuthenticationType -NotIn "Active Directory Password", "Active Directory Interactive", "Active Directory ManagedIdentity", "Active Directory MSI", "SQL Server Authentication") {
+        if ($AuthenticationType -NotIn "Active Directory Password", "Active Directory Integrated", "Active Directory Interactive", "Active Directory ManagedIdentity", "Active Directory MSI", "SQL Server Authentication") {
             $msg = "Authentication type " + $AuthenticationType + " is not supported, switching to SQL Server Authentication"
             Write-Host $msg -ForegroundColor Green
             $AuthenticationLibrary = "SQL Server Authentication"
