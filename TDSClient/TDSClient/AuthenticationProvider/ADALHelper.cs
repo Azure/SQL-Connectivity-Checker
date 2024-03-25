@@ -14,6 +14,14 @@ namespace TDSClient.AuthenticationProvider
 {
     public class ADALHelper
     {
+        private class AdalLoggerCallback : IAdalLogCallback
+        {
+            public void Log(LogLevel level, string message)
+            {
+                // Customize how you handle log messages here
+                LoggingUtilities.WriteLog($"ADAL Log ({level}): {message}");
+            }
+        }
         /// <summary>
         /// Gets JWT access token using ADAL with integrated authentication.
         /// </summary>
@@ -27,6 +35,9 @@ namespace TDSClient.AuthenticationProvider
         {
             try
             {
+                var loggerCallback = new AdalLoggerCallback();
+                LoggerCallbackHandler.Callback = loggerCallback;
+
                 UserCredential userCredentials = new UserCredential();
                 LoggingUtilities.WriteLog("Acquiring access token...");
                 AuthenticationContext authContext = new AuthenticationContext(authority);

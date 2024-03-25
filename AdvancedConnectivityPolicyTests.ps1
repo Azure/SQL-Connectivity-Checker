@@ -246,9 +246,11 @@ try {
     $assembly = [System.IO.File]::ReadAllBytes($TDSClientPath)
     $assembly2 = [System.IO.File]::ReadAllBytes($MicrosoftIdentityClientDll)
     $assembly3 = [System.IO.File]::ReadAllBytes($IdentityModelAbstractions)
+    $assembly4 = [System.IO.File]::ReadAllBytes($ActiveDirectoryDll)
     [System.Reflection.Assembly]::Load($assembly) | Out-Null
     [System.Reflection.Assembly]::Load($assembly2) | Out-Null
     [System.Reflection.Assembly]::Load($assembly3) | Out-Null
+    [System.Reflection.Assembly]::Load($assembly4) | Out-Null
 
     $fullLogPath = Join-Path ((Get-Location).Path) 'AdvancedTests_FullLog.txt'
     $logPath = Join-Path ((Get-Location).Path) 'AdvancedTests_LastRunLog.txt'
