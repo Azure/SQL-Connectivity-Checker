@@ -14,8 +14,6 @@ namespace TDSClient.AuthenticationProvider
 {
     public class ADALHelper
     {
-        private static readonly string AdoClientId = "2fd908ad-0664-4344-b9be-cd3e8b574c38";
-
         /// <summary>
         /// Gets JWT access token using ADAL with integrated authentication.
         /// </summary>
@@ -23,30 +21,16 @@ namespace TDSClient.AuthenticationProvider
         /// <param name="resource"></param>
         /// <returns></returns>
         public static async Task<string> GetSQLAccessTokenFromADALUsingIntegratedAuth(
+            string clientId,
             string authority,
             string resource)
         {
-            UserCredential userCredentials = new UserCredential();
-            return await GetAccessToken(authority, resource, userCredentials).ConfigureAwait(false);
-        }
-
-        /// <summary>
-        /// Gets access token using provided credential.
-        /// </summary>
-        /// <param name="authority"></param>
-        /// <param name="resource"></param>
-        /// <param name="credential"></param>
-        /// <returns></returns>
-        private static async Task<string> GetAccessToken(
-            string authority,
-            string resource,
-            UserCredential credential = null)
-        {
             try
             {
+                UserCredential userCredentials = new UserCredential();
                 LoggingUtilities.WriteLog("Acquiring access token...");
                 AuthenticationContext authContext = new AuthenticationContext(authority);
-                AuthenticationResult result = await authContext.AcquireTokenAsync(resource, AdoClientId, credential).ConfigureAwait(false);
+                AuthenticationResult result = await authContext.AcquireTokenAsync(resource, clientId, userCredentials).ConfigureAwait(false);
                 LoggingUtilities.WriteLog("Successfully acquired access token.");
                 return result.AccessToken;
             }

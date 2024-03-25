@@ -17,8 +17,6 @@ namespace TDSClient.AuthenticationProvider
 {
     public class MSALHelper
     {
-        private static readonly string AdoClientId = "2fd908ad-0664-4344-b9be-cd3e8b574c38";
-
         /// <summary>
         /// Gets AAD access token to Azure SQL using user credentials (username and password).
         /// </summary>
@@ -27,11 +25,14 @@ namespace TDSClient.AuthenticationProvider
         /// <param name="userId"></param>
         /// <param name="password"></param>
         /// <returns></returns>
-        public static async Task<string> GetSQLAccessTokenFromMSALUsingUsernamePassword(string authority, string resource, string userId, string password)
+        public static async Task<string> GetSQLAccessTokenFromMSALUsingUsernamePassword(string clientId, string authority, string resource, string userId, string password)
         {
             ValidateInputParameters(authority, userId, password);
 
-            var app = CreateClientApp(authority);
+            var app = PublicClientApplicationBuilder.Create(clientId)
+                .WithAuthority(authority)
+                .WithLogging(LogCallback, LogLevel.Verbose, true)
+                .Build();
             string[] scopes = new[] { resource + "/.default" };
 
             LoggingUtilities.WriteLog("Attempting to acquire access token using username and password.");
@@ -59,19 +60,22 @@ namespace TDSClient.AuthenticationProvider
         /// <param name="resource"></param>
         /// <param name="userId"></param>
         /// <returns></returns>
-        public static async Task<string> GetSQLAccessTokenFromMSALUsingIntegratedAuth(string authority, string resource, string userId)
+        public static async Task<string> GetSQLAccessTokenFromMSALUsingIntegratedAuth(string clientId, string authority, string resource, string userId)
         {
             ValidateInputParameters(authority);
 
             LoggingUtilities.WriteLog("Attempting to acquire access token using integrated auth.");
 
-            var app = CreateClientApp(authority);
+            var app = PublicClientApplicationBuilder.Create(clientId)
+                .WithAuthority(authority)
+                .WithLogging(LogCallback, LogLevel.Verbose, true)
+                .Build();
 
             string[] scopes = new[] { resource + "/.default" };
 
             try
             {
-                var result = userId == null ?
+                var result = userId == null || userId == String.Empty ?
                     await app.AcquireTokenByIntegratedWindowsAuth(scopes)
                         .ExecuteAsync(CancellationToken.None)
                         .ConfigureAwait(false) :
@@ -95,16 +99,16 @@ namespace TDSClient.AuthenticationProvider
         /// </summary>
         /// <param name="resource"></param>
         /// <returns></returns>
-        public static async Task<string> GetSQLAccessTokenFromMSALInteractively(string resource, string authority)
+        public static async Task<string> GetSQLAccessTokenFromMSALInteractively(string clientId, string resource, string authority, string redirectUri)
         {
             ValidateInputParameters(resource);
 
             string[] scopes = new string[] { resource + "/.default" };
 
             LoggingUtilities.WriteLog("Attempting to acquire access token using interactive auth.");
-            var app = PublicClientApplicationBuilder.Create(AdoClientId)
+            var app = PublicClientApplicationBuilder.Create(clientId)
                 .WithAuthority(authority)
-                .WithRedirectUri("http://localhost")
+                .WithRedirectUri(redirectUri)
                 .WithLogging(LogCallback, LogLevel.Verbose, true)
                 .Build();
 
@@ -189,14 +193,20 @@ namespace TDSClient.AuthenticationProvider
         /// </summary>
         /// <param name="authority"></param>
         /// <returns></returns>
-        private static IPublicClientApplication CreateClientApp(string authority)
+        private static IPublicClientApplication CreateClientApp(string clientId, string authority)
         {
-            return PublicClientApplicationBuilder.Create(AdoClientId)
+            return PublicClientApplicationBuilder.Create(clientId)
                 .WithAuthority(authority)
                 .WithLogging(LogCallback, LogLevel.Verbose, true)
                 .Build();
         }
 
+        /// <summary>
+        /// Logs the message.
+        /// </summary>
+        /// <param name="level"></param>
+        /// <param name="message"></param>
+        /// <param name="containsPii"></param>
         private static void LogCallback(LogLevel level, string message, bool containsPii)
         {
             LoggingUtilities.WriteLog($"[{level}] {(containsPii ? "[PII]" : "")} {message}");

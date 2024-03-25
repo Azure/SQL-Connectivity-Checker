@@ -228,15 +228,19 @@ try {
     $TDSClientPath = Join-Path ((Get-Location).Path) "TDSClient.dll"
     $MicrosoftIdentityClientDll = Join-Path ((Get-Location).Path) "Microsoft.Identity.Client.dll"
     $IdentityModelAbstractions = Join-Path ((Get-Location).Path) "Microsoft.IdentityModel.Abstractions.dll"
+    $ActiveDirectoryDll = Join-Path ((Get-Location).Path) "Microsoft.IdentityModel.Clients.ActiveDirectory.dll"
+
     if ($Local) {
         Copy-Item -Path $($LocalPath + '\netstandard2.0\TDSClient.dll') -Destination $TDSClientPath
         Copy-Item -Path $($LocalPath + '\netstandard2.0\Microsoft.Identity.Client.dll') -Destination $MicrosoftIdentityClientDll
         Copy-Item -Path $($LocalPath + '\netstandard2.0\Microsoft.IdentityModel.Abstractions.dll') -Destination $IdentityModelAbstractions
+        Copy-Item -Path $($LocalPath + '\netstandard2.0\Microsoft.IdentityModel.Clients.ActiveDirectory.dll') -Destination $ActiveDirectoryDll
     }
     else {
         Invoke-WebRequest -Uri $('https://github.com/Azure/SQL-Connectivity-Checker/raw/' + $RepositoryBranch + '/netstandard2.0/TDSClient.dll') -OutFile $TDSClientPath -UseBasicParsing
         Invoke-WebRequest -Uri $('https://github.com/Azure/SQL-Connectivity-Checker/raw/' + $RepositoryBranch + '/netstandard2.0/Microsoft.Identity.Client.dll') -OutFile $MicrosoftIdentityClientDll -UseBasicParsing
         Invoke-WebRequest -Uri $('https://github.com/Azure/SQL-Connectivity-Checker/raw/' + $RepositoryBranch + '/netstandard2.0/Microsoft.IdentityModel.Abstractions.dll') -OutFile $IdentityModelAbstractions -UseBasicParsing
+        Invoke-WebRequest -Uri $('https://github.com/Azure/SQL-Connectivity-Checker/raw/' + $RepositoryBranch + '/netstandard2.0/Microsoft.IdentityModel.Clients.ActiveDirectory.dll') -OutFile $ActiveDirectoryDll -UseBasicParsing
     }
 
     $assembly = [System.IO.File]::ReadAllBytes($TDSClientPath)

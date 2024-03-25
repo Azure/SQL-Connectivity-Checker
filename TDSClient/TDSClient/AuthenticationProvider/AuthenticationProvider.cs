@@ -53,9 +53,12 @@ namespace TDSClient.AuthenticationProvider
         private readonly TDSAuthenticationType AuthenticationType;
         private readonly string UserID;
         private readonly string Password;
-        private readonly string AadAuthorityAudience;
+        private readonly string Authority;
         private readonly string Resource;
         private readonly string IdentityClientId;
+
+        private readonly string AdoClientId = "2fd908ad-0664-4344-b9be-cd3e8b574c38";
+        private readonly string RedirectUri = "http://localhost";
 
         /// <summary>
         /// AuthenticationProvider constructor.
@@ -79,7 +82,7 @@ namespace TDSClient.AuthenticationProvider
             AuthenticationType = authenticationType;
             UserID = userId;
             Password = password;
-            AadAuthorityAudience = aadAuthorityAudience;
+            Authority = aadAuthorityAudience;
             Resource = resource;
             IdentityClientId = identityClientId;
         }
@@ -118,8 +121,8 @@ namespace TDSClient.AuthenticationProvider
         private async Task<string> GetAccessTokenForIntegratedAuth()
         {
             return AuthenticationLibrary == TDSAuthenticationLibrary.MSAL ?
-                await MSALHelper.GetSQLAccessTokenFromMSALUsingIntegratedAuth(AadAuthorityAudience, Resource, UserID) :
-                await ADALHelper.GetSQLAccessTokenFromADALUsingIntegratedAuth(AadAuthorityAudience, Resource);
+                await MSALHelper.GetSQLAccessTokenFromMSALUsingIntegratedAuth(AdoClientId, Authority, Resource, UserID) :
+                await ADALHelper.GetSQLAccessTokenFromADALUsingIntegratedAuth(AdoClientId, Authority, Resource);
         }
 
         /// <summary>
@@ -129,7 +132,7 @@ namespace TDSClient.AuthenticationProvider
         private async Task<string> GetAccessTokenForUsernamePassword()
         {
             return AuthenticationLibrary == TDSAuthenticationLibrary.MSAL ?
-               await MSALHelper.GetSQLAccessTokenFromMSALUsingUsernamePassword(AadAuthorityAudience, Resource, UserID, Password) :
+               await MSALHelper.GetSQLAccessTokenFromMSALUsingUsernamePassword(AdoClientId, Authority, Resource, UserID, Password) :
                throw new Exception("Username password authentication is not supported by ADAL.");
         }
 
@@ -139,7 +142,7 @@ namespace TDSClient.AuthenticationProvider
         /// <returns></returns>
         private async Task<string> GetAccessTokenForInteractiveAuth()
         {
-            return await MSALHelper.GetSQLAccessTokenFromMSALInteractively(Resource, AadAuthorityAudience);
+            return await MSALHelper.GetSQLAccessTokenFromMSALInteractively(AdoClientId, Resource, Authority, RedirectUri);
         }
 
         /// <summary>
@@ -149,8 +152,8 @@ namespace TDSClient.AuthenticationProvider
         private async Task<string> GetAccessTokenForMSIAuth()
         {
             return IdentityClientId != null ?
-                await MSALHelper.GetSQLAccessTokenFromMSALUsingUserAssignedManagedIdentity(AadAuthorityAudience, IdentityClientId) :
-                await MSALHelper.GetSQLAccessTokenFromMSALUsingSystemAssignedManagedIdentity(AadAuthorityAudience);
+                await MSALHelper.GetSQLAccessTokenFromMSALUsingUserAssignedManagedIdentity(Authority, IdentityClientId) :
+                await MSALHelper.GetSQLAccessTokenFromMSALUsingSystemAssignedManagedIdentity(Authority);
         }
     }
 }

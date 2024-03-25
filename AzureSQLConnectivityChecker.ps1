@@ -94,7 +94,7 @@ if ($null -eq $AuthenticationLibrary -or '' -eq $AuthenticationLibrary) {
     $AuthenticationLibrary = 'MSAL'
 }
 
-if (($null -eq $User -or '' -eq $User) -and $AuthenticationType -ne "Active Directory Authentication") {
+if (($null -eq $User -or '' -eq $User) -and $AuthenticationType -ne "Active Directory Integrated") {
     $User = 'AzSQLConnCheckerUser'
 }
 
@@ -620,7 +620,9 @@ function TestConnectionToDatabase($Server, $gatewayPort, $Database, $Authenticat
         $DbConnection = [System.Data.SqlClient.SQLConnection]::new()
         Write-Host $Database
         Write-Host $AuthenticationType
-        Write-Host $AuthenticationLibrary
+        if ($AuthenticationType -like "*Active Directory*") {
+            Write-Host $AuthenticationLibrary
+        }
         Write-Host $User
         $DbConnection.ConnectionString = GetConnectionString $Server $gatewayPort $Database $AuthenticationType $User $Password $UserAssignedIdentityClientId
         $DbConnection.Open()
