@@ -8,6 +8,7 @@ namespace TDSClient.TDS.Login7
 {
     using System;
     using System.IO;
+    
     using TDSClient.TDS.Interfaces;
 
     /// <summary>
@@ -145,7 +146,7 @@ namespace TDSClient.TDS.Login7
         /// <returns>true if the specified object is equal to the current object; otherwise, false</returns>
         public override bool Equals(object obj)
         {
-            return this.Equals(obj as TDSLogin7OptionFlags3);
+            return Equals(obj as TDSLogin7OptionFlags3);
         }
 
         /// <summary>
@@ -156,11 +157,11 @@ namespace TDSClient.TDS.Login7
         public bool Equals(TDSLogin7OptionFlags3 other)
         {
             return other != null &&
-                   this.ChangePassword == other.ChangePassword &&
-                   this.SendYukonBinaryXML == other.SendYukonBinaryXML &&
-                   this.UserInstanceProcess == other.UserInstanceProcess &&
-                   this.UnknownCollationHandling == other.UnknownCollationHandling &&
-                   this.Extension == other.Extension;
+                   ChangePassword == other.ChangePassword &&
+                   SendYukonBinaryXML == other.SendYukonBinaryXML &&
+                   UserInstanceProcess == other.UserInstanceProcess &&
+                   UnknownCollationHandling == other.UnknownCollationHandling &&
+                   Extension == other.Extension;
         }
 
         /// <summary>
@@ -169,11 +170,11 @@ namespace TDSClient.TDS.Login7
         /// <param name="stream">MemoryStream in which IPackageable is packet into.</param>
         public void Pack(MemoryStream stream)
         {
-            byte packedByte = (byte)((byte)this.ChangePassword
-                | ((byte)this.UserInstanceProcess << 1)
-                | ((byte)this.SendYukonBinaryXML << 2)
-                | ((byte)this.UnknownCollationHandling << 3)
-                | ((byte)this.Extension << 4));
+            byte packedByte = (byte)((byte)ChangePassword
+                | ((byte)UserInstanceProcess << 1)
+                | ((byte)SendYukonBinaryXML << 2)
+                | ((byte)UnknownCollationHandling << 3)
+                | ((byte)Extension << 4));
 
             stream.WriteByte(packedByte);
         }
@@ -187,11 +188,11 @@ namespace TDSClient.TDS.Login7
         {
             byte flagByte = Convert.ToByte(stream.ReadByte());
 
-            this.ChangePassword = (TDSLogin7OptionFlags3ChangePassword)(flagByte & 0x01);
-            this.UserInstanceProcess = (TDSLogin7OptionFlags3UserInstanceProcess)((flagByte >> 1) & 0x01);
-            this.SendYukonBinaryXML = (TDSLogin7OptionFlags3SendYukonBinaryXML)((flagByte >> 2) & 0x01);
-            this.UnknownCollationHandling = (TDSLogin7OptionFlags3UnknownCollationHandling)((flagByte >> 3) & 0x01);
-            this.Extension = (TDSLogin7OptionFlags3Extension)((flagByte >> 4) & 0x01);
+            ChangePassword = (TDSLogin7OptionFlags3ChangePassword)(flagByte & 0x01);
+            UserInstanceProcess = (TDSLogin7OptionFlags3UserInstanceProcess)((flagByte >> 1) & 0x01);
+            SendYukonBinaryXML = (TDSLogin7OptionFlags3SendYukonBinaryXML)((flagByte >> 2) & 0x01);
+            UnknownCollationHandling = (TDSLogin7OptionFlags3UnknownCollationHandling)((flagByte >> 3) & 0x01);
+            Extension = (TDSLogin7OptionFlags3Extension)((flagByte >> 4) & 0x01);
             
             return true;
         }

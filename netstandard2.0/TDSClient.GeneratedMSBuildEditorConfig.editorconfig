@@ -1,0 +1,5 @@
+is_global = true
+build_property.RootNamespace = TDSClient
+build_property.ProjectDir = D:\ConnectivityChecker\SQL-Connectivity-Checker\TDSClient\TDSClient\
+build_property.EnableComHosting = 
+build_property.EnableGeneratedComInterfaceComImportInterop = 
