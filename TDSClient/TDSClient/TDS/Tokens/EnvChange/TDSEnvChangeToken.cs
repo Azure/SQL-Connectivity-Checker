@@ -11,7 +11,6 @@ namespace TDSClient.TDS.Tokens
     using System.IO;
     using System.Linq;
     using System.Text;
-    
     using TDSClient.TDS.Tokens.EnvChange;
     using TDSClient.TDS.Utilities;
 
@@ -27,13 +26,8 @@ namespace TDSClient.TDS.Tokens
         /// </summary>
         public TDSEnvChangeToken()
         {
-            Values = new Dictionary<string, string>();
+            this.Values = new Dictionary<string, string>();
         }
-
-        /// <summary>
-        /// Gets or sets TDS EnvChange Token Type
-        /// </summary>
-        public ushort TokenLength { get; set; }
 
         /// <summary>
         /// Gets or sets TDS EnvChange Token Type
@@ -52,7 +46,7 @@ namespace TDSClient.TDS.Tokens
         /// <returns>true if the specified object is equal to the current object; otherwise, false</returns>
         public override bool Equals(object obj)
         {
-            return Equals(obj as TDSEnvChangeToken);
+            return this.Equals(obj as TDSEnvChangeToken);
         }
 
         /// <summary>
@@ -63,9 +57,9 @@ namespace TDSClient.TDS.Tokens
         public bool Equals(TDSEnvChangeToken other)
         {
             return other != null &&
-                   Type == other.Type &&
-                   Values.Count == other.Values.Count &&
-                   !Values.Except(other.Values).Any();
+                   this.Type == other.Type &&
+                   this.Values.Count == other.Values.Count &&
+                   !this.Values.Except(other.Values).Any();
         }
 
         /// <summary>
@@ -86,11 +80,6 @@ namespace TDSClient.TDS.Tokens
             throw new NotImplementedException();
         }
 
-        public override void ProcessToken()
-        {
-            throw new NotImplementedException();
-        }
-
         /// <summary>
         /// Used to unpack IPackageable from a stream.
         /// </summary>
@@ -99,8 +88,8 @@ namespace TDSClient.TDS.Tokens
         public override bool Unpack(MemoryStream stream)
         {
             var length = LittleEndianUtilities.ReadUShort(stream);
-            Type = (TDSEnvChangeType)stream.ReadByte();
-            switch (Type)
+            this.Type = (TDSEnvChangeType)stream.ReadByte();
+            switch (this.Type)
             {
                 case TDSEnvChangeType.Routing:
                     var routingDataValueLength = LittleEndianUtilities.ReadUShort(stream);
@@ -120,8 +109,8 @@ namespace TDSClient.TDS.Tokens
                     var temp = new byte[strLength];
                     stream.Read(temp, 0, strLength);
 
-                    Values["ProtocolProperty"] = string.Format("{0}", protocolProperty);
-                    Values["AlternateServer"] = Encoding.Unicode.GetString(temp);
+                    this.Values["ProtocolProperty"] = string.Format("{0}", protocolProperty);
+                    this.Values["AlternateServer"] = Encoding.Unicode.GetString(temp);
 
                     for (int i = 0; i < length - routingDataValueLength - sizeof(byte) - sizeof(ushort); i++)
                     {

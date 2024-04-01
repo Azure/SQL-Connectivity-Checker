@@ -8,43 +8,37 @@ namespace TDSClient.TDS.Comms
 {
     using System;
     using System.IO;
-    
     using TDSClient.TDS.Header;
 
     /// <summary>
     /// Stream used to pass TDS messages.
     /// </summary>
-    public class TDSStream : Stream, IDisposable
+    public class TDSStream : Stream
     {
-        /// <summary>
-        /// Gets or sets the Inner Stream.
-        /// </summary>
-        public Stream InnerStream { get; set; }
-
         /// <summary>
         /// TDS Packet Size used for communication
         /// </summary>
-        private readonly int NegotiatedPacketSize;
+        private readonly int negotiatedPacketSize;
 
         /// <summary>
         /// Current Inbound TDS Packet Header
         /// </summary>
-        private TDSPacketHeader CurrentInboundTDSHeader;
+        private TDSPacketHeader currentInboundTDSHeader;
 
         /// <summary>
         /// Current position within the Inbound TDS Packet
         /// </summary>
-        private int CurrentInboundPacketPosition;
+        private int currentInboundPacketPosition;
 
         /// <summary>
         /// Current Outbound TDS Packet Header
         /// </summary>
-        private TDSPacketHeader CurrentOutboundTDSHeader;
+        private TDSPacketHeader currentOutboundTDSHeader;
 
         /// <summary>
         /// TDS Connection Timeout
         /// </summary>
-        private TimeSpan Timeout;
+        private TimeSpan timeout;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TDSStream"/> class.
@@ -54,10 +48,15 @@ namespace TDSClient.TDS.Comms
         /// <param name="negotiatedPacketSize">Packet size</param>
         public TDSStream(Stream innerStream, TimeSpan timeout, int negotiatedPacketSize)
         {
-            InnerStream = innerStream ?? throw new ArgumentNullException(nameof(innerStream));;
-            Timeout = timeout;
-            NegotiatedPacketSize = negotiatedPacketSize;
+            this.InnerStream = innerStream;
+            this.timeout = timeout;
+            this.negotiatedPacketSize = negotiatedPacketSize;
         }
+
+        /// <summary>
+        /// Gets or sets the Inner Stream.
+        /// </summary>
+        public Stream InnerStream { get; set; }
 
         /// <summary>
         /// Gets a value indicating whether inbound message is terminated.
@@ -66,7 +65,7 @@ namespace TDSClient.TDS.Comms
         {
             get
             {
-                return CurrentInboundTDSHeader == null;
+                return this.currentInboundTDSHeader == null;
             }
         }
         
@@ -83,35 +82,34 @@ namespace TDSClient.TDS.Comms
         /// <summary>
         /// Gets or sets CanRead Flag.
         /// </summary>
-        public override bool CanRead => InnerStream.CanRead;
+        public override bool CanRead => this.InnerStream.CanRead;
 
         /// <summary>
         /// Gets or sets CanSeek Flag.
         /// </summary>
-        public override bool CanSeek => InnerStream.CanSeek;
+        public override bool CanSeek => this.InnerStream.CanSeek;
 
         /// <summary>
         /// Gets or sets CanWrite Flag.
         /// </summary>
-        public override bool CanWrite => InnerStream.CanWrite;
+        public override bool CanWrite => this.InnerStream.CanWrite;
 
         /// <summary>
         /// Gets or sets Stream Length.
         /// </summary>
-        public override long Length => InnerStream.Length;
+        public override long Length => this.InnerStream.Length;
 
         /// <summary>
         /// Gets or sets Stream Position.
         /// </summary>
-        public override long Position { get => InnerStream.Position; set => InnerStream.Position = value; }
+        public override long Position { get => this.InnerStream.Position; set => this.InnerStream.Position = value; }
 
         /// <summary>
         /// Flushes stream output.
         /// </summary>
         public override void Flush()
         {
-            EnsureInnerStreamIsNotNull();
-            InnerStream.Flush();
+            this.InnerStream.Flush();
         }
 
         /// <summary>
@@ -123,44 +121,41 @@ namespace TDSClient.TDS.Comms
         /// <returns>Returns number of successfully read bytes.</returns>
         public override int Read(byte[] buffer, int offset, int count)
         {
-            EnsureInnerStreamIsNotNull();
-
             var startTime = DateTime.Now;
             var bytesReadTotal = 0;
 
-            while (bytesReadTotal < count && DateTime.Now - Timeout < startTime)
+            while (bytesReadTotal < count && DateTime.Now - this.timeout < startTime)
             {
-                if (CurrentInboundTDSHeader == null || CurrentInboundPacketPosition >= CurrentInboundTDSHeader.ConvertedPacketLength)
+                if (this.currentInboundTDSHeader == null || this.currentInboundPacketPosition >= this.currentInboundTDSHeader.ConvertedPacketLength)
                 {
                     byte[] headerBuffer = new byte[8];
                     int curPos = 0;
                     do
                     {
-                        curPos += InnerStream.Read(headerBuffer, curPos, 8 - curPos);
-                        
+                        curPos += this.InnerStream.Read(headerBuffer, curPos, 8 - curPos);
 
                         if (curPos == 0)
                         {
                             throw new Exception("Failure to read from network stream.");
                         }
                     } 
-                    while (curPos < 8 && DateTime.Now - Timeout < startTime);
+                    while (curPos < 8 && DateTime.Now - this.timeout < startTime);
 
-                    if (DateTime.Now - Timeout >= startTime)
+                    if (DateTime.Now - this.timeout >= startTime)
                     {
                         throw new TimeoutException("Reading from network stream timed out.");
                     }
 
-                    CurrentInboundTDSHeader = new TDSPacketHeader();
-                    CurrentInboundTDSHeader.Unpack(new MemoryStream(headerBuffer));
-                    CurrentInboundPacketPosition = 8;
+                    this.currentInboundTDSHeader = new TDSPacketHeader();
+                    this.currentInboundTDSHeader.Unpack(new MemoryStream(headerBuffer));
+                    this.currentInboundPacketPosition = 8;
                 }
 
-                var bytesToReadFromCurrentPacket = Math.Min(count - bytesReadTotal, CurrentInboundTDSHeader.ConvertedPacketLength - CurrentInboundPacketPosition);
+                var bytesToReadFromCurrentPacket = Math.Min(count - bytesReadTotal, this.currentInboundTDSHeader.ConvertedPacketLength - this.currentInboundPacketPosition);
 
                 do
                 {
-                    var bytesRead = InnerStream.Read(buffer, offset + bytesReadTotal, bytesToReadFromCurrentPacket);
+                    var bytesRead = this.InnerStream.Read(buffer, offset + bytesReadTotal, bytesToReadFromCurrentPacket);
 
                     if (bytesRead == 0)
                     {
@@ -168,19 +163,19 @@ namespace TDSClient.TDS.Comms
                     }
 
                     bytesToReadFromCurrentPacket -= bytesRead;
-                    CurrentInboundPacketPosition += bytesRead;
+                    this.currentInboundPacketPosition += bytesRead;
                     bytesReadTotal += bytesRead;
                 } 
-                while (bytesToReadFromCurrentPacket > 0 && DateTime.Now - Timeout < startTime);
+                while (bytesToReadFromCurrentPacket > 0 && DateTime.Now - this.timeout < startTime);
 
-                if (CurrentInboundTDSHeader != null && CurrentInboundPacketPosition >= CurrentInboundTDSHeader.ConvertedPacketLength && (CurrentInboundTDSHeader.Status & TDSMessageStatus.EndOfMessage) == TDSMessageStatus.EndOfMessage)
+                if (this.currentInboundTDSHeader != null && this.currentInboundPacketPosition >= this.currentInboundTDSHeader.ConvertedPacketLength && (this.currentInboundTDSHeader.Status & TDSMessageStatus.EndOfMessage) == TDSMessageStatus.EndOfMessage)
                 {
-                    CurrentInboundTDSHeader = null;
+                    this.currentInboundTDSHeader = null;
                     return bytesReadTotal;
                 }
             }
 
-            if (DateTime.Now - Timeout >= startTime)
+            if (DateTime.Now - this.timeout >= startTime)
             {
                 throw new TimeoutException("Reading from network stream timed out.");
             }
@@ -196,30 +191,28 @@ namespace TDSClient.TDS.Comms
         /// <param name="count">Number of bytes to write.</param>
         public override void Write(byte[] buffer, int offset, int count)
         {
-            EnsureInnerStreamIsNotNull();
-
-            CurrentOutboundTDSHeader = new TDSPacketHeader(CurrentOutboundMessageType, TDSMessageStatus.Normal, 0, 1);
+            this.currentOutboundTDSHeader = new TDSPacketHeader(this.CurrentOutboundMessageType, TDSMessageStatus.Normal, 0, 1);
 
             var bytesSent = 0;
 
             while (bytesSent < count)
             {
-                if (count - bytesSent + 8 < NegotiatedPacketSize)
+                if (count - bytesSent + 8 < this.negotiatedPacketSize)
                 {
-                    CurrentOutboundTDSHeader.Status = TDSMessageStatus.EndOfMessage;
+                    this.currentOutboundTDSHeader.Status = TDSMessageStatus.EndOfMessage;
                 }
 
-                var bufferSize = Math.Min(count - bytesSent + 8, NegotiatedPacketSize);
+                var bufferSize = Math.Min(count - bytesSent + 8, this.negotiatedPacketSize);
                 byte[] packetBuffer = new byte[bufferSize];
 
-                CurrentOutboundTDSHeader.Length = Convert.ToUInt16(bufferSize);
-                CurrentOutboundTDSHeader.Pack(new MemoryStream(packetBuffer));
+                this.currentOutboundTDSHeader.Length = Convert.ToUInt16(bufferSize);
+                this.currentOutboundTDSHeader.Pack(new MemoryStream(packetBuffer));
                 Array.Copy(buffer, offset + bytesSent, packetBuffer, 8, bufferSize - 8);
 
-                InnerStream.Write(packetBuffer, 0, bufferSize);
+                this.InnerStream.Write(packetBuffer, 0, bufferSize);
                 bytesSent += bufferSize - 8;
-                
-                CurrentOutboundTDSHeader.Packet = (byte)((CurrentOutboundTDSHeader.Packet + 1) % 256);
+
+                this.currentOutboundTDSHeader.Packet = (byte)((this.currentOutboundTDSHeader.Packet + 1) % 256);
             }
         }
 
@@ -231,8 +224,7 @@ namespace TDSClient.TDS.Comms
         /// <returns>The new position within current stream.</returns>
         public override long Seek(long offset, SeekOrigin origin)
         {
-            EnsureInnerStreamIsNotNull();
-            return InnerStream.Seek(offset, origin);
+            return this.InnerStream.Seek(offset, origin);
         }
 
         /// <summary>
@@ -241,45 +233,16 @@ namespace TDSClient.TDS.Comms
         /// <param name="value">New length.</param>
         public override void SetLength(long value)
         {
-            EnsureInnerStreamIsNotNull();
-            InnerStream.SetLength(value);
+            this.InnerStream.SetLength(value);
         }
 
         /// <summary>
-        /// Disposes the stream.
+        /// Close this stream.
         /// </summary>
-        /// <param name="disposing"></param>
-        protected override void Dispose(bool disposing)
+        public override void Close()
         {
-            if (disposing)
-            {
-                if (InnerStream != null)
-                {
-                    InnerStream.Dispose();
-                    InnerStream = null;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Disposes the stream.
-        /// </summary>
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        /// <summary>
-        /// Ensures that inner stream is not null.
-        /// </summary>
-        /// <exception cref="ObjectDisposedException"></exception>
-        private void EnsureInnerStreamIsNotNull()
-        {
-            if (InnerStream == null)
-            {
-                throw new ObjectDisposedException(GetType().FullName);
-            }
+            this.InnerStream.Close();
+            base.Close();
         }
     }
 }

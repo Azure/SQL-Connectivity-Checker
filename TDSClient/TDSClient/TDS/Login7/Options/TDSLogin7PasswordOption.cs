@@ -43,7 +43,7 @@ namespace TDSClient.TDS.Login7.Options
         /// <param name="plainTextPassword">Password in plain text</param>
         public TDSLogin7PasswordOption(string name, ushort position, ushort length, string plainTextPassword) : base(name, position, length, (ushort)(length * 2))
         {
-            PlainTextPassword = plainTextPassword;
+            this.PlainTextPassword = plainTextPassword;
         }
 
         /// <summary>
@@ -58,7 +58,7 @@ namespace TDSClient.TDS.Login7.Options
         /// <returns>true if the specified object is equal to the current object; otherwise, false</returns>
         public override bool Equals(object obj)
         {
-            return Equals(obj as TDSLogin7PasswordOption);
+            return this.Equals(obj as TDSLogin7PasswordOption);
         }
 
         /// <summary>
@@ -68,13 +68,9 @@ namespace TDSClient.TDS.Login7.Options
         /// <returns>true if the specified object is equal to the current object; otherwise, false</returns>
         public bool Equals(TDSLogin7PasswordOption other)
         {
-            if (other == null)
-            {
-                return false;
-            }
-
-            return base.Equals(other) &&
-                PlainTextPassword == other.PlainTextPassword;
+            return other != null &&
+                   base.Equals(other) &&
+                   this.PlainTextPassword == other.PlainTextPassword;
         }
 
         /// <summary>
@@ -83,8 +79,8 @@ namespace TDSClient.TDS.Login7.Options
         /// <param name="stream">MemoryStream in which IPackageable is packet into.</param>
         public override void Pack(MemoryStream stream)
         {
-            byte[] buffer = Encoding.Unicode.GetBytes(PlainTextPassword);
-            buffer = GetScrambledPassword(buffer);
+            byte[] buffer = Encoding.Unicode.GetBytes(this.PlainTextPassword);
+            buffer = this.GetScrambledPassword(buffer);
             stream.Write(buffer, 0, buffer.Length);
         }
 
@@ -95,10 +91,10 @@ namespace TDSClient.TDS.Login7.Options
         /// <returns>Returns true if successful.</returns>
         public override bool Unpack(MemoryStream stream)
         {
-            var buffer = new byte[Length * 2];
+            var buffer = new byte[this.Length * 2];
             stream.Read(buffer, 0, buffer.Length);
-            buffer = GetUnscrambledPassword(buffer);
-            PlainTextPassword = UnicodeEncoding.Unicode.GetString(buffer);
+            buffer = this.GetUnscrambledPassword(buffer);
+            this.PlainTextPassword = UnicodeEncoding.Unicode.GetString(buffer);
 
             return true;
         }
