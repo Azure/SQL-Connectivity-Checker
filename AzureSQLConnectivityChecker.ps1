@@ -618,12 +618,6 @@ function TestConnectionToDatabase($Server, $gatewayPort, $Database, $Authenticat
     Write-Host ([string]::Format("Testing connecting to {0} database (please wait):", $Database)) -ForegroundColor Green
     Try {
         $DbConnection = [System.Data.SqlClient.SQLConnection]::new()
-        Write-Host $Database
-        Write-Host $AuthenticationType
-        if ($AuthenticationType -like "*Active Directory*") {
-            Write-Host $AuthenticationLibrary
-        }
-        Write-Host $User
         $DbConnection.ConnectionString = GetConnectionString $Server $gatewayPort $Database $AuthenticationType $User $Password $UserAssignedIdentityClientId
         $DbConnection.Open()
         Write-Host ([string]::Format(" The connection attempt succeeded", $Database))
@@ -1342,7 +1336,7 @@ function LookupDatabaseInSysDatabases($Server, $dbPort, $Database, $User, $Passw
     Try {
         Write-Host ' Checking if' $Database 'exist in sys.databases:' -ForegroundColor White
         $masterDbConnection = [System.Data.SqlClient.SQLConnection]::new()
-        $masterDbConnection.ConnectionString = GetConnectionString $Server $gatewayPort $Database $AuthenticationType $User $Password
+        $masterDbConnection.ConnectionString = GetConnectionString $Server $gatewayPort $Database $AuthenticationType $User $Password $UserAssignedIdentityClientId
         $masterDbConnection.Open()
 
         $masterDbCommand = New-Object System.Data.SQLClient.SQLCommand
