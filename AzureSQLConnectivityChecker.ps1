@@ -785,10 +785,6 @@ function TestConnectionToDatabase($Server, $gatewayPort, $Database, $Authenticat
 }
 
 function GetConnectionString ($Server, $gatewayPort, $Database, $AuthenticationType, $User, $Password, $UserAssignedIdentityClientId) {
-    if (($null -eq $AuthenticationType) -or ('SQL Server Authentication' -eq $AuthenticationType) -or ('' -eq $AuthenticationType)) {
-        return [string]::Format("Server=tcp:{0},{1};Initial Catalog={2};Persist Security Info=False;User ID='{3}';Password='{4}';MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;Application Name=Azure-SQL-Connectivity-Checker;",
-            $Server, $gatewayPort, $Database, $User, $Password)
-    }
     if ('Active Directory Password' -eq $AuthenticationType) { 
         return [string]::Format("Server=tcp:{0},{1};Initial Catalog={2};Persist Security Info=False;User ID='{3}';Password='{4}';MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Application Name=Azure-SQL-Connectivity-Checker;Authentication='Active Directory Password'",
             $Server, $gatewayPort, $Database, $User, $Password)
@@ -811,6 +807,9 @@ function GetConnectionString ($Server, $gatewayPort, $Database, $AuthenticationT
             $Server, $gatewayPort, $Database)
         }
     }
+
+    return [string]::Format("Server=tcp:{0},{1};Initial Catalog={2};Persist Security Info=False;User ID='{3}';Password='{4}';MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;Application Name=Azure-SQL-Connectivity-Checker;",
+            $Server, $gatewayPort, $Database, $User, $Password)
 }
 
 function PrintSupportedCiphers() {
@@ -953,7 +952,7 @@ function RunSqlMIVNetConnectivityTests($resolvedAddress) {
             Write-Host ' -> TCP test succeed' -ForegroundColor Green
             PrintAverageConnectionTime $resolvedAddress 1433
             TrackWarningAnonymously 'SQLMI|PrivateEndpoint|GatewayTestSucceeded'
-            RunConnectionToDatabaseTestsAndAdvancedTests $Server '1433' $Database $User $Password
+            RunConnectionToDatabaseTestsAndAdvancedTests $Server '1433' $Database $AuthenticationType $AuthenticationLibrary $User $Password
             return $true
         }
         else {
@@ -1071,7 +1070,7 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
             TrackWarningAnonymously 'SQLDB|InvalidGatewayIPAddressWarning'
         }
 
-        RunConnectionToDatabaseTestsAndAdvancedTests $Server '1433' $Database $User $Password
+        RunConnectionToDatabaseTestsAndAdvancedTests $Server '1433' $Database $AuthenticationType $AuthenticationLibrary $User $Password
     }
     else {
         if ($hasPrivateLinkAlias) {
@@ -1214,7 +1213,7 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
         }
 
         if ($hasGatewayTestSuccess -eq $true) {
-            RunConnectionToDatabaseTestsAndAdvancedTests $Server '1433' $Database $User $Password
+            RunConnectionToDatabaseTestsAndAdvancedTests $Server '1433' $Database $AuthenticationType $AuthenticationLibrary $User $Password
         }
     }
 }
