@@ -18,14 +18,6 @@ $parameters = @{
     # Supports Single, Elastic Pools and Managed Instance (please provide FQDN, MI public endpoint is supported)
     # Supports Azure Synapse / Azure SQL Data Warehouse (*.sql.azuresynapse.net / *.database.windows.net)
     # Supports Public Cloud (*.database.windows.net), Azure China (*.database.chinacloudapi.cn), Azure Germany (*.database.cloudapi.de) and Azure Government (*.database.usgovcloudapi.net)
-    AuthenticationType = ''
-    # Set the type of authentication you wish to use:
-        # 'SQL Server Authentication' (default),
-        # 'Active Directory Password',
-        # 'Active Directory Integrated',
-        # 'Active Directory Interactive',
-        # 'Active Directory Managed Identity' ('Active Directory MSI')
-    $AuthenticationLibrary = '' # Set the authentication library you wish to use: 'ADAL' or 'MSAL'. Default is 'ADAL'.
     Server = '.database.windows.net' # or any other supported FQDN
     Database = ''  # Set the name of the database you wish to test, 'master' will be used by default if nothing is set
     User = ''  # Set the login username you wish to use, 'AzSQLConnCheckerUser' will be used by default if nothing is set

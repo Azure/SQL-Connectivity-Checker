@@ -19,15 +19,17 @@ using namespace System.Data.SqlClient
 # Supports Single, Elastic Pools and Managed Instance (please provide FQDN, MI public endpoint is supported)
 # Supports Azure Synapse / Azure SQL Data Warehouse (*.sql.azuresynapse.net / *.database.windows.net)
 # Supports Public Cloud (*.database.windows.net), Azure China (*.database.chinacloudapi.cn), Azure Germany (*.database.cloudapi.de) and Azure Government (*.database.usgovcloudapi.net)
-$AuthenticationType = ''
+
 # Set the type of authentication you wish to use:
     # 'SQL Server Authentication' (default),
     # 'Active Directory Password', (supported only with MSAL)
     # 'Active Directory Integrated',
     # 'Active Directory Interactive',
     # 'Active Directory Managed Identity' ('Active Directory MSI') NOTE: Managed Identity authentication works only when your application is running as an Azure resource, not with your personal account
-$AuthenticationLibrary = '' # Set the authentication library you wish to use: 'ADAL' or 'MSAL'. Default is 'ADAL'.
-$Server = '' # or any other supported FQDN
+$AuthenticationType = ''
+# Set the authentication library you wish to use: 'ADAL' or 'MSAL'. Default is 'ADAL'.
+$AuthenticationLibrary = ''
+$Server = '.database.windows.net' # or any other supported FQDN
 $Database = ''  # Set the name of the database you wish to test, 'master' will be used by default if nothing is set
 $User = ''  # Set the login username you wish to use, 'AzSQLConnCheckerUser' will be used by default if nothing is set
 $Password = ''  # Set the login password you wish to use, 'AzSQLConnCheckerPassword' will be used by default if nothing is set
@@ -88,6 +90,7 @@ if ($null -ne $parameters) {
 
 if ($null -eq $AuthenticationType -or '' -eq $AuthenticationType) {
     $AuthenticationType = 'SQL Server Authentication'
+    $AuthenticationLibrary = ''
 }
 
 if ($null -eq $AuthenticationLibrary -or '' -eq $AuthenticationLibrary) {
@@ -1479,19 +1482,19 @@ try {
         Write-Host
         Write-Host 'Parameters' -ForegroundColor Yellow
 
-        if ($AuthenticationType -NotIn "Active Directory Password", "Active Directory Integrated", "Active Directory Interactive", "Active Directory ManagedIdentity", "Active Directory MSI", "SQL Server Authentication") {
+        if ($AuthenticationType -NotIn "Active Directory Password", "Active Directory Integrated", "Active Directory Interactive", "Active Directory Managed Identity", "Active Directory MSI", "SQL Server Authentication") {
             $msg = "Authentication type " + $AuthenticationType + " is not supported, switching to SQL Server Authentication"
             Write-Host $msg -ForegroundColor Green
-            $AuthenticationLibrary = "SQL Server Authentication"
+            $AuthenticationType = "SQL Server Authentication"
         }
 
-        if ($AuthenticationType -in ("Active Directory Password", "Active Directory Interactive", "Active Directory ManagedIdentity", "Active Directory MSI") -and $AuthenticationLibrary -NotIn ("ADAL", "MSAL")) {
+        if ($AuthenticationType -in ("Active Directory Password", "Active Directory Interactive", "Active Directory Managed Identity", "Active Directory MSI") -and $AuthenticationLibrary -NotIn ("ADAL", "MSAL")) {
             $msg = $AuthenticationLibrary + "authentication library is not supported with " + $AuthenticationType + " authentication, switching to MSAL library"
             Write-Host $msg -ForegroundColor Green
             $AuthenticationLibrary = "MSAL"
         }
 
-        if (($AuthenticationType -eq "Active Directory Password" -or $AuthenticationType -eq "Active Directory Interactive" -or $AuthenticationType -eq "Active Directory ManagedIdentity" -or $AuthenticationType -eq "Active Directory MSI") -and $AuthenticationLibrary -eq "ADAL") {
+        if (($AuthenticationType -eq "Active Directory Password" -or $AuthenticationType -eq "Active Directory Interactive" -or $AuthenticationType -eq "Active Directory Managed Identity" -or $AuthenticationType -eq "Active Directory MSI") -and $AuthenticationLibrary -eq "ADAL") {
             $msg = $AuthenticationType + " authentication is not supported with ADAL library, switching to MSAL library"
             Write-Host $msg -ForegroundColor Green
             $AuthenticationLibrary = "MSAL"
