@@ -1,0 +1,6 @@
+D:\ConnectivityChecker\SQL-Connectivity-Checker\TDSClient\TDSClient\obj\x64\Debug\netstandard2.0\TDSClient.csproj.AssemblyReference.cache
+D:\ConnectivityChecker\SQL-Connectivity-Checker\TDSClient\TDSClient\obj\x64\Debug\netstandard2.0\TDSClient.GeneratedMSBuildEditorConfig.editorconfig
+D:\ConnectivityChecker\SQL-Connectivity-Checker\TDSClient\TDSClient\obj\x64\Debug\netstandard2.0\TDSClient.AssemblyInfoInputs.cache
+D:\ConnectivityChecker\SQL-Connectivity-Checker\TDSClient\TDSClient\obj\x64\Debug\netstandard2.0\TDSClient.AssemblyInfo.cs
+D:\ConnectivityChecker\SQL-Connectivity-Checker\TDSClient\TDSClient\obj\x64\Debug\netstandard2.0\TDSClient.csproj.CoreCompileInputs.cache
+D:\ConnectivityChecker\SQL-Connectivity-Checker\TDSClient\TDSClient\obj\x64\Debug\netstandard2.0\TDSClient.sourcelink.json
