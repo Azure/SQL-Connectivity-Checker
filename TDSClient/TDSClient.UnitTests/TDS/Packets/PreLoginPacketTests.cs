@@ -7,7 +7,6 @@
 namespace TDSClient.UnitTests.TDS.Packets
 {
     using System.IO;
-    using System.Xml.Serialization;
     using Microsoft.VisualStudio.TestTools.UnitTesting;
     using Newtonsoft.Json;
     using TDSClient.TDS.PreLogin;

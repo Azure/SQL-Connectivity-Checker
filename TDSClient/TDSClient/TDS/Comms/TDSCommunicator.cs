@@ -46,7 +46,7 @@ namespace TDSClient.TDS.Comms
         /// <summary>
         /// Current TDS Communicator State
         /// </summary>
-        public TDSCommunicatorState CommunicatorState;
+        public TDSCommunicatorState CommunicatorState { get; set; }
 
         /// <summary>
         /// Authentication Type
