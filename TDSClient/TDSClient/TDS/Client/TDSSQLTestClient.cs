@@ -84,7 +84,11 @@ namespace TDSClient.TDS.Client
             EncryptionProtocol = encryptionProtocol;
             ConnectionAttempt = 0;
             AuthenticationType = AuthTypeStringToEnum[authenticationType];
-            AuthLibStringToEnum.TryGetValue(authenticationLibrary, out AuthenticationLibrary);
+
+            if (authenticationLibrary != null)
+            {
+                AuthLibStringToEnum.TryGetValue(authenticationLibrary, out AuthenticationLibrary);
+            }
 
             LoggingUtilities.WriteLog($" Instantiating TDSSQLTestClient with the following parameters:");
             LoggingUtilities.WriteLog($"     Server: {server}.");
@@ -194,7 +198,7 @@ namespace TDSClient.TDS.Client
 
             preLoginDone = true;
             LoggingUtilities.AddEmptyLine();
-            LoggingUtilities.WriteLog($" PreLogin phase took {(int)(DateTime.UtcNow - connectStartTime).TotalMilliseconds} milliseconds.", writeToSummaryLog: true) ;
+            LoggingUtilities.WriteLog($" PreLogin phase took {(int)(DateTime.UtcNow - connectStartTime).TotalMilliseconds} milliseconds.", writeToSummaryLog: true);
 
             return preLoginResponse;
         }
@@ -496,7 +500,7 @@ namespace TDSClient.TDS.Client
         /// <returns></returns>
         private bool IsAADAuthRequired()
         {
-            var aadAuthTypes = new TDSAuthenticationType[] { 
+            var aadAuthTypes = new TDSAuthenticationType[] {
                 TDSAuthenticationType.ADPassword,
                 TDSAuthenticationType.ADIntegrated,
                 TDSAuthenticationType.ADInteractive,
