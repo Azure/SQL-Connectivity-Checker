@@ -6,13 +6,13 @@ namespace TDSClientLiveTest
 {
     class Program
     {
-        public static string Server = "";
-        public static int Port;
+        public static string Server = ".database.windows.net";
+        public static int Port = 1433;
         public static string Username = "";
         public static string Password = "";
         public static string Database = "";
-        public static string AuthenticationType = "";
-        public static string AuthenticationLibrary = "";
+        public static string AuthenticationType = "SQL Server Authentication";
+        public static string AuthenticationLibrary = "MSAL";
 
         static void Main(string[] args)
         {
