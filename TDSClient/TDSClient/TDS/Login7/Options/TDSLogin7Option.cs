@@ -18,28 +18,6 @@ namespace TDSClient.TDS.Login7.Options
 #pragma warning restore CS0659 // Type overrides Object.Equals(object o) but does not override Object.GetHashCode()
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="TDSLogin7Option" /> class.
-        /// </summary>
-        public TDSLogin7Option()
-        {
-        }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="TDSLogin7Option" /> class.
-        /// </summary>
-        /// <param name="name">Option name</param>
-        /// <param name="position">Option position within the packet</param>
-        /// <param name="length">Option data length</param>
-        /// <param name="trueLength">Option data length (in bytes)</param>
-        public TDSLogin7Option(string name, ushort position, ushort length, ushort trueLength)
-        {
-            this.Name = name;
-            this.Position = position;
-            this.Length = length;
-            this.TrueLength = trueLength;
-        }
-
-        /// <summary>
         /// Gets or sets option name
         /// </summary>
         public string Name { get; set; }
@@ -60,13 +38,35 @@ namespace TDSClient.TDS.Login7.Options
         public ushort TrueLength { get; set; }
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="TDSLogin7Option" /> class.
+        /// </summary>
+        public TDSLogin7Option()
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TDSLogin7Option" /> class.
+        /// </summary>
+        /// <param name="name">Option name</param>
+        /// <param name="position">Option position within the packet</param>
+        /// <param name="length">Option data length</param>
+        /// <param name="trueLength">Option data length (in bytes)</param>
+        public TDSLogin7Option(string name, ushort position, ushort length, ushort trueLength)
+        {
+            Name = name;
+            Position = position;
+            Length = length;
+            TrueLength = trueLength;
+        }
+
+        /// <summary>
         /// Determines whether the specified object is equal to the current object.
         /// </summary>
         /// <param name="obj">The object to compare with the current object.</param>
         /// <returns>true if the specified object is equal to the current object; otherwise, false</returns>
         public override bool Equals(object obj)
         {
-            return this.Equals(obj as TDSLogin7Option);
+            return Equals(obj as TDSLogin7Option);
         }
 
         /// <summary>
@@ -76,11 +76,15 @@ namespace TDSClient.TDS.Login7.Options
         /// <returns>true if the specified object is equal to the current object; otherwise, false</returns>
         public bool Equals(TDSLogin7Option other)
         {
-            return other != null &&
-                   this.Name == other.Name &&
-                   this.Position == other.Position &&
-                   this.Length == other.Length &&
-                   this.TrueLength == other.TrueLength;
+            if (other == null)
+            {
+                return false;
+            }
+
+            return Name == other.Name &&
+               Position == other.Position &&
+               Length == other.Length &&
+               TrueLength == other.TrueLength;
         }
 
         /// <summary>

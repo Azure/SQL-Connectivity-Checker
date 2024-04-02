@@ -8,6 +8,7 @@ namespace TDSClient.TDS.Tokens
 {
     using System;
     using System.IO;
+    using TDSClient.TDS.Tokens.FedAuthInfoToken;
     using TDSClient.TDS.Utilities;
 
     /// <summary>
@@ -51,6 +52,30 @@ namespace TDSClient.TDS.Tokens
                         return token;
                     }
 
+                case TDSTokenType.FedAuthInfo:
+                    {
+                        var token = new TDSFedAuthInfoToken();
+                        token.Unpack(stream);
+
+                        return token;
+                    }
+
+                case TDSTokenType.LoginAck:
+                    {
+                        var token = new TDSLoginAckToken();
+                        token.Unpack(stream);
+
+                        return token;
+                    }
+
+                case TDSTokenType.Done:
+                    {
+                        var token = new TDSDoneToken();
+                        token.Unpack(stream);
+
+                        return token;
+                    }
+
                 default:
                     {
                         IgnoreToken(tokenType, stream);
@@ -89,7 +114,7 @@ namespace TDSClient.TDS.Tokens
                             throw new NotSupportedException();
                         }
 
-                        ushort length = LittleEndianUtilities.ReadUShort(stream);
+                        ushort length = tokenType == TDSTokenType.FeatureExtAck ? (ushort)6 : LittleEndianUtilities.ReadUShort(stream);
                         for (int i = 0; i < length; i++)
                         {
                             stream.ReadByte();

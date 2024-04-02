@@ -1,4 +1,4 @@
-﻿#Run locally parameters
+﻿﻿#Run locally parameters
 $LocalPath = [System.IO.Path]::GetDirectoryName($MyInvocation.MyCommand.Definition)
 $Path = Join-Path $LocalPath 'AzureSQLConnectivityChecker.ps1'
 
