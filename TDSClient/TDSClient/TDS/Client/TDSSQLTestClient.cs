@@ -64,11 +64,11 @@ namespace TDSClient.TDS.Client
             string server,
             int port,
             string authenticationType,
-            string authenticationLibrary,
             string userID,
             string password,
             string database,
             SslProtocols encryptionProtocol = SslProtocols.Tls12,
+            string authenticationLibrary = null,
             string identityClientId = null)
         {
             ValidateInputParameters(server, userID, password, database, authenticationType);
@@ -84,7 +84,7 @@ namespace TDSClient.TDS.Client
             EncryptionProtocol = encryptionProtocol;
             ConnectionAttempt = 0;
             AuthenticationType = AuthTypeStringToEnum[authenticationType];
-            AuthenticationLibrary = AuthLibStringToEnum[authenticationLibrary];
+            AuthLibStringToEnum.TryGetValue(authenticationLibrary, out AuthenticationLibrary);
 
             LoggingUtilities.WriteLog($" Instantiating TDSSQLTestClient with the following parameters:");
             LoggingUtilities.WriteLog($"     Server: {server}.");
@@ -135,6 +135,7 @@ namespace TDSClient.TDS.Client
                 do
                 {
                     preLoginDone = false;
+                    Reconnect = false;
                     var preLoginResponse = PerformPreLogin(ref preLoginDone);
                     await PerformLogin(preLoginResponse);
 

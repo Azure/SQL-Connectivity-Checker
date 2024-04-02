@@ -360,8 +360,6 @@ namespace TDSClient.TDS.Login7
             return (ushort)(FixedLength + notFixed);
         }
 
-        
-
         /// <summary>
         /// Determines whether the specified object is equal to the current object.
         /// </summary>
