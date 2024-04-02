@@ -34,31 +34,31 @@ namespace TDSClient.TDS.Client
         /// <param name="subBuildNumber">SubBuild number</param>
         public TDSClientVersion(byte major, byte minor, ushort buildNumber, ushort subBuildNumber)
         {
-            this.Major = major;
-            this.Minor = minor;
-            this.BuildNumber = buildNumber;
-            this.SubBuildNumber = subBuildNumber;
+            Major = major;
+            Minor = minor;
+            BuildNumber = buildNumber;
+            SubBuildNumber = subBuildNumber;
         }
 
         /// <summary>
         /// Gets or sets the Major version
         /// </summary>
-        public byte Major { get; set; }
+        private byte Major;
 
         /// <summary>
         /// Gets or sets the Minor version
         /// </summary>
-        public byte Minor { get; set; }
+        private byte Minor;
 
         /// <summary>
         /// Gets or sets the Build number
         /// </summary>
-        public ushort BuildNumber { get; set; }
+        private ushort BuildNumber;
 
         /// <summary>
         /// Gets or sets the SubBuild number
         /// </summary>
-        public ushort SubBuildNumber { get; set; }
+        private ushort SubBuildNumber;
 
         /// <summary>
         /// Used to pack IPackageable to a stream.
@@ -66,10 +66,10 @@ namespace TDSClient.TDS.Client
         /// <param name="stream">MemoryStream in which IPackageable is packet into.</param>
         public void Pack(MemoryStream stream)
         {
-            BigEndianUtilities.WriteUShort(stream, this.BuildNumber);
-            stream.WriteByte(this.Minor);
-            stream.WriteByte(this.Major);
-            BigEndianUtilities.WriteUShort(stream, this.SubBuildNumber);
+            BigEndianUtilities.WriteUShort(stream, BuildNumber);
+            stream.WriteByte(Minor);
+            stream.WriteByte(Major);
+            BigEndianUtilities.WriteUShort(stream, SubBuildNumber);
         }
 
         /// <summary>
@@ -79,10 +79,10 @@ namespace TDSClient.TDS.Client
         /// <returns>Returns true if successful.</returns>
         public bool Unpack(MemoryStream stream)
         {
-            this.BuildNumber = BigEndianUtilities.ReadUShort(stream);
-            this.Minor = Convert.ToByte(stream.ReadByte());
-            this.Major = Convert.ToByte(stream.ReadByte());
-            this.SubBuildNumber = BigEndianUtilities.ReadUShort(stream);
+            BuildNumber = BigEndianUtilities.ReadUShort(stream);
+            Minor = Convert.ToByte(stream.ReadByte());
+            Major = Convert.ToByte(stream.ReadByte());
+            SubBuildNumber = BigEndianUtilities.ReadUShort(stream);
            
             return true;
         }
@@ -94,7 +94,7 @@ namespace TDSClient.TDS.Client
         /// <returns>true if the specified object is equal to the current object; otherwise, false</returns>
         public override bool Equals(object obj)
         {
-            return this.Equals(obj as TDSClientVersion);
+            return Equals(obj as TDSClientVersion);
         }
 
         /// <summary>
@@ -105,10 +105,10 @@ namespace TDSClient.TDS.Client
         public bool Equals(TDSClientVersion other)
         {
             return other != null &&
-                   this.Major == other.Major &&
-                   this.Minor == other.Minor &&
-                   this.BuildNumber == other.BuildNumber &&
-                   this.SubBuildNumber == other.SubBuildNumber;
+                   Major == other.Major &&
+                   Minor == other.Minor &&
+                   BuildNumber == other.BuildNumber &&
+                   SubBuildNumber == other.SubBuildNumber;
         }
     }
 }
