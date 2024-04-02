@@ -134,6 +134,7 @@ namespace TDSClient.TDS.Client
             {
                 do
                 {
+                    preLoginDone = false;
                     var preLoginResponse = PerformPreLogin(ref preLoginDone);
                     await PerformLogin(preLoginResponse);
 
