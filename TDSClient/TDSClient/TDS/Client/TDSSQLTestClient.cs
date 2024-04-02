@@ -422,6 +422,7 @@ namespace TDSClient.TDS.Client
                 Server = envChangeToken.Values["AlternateServer"];
                 Port = int.Parse(envChangeToken.Values["ProtocolProperty"]);
                 Reconnect = true;
+                TdsCommunicator.CommunicatorState = TDSCommunicatorState.Initial;
                 LoggingUtilities.WriteLog($"     Redirect to {Server}:{Port}", writeToSummaryLog: true, writeToVerboseLog: false);
             }
         }
