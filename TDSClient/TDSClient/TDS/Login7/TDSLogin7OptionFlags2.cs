@@ -8,7 +8,6 @@ namespace TDSClient.TDS.Login7
 {
     using System;
     using System.IO;
-    
     using TDSClient.TDS.Interfaces;
 
     /// <summary>
@@ -124,32 +123,13 @@ namespace TDSClient.TDS.Login7
         public TDSLogin7OptionFlags2IntSecurity IntSecurity { get; set; }
 
         /// <summary>
-        /// Default construgtor
-        /// </summary>
-        public TDSLogin7OptionFlags2()
-        {
-        }
-
-        /// <summary>
-        /// Initialization constructor
-        /// </summary>
-        public TDSLogin7OptionFlags2(byte flags)
-        {
-            Language = (TDSLogin7OptionFlags2Language)(flags & 0x1);
-            ODBC = (TDSLogin7OptionFlags2ODBC)((flags >> 1) & 0x1);
-            // Skipping deprecated fTranBoundary and fCacheConnect
-            UserType = (TDSLogin7OptionFlags2UserType)((flags >> 4) & 0x7);
-            IntSecurity = (TDSLogin7OptionFlags2IntSecurity)((flags >> 7) & 0x1);
-        }
-
-        /// <summary>
         /// Determines whether the specified object is equal to the current object.
         /// </summary>
         /// <param name="obj">The object to compare with the current object.</param>
         /// <returns>true if the specified object is equal to the current object; otherwise, false</returns>
         public override bool Equals(object obj)
         {
-            return Equals(obj as TDSLogin7OptionFlags2);
+            return this.Equals(obj as TDSLogin7OptionFlags2);
         }
 
         /// <summary>
@@ -160,10 +140,10 @@ namespace TDSClient.TDS.Login7
         public bool Equals(TDSLogin7OptionFlags2 other)
         {
             return other != null &&
-                   Language == other.Language &&
-                   ODBC == other.ODBC &&
-                   UserType == other.UserType &&
-                   IntSecurity == other.IntSecurity;
+                   this.Language == other.Language &&
+                   this.ODBC == other.ODBC &&
+                   this.UserType == other.UserType &&
+                   this.IntSecurity == other.IntSecurity;
         }
 
         /// <summary>
@@ -172,10 +152,10 @@ namespace TDSClient.TDS.Login7
         /// <param name="stream">MemoryStream in which IPackageable is packet into.</param>
         public void Pack(MemoryStream stream)
         {
-            byte packedByte = (byte)((byte)Language
-                | ((byte)ODBC << 1)
-                | ((byte)UserType << 4)
-                | ((byte)IntSecurity << 7));
+            byte packedByte = (byte)((byte)this.Language
+                | ((byte)this.ODBC << 1)
+                | ((byte)this.UserType << 4)
+                | ((byte)this.IntSecurity << 7));
 
             stream.WriteByte(packedByte);
         }
@@ -188,10 +168,10 @@ namespace TDSClient.TDS.Login7
         public bool Unpack(MemoryStream stream)
         {
             byte flagByte = Convert.ToByte(stream.ReadByte());
-            Language = (TDSLogin7OptionFlags2Language)(flagByte & 0x01);
-            ODBC = (TDSLogin7OptionFlags2ODBC)((flagByte >> 1) & 0x01);
-            UserType = (TDSLogin7OptionFlags2UserType)((flagByte >> 4) & 0x07);
-            IntSecurity = (TDSLogin7OptionFlags2IntSecurity)((flagByte >> 7) & 0x01);
+            this.Language = (TDSLogin7OptionFlags2Language)(flagByte & 0x01);
+            this.ODBC = (TDSLogin7OptionFlags2ODBC)((flagByte >> 1) & 0x01);
+            this.UserType = (TDSLogin7OptionFlags2UserType)((flagByte >> 4) & 0x07);
+            this.IntSecurity = (TDSLogin7OptionFlags2IntSecurity)((flagByte >> 7) & 0x01);
             
             return true;
         }

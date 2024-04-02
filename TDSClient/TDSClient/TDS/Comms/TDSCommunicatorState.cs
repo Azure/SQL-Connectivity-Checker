@@ -22,14 +22,9 @@ namespace TDSClient.TDS.Comms
         SentInitialPreLogin,
 
         /// <summary>
-        /// SentLogin7RecordWithCompleteAuthenticationToken Communicator State
+        /// SentLogin7RecordWithCompleteAuthToken Communicator State
         /// </summary>
-        SentLogin7RecordWithCompleteAuthenticationToken,
-
-        /// <summary>
-        /// SentLogin7RecordWithFederatedAuthenticationInformationRequest Communicator State
-        /// </summary>
-        SentLogin7RecordWithFederatedAuthenticationInformationRequest,
+        SentLogin7RecordWithCompleteAuthToken,
 
         /// <summary>
         /// LoggedIn Communicator State

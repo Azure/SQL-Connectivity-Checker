@@ -43,7 +43,7 @@ namespace TDSClient.TDS.Login7.Options
         /// <param name="text">Text data</param>
         public TDSLogin7TextOption(string name, ushort position, ushort length, string text) : base(name, position, length, (ushort)(length * 2))
         {
-            Text = text;
+            this.Text = text;
         }
 
         /// <summary>
@@ -58,7 +58,7 @@ namespace TDSClient.TDS.Login7.Options
         /// <returns>true if the specified object is equal to the current object; otherwise, false</returns>
         public override bool Equals(object obj)
         {
-            return Equals(obj as TDSLogin7TextOption);
+            return this.Equals(obj as TDSLogin7TextOption);
         }
 
         /// <summary>
@@ -68,13 +68,9 @@ namespace TDSClient.TDS.Login7.Options
         /// <returns>true if the specified object is equal to the current object; otherwise, false</returns>
         public bool Equals(TDSLogin7TextOption other)
         {
-            if (other == null)
-            {
-                return false;
-            }
-
-            return base.Equals(other) &&
-                Text == other.Text;
+            return other != null &&
+                   base.Equals(other) &&
+                   this.Text == other.Text;
         }
 
         /// <summary>
@@ -83,7 +79,7 @@ namespace TDSClient.TDS.Login7.Options
         /// <param name="stream">MemoryStream in which IPackageable is packet into.</param>
         public override void Pack(MemoryStream stream)
         {
-            byte[] buffer = Encoding.Unicode.GetBytes(Text);
+            byte[] buffer = Encoding.Unicode.GetBytes(this.Text);
             stream.Write(buffer, 0, buffer.Length);
         }
 
@@ -94,9 +90,9 @@ namespace TDSClient.TDS.Login7.Options
         /// <returns>Returns true if successful.</returns>
         public override bool Unpack(MemoryStream stream)
         {
-            var buffer = new byte[Length * 2];
+            var buffer = new byte[this.Length * 2];
             stream.Read(buffer, 0, buffer.Length);
-            Text = UnicodeEncoding.Unicode.GetString(buffer);
+            this.Text = UnicodeEncoding.Unicode.GetString(buffer);
 
             return true;
         }

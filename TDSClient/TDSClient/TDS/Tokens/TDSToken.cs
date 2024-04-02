@@ -7,7 +7,6 @@
 namespace TDSClient.TDS.Tokens
 {
     using System.IO;
-    
     using TDSClient.TDS.Interfaces;
 
     /// <summary>
@@ -42,10 +41,5 @@ namespace TDSClient.TDS.Tokens
         /// <param name="obj">The object to compare with the current object.</param>
         /// <returns>true if the specified object is equal to the current object; otherwise, false</returns>
         public override abstract bool Equals(object obj);
-
-        /// <summary>
-        /// Processes a token.
-        /// </summary>
-        public abstract void ProcessToken();
     }
 }

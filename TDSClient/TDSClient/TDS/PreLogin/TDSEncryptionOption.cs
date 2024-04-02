@@ -46,22 +46,22 @@ namespace TDSClient.TDS.Header
         /// <summary>
         /// Encryption is available but off.
         /// </summary>
-        EncryptOff = 0x00,
+        EncryptOff,
         
         /// <summary>
         /// Encryption is available and on.
         /// </summary>
-        EncryptOn = 0x01,
+        EncryptOn,
 
         /// <summary>
         /// Encryption is not available.
         /// </summary>
-        EncryptNotSup = 0x02,
+        EncryptNotSup,
 
         /// <summary>
         /// Encryption is required.
         /// </summary>
-        EncryptReq = 0x03,
+        EncryptReq,
 
         /// <summary>
         /// Certificate-based authentication is requested by the client, encryption is off.

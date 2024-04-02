@@ -8,7 +8,6 @@ namespace TDSClient.TDS.PreLogin
 {
     using System;
     using System.IO;
-    
     using TDSClient.TDS.Interfaces;
     using TDSClient.TDS.Utilities;
 
@@ -32,18 +31,18 @@ namespace TDSClient.TDS.PreLogin
         /// <param name="type">PreLogin Option Token Type</param>
         public TDSPreLoginOptionToken(TDSPreLoginOptionTokenType type)
         {
-            Type = type;
-            switch (Type)
+            this.Type = type;
+            switch (this.Type)
             {
                 case TDSPreLoginOptionTokenType.Encryption:
                     {
-                        Length = 1;
+                        this.Length = 1;
                         break;
                     }
 
                 case TDSPreLoginOptionTokenType.FedAuthRequired:
                     {
-                        Length = 1;
+                        this.Length = 1;
                         break;
                     }
 
@@ -54,37 +53,37 @@ namespace TDSClient.TDS.PreLogin
 
                 case TDSPreLoginOptionTokenType.MARS:
                     {
-                        Length = 1;
+                        this.Length = 1;
                         break;
                     }
 
                 case TDSPreLoginOptionTokenType.NonceOpt:
                     {
-                        Length = 32;
+                        this.Length = 32;
                         break;
                     }
 
                 case TDSPreLoginOptionTokenType.Terminator:
                     {
-                        Length = 0;
+                        this.Length = 0;
                         break;
                     }
 
                 case TDSPreLoginOptionTokenType.ThreadID:
                     {
-                        Length = 4;
+                        this.Length = 4;
                         break;
                     }
 
                 case TDSPreLoginOptionTokenType.TraceID:
                     {
-                        Length = 36;
+                        this.Length = 36;
                         break;
                     }
 
                 case TDSPreLoginOptionTokenType.Version:
                     {
-                        Length = 6;
+                        this.Length = 6;
                         break;
                     }
             }
@@ -112,7 +111,7 @@ namespace TDSClient.TDS.PreLogin
         /// <returns>true if the specified object is equal to the current object; otherwise, false</returns>
         public override bool Equals(object obj)
         {
-            return Equals(obj as TDSPreLoginOptionToken);
+            return this.Equals(obj as TDSPreLoginOptionToken);
         }
 
         /// <summary>
@@ -123,9 +122,9 @@ namespace TDSClient.TDS.PreLogin
         public bool Equals(TDSPreLoginOptionToken other)
         {
             return other != null &&
-                   Type == other.Type &&
-                   Offset == other.Offset &&
-                   Length == other.Length;
+                   this.Type == other.Type &&
+                   this.Offset == other.Offset &&
+                   this.Length == other.Length;
         }
 
         /// <summary>
@@ -134,11 +133,11 @@ namespace TDSClient.TDS.PreLogin
         /// <param name="stream">MemoryStream in which IPackageable is packet into.</param>
         public void Pack(MemoryStream stream)
         {
-            stream.WriteByte((byte)Type);
-            if (Type != TDSPreLoginOptionTokenType.Terminator)
+            stream.WriteByte((byte)this.Type);
+            if (this.Type != TDSPreLoginOptionTokenType.Terminator)
             {
-                BigEndianUtilities.WriteUShort(stream, Offset);
-                BigEndianUtilities.WriteUShort(stream, Length);
+                BigEndianUtilities.WriteUShort(stream, this.Offset);
+                BigEndianUtilities.WriteUShort(stream, this.Length);
             }
         }
 
@@ -149,12 +148,12 @@ namespace TDSClient.TDS.PreLogin
         /// <returns>Returns true if successful.</returns>
         public bool Unpack(MemoryStream stream)
         {
-            Type = (TDSPreLoginOptionTokenType)stream.ReadByte();
+            this.Type = (TDSPreLoginOptionTokenType)stream.ReadByte();
 
-            if (Type != TDSPreLoginOptionTokenType.Terminator)
+            if (this.Type != TDSPreLoginOptionTokenType.Terminator)
             {
-                Offset = BigEndianUtilities.ReadUShort(stream);
-                Length = BigEndianUtilities.ReadUShort(stream);
+                this.Offset = BigEndianUtilities.ReadUShort(stream);
+                this.Length = BigEndianUtilities.ReadUShort(stream);
             }
 
             return true;

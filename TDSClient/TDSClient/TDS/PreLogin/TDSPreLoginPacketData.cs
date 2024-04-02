@@ -8,9 +8,9 @@ namespace TDSClient.TDS.PreLogin
 {
     using System;
     using System.Collections.Generic;
+    using System.ComponentModel;
     using System.IO;
     using System.Linq;
-    
     using TDSClient.TDS.Client;
     using TDSClient.TDS.Header;
     using TDSClient.TDS.Interfaces;
@@ -28,7 +28,7 @@ namespace TDSClient.TDS.PreLogin
         /// </summary>
         public TDSPreLoginPacketData()
         {
-            Options = new List<TDSPreLoginOptionToken>();
+            this.Options = new List<TDSPreLoginOptionToken>();
         }
 
         /// <summary>
@@ -42,26 +42,19 @@ namespace TDSClient.TDS.PreLogin
                 throw new ArgumentNullException();
             }
 
-            Options = new List<TDSPreLoginOptionToken>();
-            AddOption(TDSPreLoginOptionTokenType.Version, clientVersion);
-            AddOption(TDSPreLoginOptionTokenType.Encryption,
-                                    TDSEncryptionOption.EncryptOff);
-
-            AddOption(TDSPreLoginOptionTokenType.TraceID,
-                      new TDSClientTraceID(Guid.NewGuid().ToByteArray(),
-                                           Guid.NewGuid().ToByteArray(),
-                                           0));
+            this.Options = new List<TDSPreLoginOptionToken>();
+            this.AddOption(TDSPreLoginOptionTokenType.Version, clientVersion);
         }
-
-        /// <summary>
-        /// Gets or sets TDS Client Version
-        /// </summary>
-        public TDSClientVersion ClientVersion { get; set; }
 
         /// <summary>
         /// Gets or sets TDS PreLogin Options
         /// </summary>
         public List<TDSPreLoginOptionToken> Options { get; set; }
+
+        /// <summary>
+        /// Gets or sets TDS Client Version
+        /// </summary>
+        public TDSClientVersion ClientVersion { get; set; }
 
         /// <summary>
         /// Gets or sets TDS Encryption Option
@@ -86,7 +79,7 @@ namespace TDSClient.TDS.PreLogin
         /// <summary>
         /// Gets or sets a value indicating whether Federated Authentication is required
         /// </summary>
-        public TdsPreLoginFedAuthRequiredOption FedAuthRequired { get; set; }
+        public bool FedAuthRequired { get; set; }
 
         /// <summary>
         /// Gets or sets Nonce
@@ -110,7 +103,7 @@ namespace TDSClient.TDS.PreLogin
         /// <param name="data">Option data</param>
         public void AddOption(TDSPreLoginOptionTokenType type, object data)
         {
-            if (Terminated)
+            if (this.Terminated)
             {
                 throw new InvalidOperationException();
             }
@@ -119,9 +112,10 @@ namespace TDSClient.TDS.PreLogin
             {
                 case TDSPreLoginOptionTokenType.Version:
                     {
-                        if (data is TDSClientVersion version && ClientVersion == null)
+                        if (data is TDSClientVersion && this.ClientVersion == null)
                         {
-                            ClientVersion = version;
+                            this.ClientVersion = (TDSClientVersion)data;
+                            //LoggingUtilities.WriteLog($"    Adding PreLogin option {type}.");
                         }
                         else
                         {
@@ -133,11 +127,11 @@ namespace TDSClient.TDS.PreLogin
 
                 case TDSPreLoginOptionTokenType.Encryption:
                     {
-                        if (data is TDSEncryptionOption option)
+                        if (data is TDSEncryptionOption)
                         {
-                            Encryption = option;
+                            this.Encryption = (TDSEncryptionOption)data;
 
-                            LoggingUtilities.WriteLog($"  Adding PreLogin option {type} [{Encryption}].");
+                            LoggingUtilities.WriteLog($"  Adding PreLogin option {type} [{this.Encryption}].");
                         }
                         else
                         {
@@ -149,11 +143,11 @@ namespace TDSClient.TDS.PreLogin
 
                 case TDSPreLoginOptionTokenType.FedAuthRequired:
                     {
-                        if (data is TdsPreLoginFedAuthRequiredOption option)
+                        if (data is bool)
                         {
-                            FedAuthRequired = option;
+                            this.FedAuthRequired = (bool)data;
 
-                            LoggingUtilities.WriteLog($"  Adding PreLogin option {type} [{FedAuthRequired}].");
+                            LoggingUtilities.WriteLog($"  Adding PreLogin option {type} [{(bool)data}].");
                         }
                         else
                         {
@@ -165,11 +159,11 @@ namespace TDSClient.TDS.PreLogin
 
                 case TDSPreLoginOptionTokenType.MARS:
                     {
-                        if (data is bool boolean)
+                        if (data is bool)
                         {
-                            MARS = boolean;
+                            this.MARS = (bool)data;
 
-                            LoggingUtilities.WriteLog($"  Adding PreLogin option {type} [{boolean}].");
+                            LoggingUtilities.WriteLog($"  Adding PreLogin option {type} [{(bool)data}].");
                         }
                         else
                         {
@@ -181,11 +175,11 @@ namespace TDSClient.TDS.PreLogin
 
                 case TDSPreLoginOptionTokenType.ThreadID:
                     {
-                        if (data is uint @int)
+                        if (data is uint)
                         {
-                            ThreadID = @int;
+                            this.ThreadID = (uint)data;
 
-                            LoggingUtilities.WriteLog($"  Adding PreLogin option {type} [{ThreadID}].");
+                            LoggingUtilities.WriteLog($"  Adding PreLogin option {type} [{this.ThreadID}].");
                         }
                         else
                         {
@@ -197,14 +191,14 @@ namespace TDSClient.TDS.PreLogin
 
                 case TDSPreLoginOptionTokenType.TraceID:
                     {
-                        if (data is TDSClientTraceID iD)
+                        if (data is TDSClientTraceID)
                         {
-                            TraceID = iD;
+                            this.TraceID = (TDSClientTraceID)data;
 
                             LoggingUtilities.WriteLog($"  Adding PreLogin option {type}");
-                            LoggingUtilities.WriteLog($"   ConnectionID: {new Guid(TraceID.TraceID).ToString().ToUpper()}", writeToSummaryLog: true);
-                            LoggingUtilities.WriteLog($"   ActivityID: {new Guid(TraceID.ActivityID).ToString().ToUpper()}");
-                            LoggingUtilities.WriteLog($"   ActivitySequence: {TraceID.ActivitySequence}");
+                            LoggingUtilities.WriteLog($"   ConnectionID: {new Guid(this.TraceID.TraceID).ToString().ToUpper()}", writeToSummaryLog: true);
+                            LoggingUtilities.WriteLog($"   ActivityID: {new Guid(this.TraceID.ActivityID).ToString().ToUpper()}");
+                            LoggingUtilities.WriteLog($"   ActivitySequence: {this.TraceID.ActivitySequence}");
                         }
                         else
                         {
@@ -216,9 +210,9 @@ namespace TDSClient.TDS.PreLogin
 
                 case TDSPreLoginOptionTokenType.NonceOpt:
                     {
-                        if (data is byte[] v)
+                        if (data is byte[])
                         {
-                            Nonce = v;
+                            this.Nonce = (byte[])data;
 
                             LoggingUtilities.WriteLog($"  Adding PreLogin option {type}.");
                         }
@@ -236,7 +230,7 @@ namespace TDSClient.TDS.PreLogin
                     }
             }
 
-            Options.Add(new TDSPreLoginOptionToken(type));
+            this.Options.Add(new TDSPreLoginOptionToken(type));
         }
 
         /// <summary>
@@ -244,8 +238,8 @@ namespace TDSClient.TDS.PreLogin
         /// </summary>
         public void Terminate()
         {
-            Terminated = true;
-            Options.Add(new TDSPreLoginOptionToken(TDSPreLoginOptionTokenType.Terminator));
+            this.Terminated = true;
+            this.Options.Add(new TDSPreLoginOptionToken(TDSPreLoginOptionTokenType.Terminator));
 
             LoggingUtilities.WriteLog($"  Adding PreLogin message terminator.");
         }
@@ -256,41 +250,49 @@ namespace TDSClient.TDS.PreLogin
         /// <param name="stream">MemoryStream in which IPackageable is packet into.</param>
         public void Pack(MemoryStream stream)
         {
-            if (Options.Count == 0 || Options[0].Type != TDSPreLoginOptionTokenType.Version || Options[Options.Count - 1].Type != TDSPreLoginOptionTokenType.Terminator || !Terminated)
+            if (this.Options.Count == 0 || this.Options[0].Type != TDSPreLoginOptionTokenType.Version || this.Options[this.Options.Count - 1].Type != TDSPreLoginOptionTokenType.Terminator || !this.Terminated)
             {
                 throw new InvalidOperationException();
             }
 
-            var offset = (ushort)(((Options.Count - 1) * ((2 * sizeof(ushort)) + sizeof(byte))) + sizeof(byte));
+            var offset = (ushort)(((this.Options.Count - 1) * ((2 * sizeof(ushort)) + sizeof(byte))) + sizeof(byte));
 
-            foreach (var option in Options)
+            foreach (var option in this.Options)
             {
                 option.Offset = offset;
                 offset += option.Length;
                 option.Pack(stream);
             }
 
-            foreach (var option in Options)
+            foreach (var option in this.Options)
             {
                 switch (option.Type)
                 {
                     case TDSPreLoginOptionTokenType.Encryption:
                         {
-                            stream.WriteByte((byte)Encryption);
+                            stream.WriteByte((byte)this.Encryption);
                             break;
                         }
 
                     case TDSPreLoginOptionTokenType.FedAuthRequired:
                         {
-                            stream.WriteByte((byte)FedAuthRequired);
+                            if (this.FedAuthRequired)
+                            {
+                                stream.WriteByte(0x01);
+                            }
+                            else
+                            {
+                                stream.WriteByte(0x00);
+                            }
+
                             break;
                         }
 
                     case TDSPreLoginOptionTokenType.InstOpt:
                         {
-                            if (Instance != null && Instance.Length != 0)
+                            if (this.Instance != null && this.Instance.Length != 0)
                             {
-                                stream.Write(Instance, 0, Instance.Length);
+                                stream.Write(this.Instance, 0, this.Instance.Length);
                             }
                             else
                             {
@@ -302,31 +304,39 @@ namespace TDSClient.TDS.PreLogin
 
                     case TDSPreLoginOptionTokenType.MARS:
                         {
-                            stream.WriteByte(MARS ? (byte)0x01 : (byte)0x00);
+                            if (this.MARS)
+                            {
+                                stream.WriteByte(0x01);
+                            }
+                            else
+                            {
+                                stream.WriteByte(0x00);
+                            }
+
                             break;
                         }
 
                     case TDSPreLoginOptionTokenType.NonceOpt:
                         {
-                            BigEndianUtilities.WriteByteArray(stream, Nonce);
+                            BigEndianUtilities.WriteByteArray(stream, this.Nonce);
                             break;
                         }
 
                     case TDSPreLoginOptionTokenType.ThreadID:
                         {
-                            BigEndianUtilities.WriteUInt(stream, ThreadID);
+                            BigEndianUtilities.WriteUInt(stream, this.ThreadID);
                             break;
                         }
 
                     case TDSPreLoginOptionTokenType.TraceID:
                         {
-                            TraceID.Pack(stream);
+                            this.TraceID.Pack(stream);
                             break;
                         }
 
                     case TDSPreLoginOptionTokenType.Version:
                         {
-                            ClientVersion.Pack(stream);
+                            this.ClientVersion.Pack(stream);
                             break;
                         }
                 }
@@ -346,12 +356,12 @@ namespace TDSClient.TDS.PreLogin
                 {
                     option = new TDSPreLoginOptionToken();
                     option.Unpack(stream);
-                    Options.Add(option);
+                    this.Options.Add(option);
                 }
                 while (option.Type != TDSPreLoginOptionTokenType.Terminator);
             }
 
-            foreach (var option in Options)
+            foreach (var option in this.Options)
             {
                 if (option.Length == 0)
                 {
@@ -362,52 +372,53 @@ namespace TDSClient.TDS.PreLogin
                 {
                     case TDSPreLoginOptionTokenType.Encryption:
                         {
-                            Encryption = (TDSEncryptionOption)stream.ReadByte();
+                            this.Encryption = (TDSEncryptionOption)stream.ReadByte();
                             break;
                         }
 
                     case TDSPreLoginOptionTokenType.FedAuthRequired:
                         {
-                            FedAuthRequired = (TdsPreLoginFedAuthRequiredOption)stream.ReadByte();
+                            this.FedAuthRequired = stream.ReadByte() == 1;
                             break;
                         }
 
                     case TDSPreLoginOptionTokenType.InstOpt:
                         {
-                            Instance = new byte[option.Length];
-                            stream.Read(Instance, 0, option.Length);
+                            this.Instance = new byte[option.Length];
+                            stream.Read(this.Instance, 0, option.Length);
+
                             break;
                         }
 
                     case TDSPreLoginOptionTokenType.MARS:
                         {
-                            MARS = stream.ReadByte() == 1;
+                            this.MARS = stream.ReadByte() == 1;
                             break;
                         }
 
                     case TDSPreLoginOptionTokenType.NonceOpt:
                         {
-                            Nonce = BigEndianUtilities.ReadByteArray(stream, 32);
+                            this.Nonce = BigEndianUtilities.ReadByteArray(stream, 32);
                             break;
                         }
 
                     case TDSPreLoginOptionTokenType.ThreadID:
                         {
-                            ThreadID = BigEndianUtilities.ReadUInt(stream);
+                            this.ThreadID = BigEndianUtilities.ReadUInt(stream);
                             break;
                         }
 
                     case TDSPreLoginOptionTokenType.TraceID:
                         {
-                            TraceID = new TDSClientTraceID();
-                            TraceID.Unpack(stream);
+                            this.TraceID = new TDSClientTraceID();
+                            this.TraceID.Unpack(stream);
                             break;
                         }
 
                     case TDSPreLoginOptionTokenType.Version:
                         {
-                            ClientVersion = new TDSClientVersion();
-                            ClientVersion.Unpack(stream);
+                            this.ClientVersion = new TDSClientVersion();
+                            this.ClientVersion.Unpack(stream);
                             break;
                         }
 
@@ -418,7 +429,7 @@ namespace TDSClient.TDS.PreLogin
                 }
             }
 
-            Terminated = true;
+            this.Terminated = true;
             return true;
         }
 
@@ -428,10 +439,7 @@ namespace TDSClient.TDS.PreLogin
         /// <returns>Returns TDS PreLogin Packet data portion length.</returns>
         public ushort Length()
         {
-            return (ushort)(((Options.Count - 1) * ((2 * sizeof(ushort))
-                  + sizeof(byte)))
-                  + sizeof(byte)
-                  + Options.Sum(opt => opt.Length));
+            return (ushort)(((this.Options.Count - 1) * ((2 * sizeof(ushort)) + sizeof(byte))) + sizeof(byte) + this.Options.Sum(opt => opt.Length));
         }
 
         /// <summary>
@@ -441,7 +449,7 @@ namespace TDSClient.TDS.PreLogin
         /// <returns>true if the specified object is equal to the current object; otherwise, false</returns>
         public override bool Equals(object obj)
         {
-            return Equals(obj as TDSPreLoginPacketData);
+            return this.Equals(obj as TDSPreLoginPacketData);
         }
 
         /// <summary>
@@ -452,16 +460,16 @@ namespace TDSClient.TDS.PreLogin
         public bool Equals(TDSPreLoginPacketData other)
         {
             return other != null &&
-                   Options.SequenceEqual(other.Options) &&
-                   ClientVersion.Equals(other.ClientVersion) &&
-                   Encryption == other.Encryption &&
-                   ThreadID == other.ThreadID &&
-                   MARS == other.MARS &&
-                   ((TraceID != null && TraceID.Equals(other.TraceID)) || (TraceID == other.TraceID)) &&
-                   FedAuthRequired == other.FedAuthRequired &&
-                   ((Nonce != null && Nonce.SequenceEqual(other.Nonce)) || (Nonce == other.Nonce)) &&
-                   ((Instance != null && Instance.SequenceEqual(other.Instance)) || (Instance == other.Instance)) &&
-                   Terminated == other.Terminated;
+                   this.Options.SequenceEqual(other.Options) &&
+                   this.ClientVersion.Equals(other.ClientVersion) &&
+                   this.Encryption == other.Encryption &&
+                   this.ThreadID == other.ThreadID &&
+                   this.MARS == other.MARS &&
+                   ((this.TraceID != null && this.TraceID.Equals(other.TraceID)) || (this.TraceID == other.TraceID)) &&
+                   this.FedAuthRequired == other.FedAuthRequired &&
+                   ((this.Nonce != null && this.Nonce.SequenceEqual(other.Nonce)) || (this.Nonce == other.Nonce)) &&
+                   ((this.Instance != null && this.Instance.SequenceEqual(other.Instance)) || (this.Instance == other.Instance)) &&
+                   this.Terminated == other.Terminated;
         }
     }
 }

@@ -68,28 +68,26 @@ namespace TDSClient.TDS.Login7.Options
         /// <returns>Created TDS Login7 packet option</returns>
         public static TDSLogin7Option CreateOption(string optionName, object optionData)
         {
-            if (optionData == null)
+            if (TextOptions.Contains(optionName))
             {
-                throw new ArgumentNullException(nameof(optionData));
+                if (optionData is string)
+                {
+                    var data = (string)optionData;
+                    return new TDSLogin7TextOption(optionName, 0, Convert.ToUInt16(data.Length), data);
+                } 
+                else
+                {
+                    throw new InvalidOperationException();
+                }
             }
-
-            if (!(optionData is string))
+            else if (PasswordOptions.Contains(optionName)) 
             {
-                throw new ArgumentException($"{nameof(optionData)} must be a string.", nameof(optionData));
-            }
-
-            var data = (string)optionData;
-
-            switch (optionName)
+                var data = (string)optionData;
+                return new TDSLogin7PasswordOption(optionName, 0, Convert.ToUInt16(data.Length), data);
+            } 
+            else
             {
-                case string option when TextOptions.Contains(option):
-                    return new TDSLogin7TextOption(option, 0, Convert.ToUInt16(data.Length), data);
-
-                case string option when PasswordOptions.Contains(option):
-                    return new TDSLogin7PasswordOption(option, 0, Convert.ToUInt16(data.Length), data);
-
-                default:
-                    throw new NotSupportedException($"Option {optionName} is not supported.");
+                throw new NotSupportedException();
             }
         }
 
@@ -110,8 +108,13 @@ namespace TDSClient.TDS.Login7.Options
 
                 switch (option)
                 {
-                    case string textOption when TextOptions.Contains(textOption):
-                    case string passwordOption when PasswordOptions.Contains(passwordOption):
+                    case "HostName":
+                    case "UserName":
+                    case "AppName":
+                    case "ServerName":
+                    case "CltIntName":
+                    case "Language":
+                    case "Database":
                         {
                             position = LittleEndianUtilities.ReadUShort(stream);
                             length = LittleEndianUtilities.ReadUShort(stream);
@@ -178,7 +181,7 @@ namespace TDSClient.TDS.Login7.Options
         /// <param name="stream">MemoryStream to write to</param>
         /// <param name="options">Options to write to the stream</param>
         /// <param name="clientID">ClientID to write to the stream</param>
-        public static ushort WriteOptionsToStream(MemoryStream stream, List<TDSLogin7Option> options, byte[] clientID)
+        public static void WriteOptionsToStream(MemoryStream stream, List<TDSLogin7Option> options, byte[] clientID)
         {
             ushort currentPos = 94;
             
@@ -186,13 +189,7 @@ namespace TDSClient.TDS.Login7.Options
             {
                 if (option != "ClientID")
                 {
-                    if(option == "Extension")
-                    {
-                        LittleEndianUtilities.WriteUShort(stream, currentPos);
-                    }
-                    else
-                    {
-                        LittleEndianUtilities.WriteUShort(stream, currentPos);
+                    LittleEndianUtilities.WriteUShort(stream, currentPos);
 
                     var tmp = options.Where(o => o.Name == option);
                     if (tmp.Any())
@@ -207,8 +204,6 @@ namespace TDSClient.TDS.Login7.Options
                     {
                         LittleEndianUtilities.WriteUShort(stream, 0);
                     }
-                    }
-                    
                 }
                 else
                 {
@@ -225,8 +220,6 @@ namespace TDSClient.TDS.Login7.Options
             {
                 option.Pack(stream);
             }
-
-            return currentPos;
         }
     }
 }

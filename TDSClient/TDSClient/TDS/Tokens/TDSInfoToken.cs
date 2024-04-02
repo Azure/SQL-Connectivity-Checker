@@ -9,7 +9,6 @@ namespace TDSClient.TDS.Tokens
     using System;
     using System.IO;
     using System.Text;
-    
     using TDSClient.TDS.Utilities;
 
     /// <summary>
@@ -61,7 +60,7 @@ namespace TDSClient.TDS.Tokens
         /// <returns>true if the specified object is equal to the current object; otherwise, false</returns>
         public override bool Equals(object obj)
         {
-            return Equals(obj as TDSInfoToken);
+            return this.Equals(obj as TDSInfoToken);
         }
 
         /// <summary>
@@ -72,19 +71,19 @@ namespace TDSClient.TDS.Tokens
         public bool Equals(TDSInfoToken other)
         {
             return other != null &&
-                   Number == other.Number &&
-                   State == other.State &&
-                   Class == other.Class &&
-                   MsgText == other.MsgText &&
-                   ServerName == other.ServerName &&
-                   ProcName == other.ProcName &&
-                   LineNumber == other.LineNumber;
+                   this.Number == other.Number &&
+                   this.State == other.State &&
+                   this.Class == other.Class &&
+                   this.MsgText == other.MsgText &&
+                   this.ServerName == other.ServerName &&
+                   this.ProcName == other.ProcName &&
+                   this.LineNumber == other.LineNumber;
         }
 
         /// <summary>
-        /// TDS Info Token Length
+        /// TDS Error Token Length
         /// </summary>
-        /// <returns>Returns TDS Info Token Length</returns>
+        /// <returns>Returns TDS Error Token Length</returns>
         public override ushort Length()
         {
             throw new NotImplementedException();
@@ -100,21 +99,6 @@ namespace TDSClient.TDS.Tokens
         }
 
         /// <summary>
-        /// Process Info token.
-        /// </summary>
-        public override void ProcessToken()
-        {
-            LoggingUtilities.WriteLog($"  Processing Info token:");
-            LoggingUtilities.WriteLog($"     Number: {Number}");
-            LoggingUtilities.WriteLog($"     State: {State}");
-            LoggingUtilities.WriteLog($"     Class: {Class}");
-            LoggingUtilities.WriteLog($"     MsgText: {MsgText}");
-            LoggingUtilities.WriteLog($"     ServerName: {ServerName}");
-            LoggingUtilities.WriteLog($"     ProcName: {ProcName}");
-            LoggingUtilities.WriteLog($"     LineNumber: {LineNumber}");
-        }
-
-        /// <summary>
         /// Used to unpack IPackageable from a stream.
         /// </summary>
         /// <param name="stream">MemoryStream from which to unpack IPackageable.</param>
@@ -122,26 +106,26 @@ namespace TDSClient.TDS.Tokens
         public override bool Unpack(MemoryStream stream)
         {
             LittleEndianUtilities.ReadUShort(stream);
-            Number = (int)LittleEndianUtilities.ReadUInt(stream);
-            State = Convert.ToByte(stream.ReadByte());
-            Class = Convert.ToByte(stream.ReadByte());
+            this.Number = (int)LittleEndianUtilities.ReadUInt(stream);
+            this.State = Convert.ToByte(stream.ReadByte());
+            this.Class = Convert.ToByte(stream.ReadByte());
 
             int length = LittleEndianUtilities.ReadUShort(stream) * 2;
             var buffer = new byte[length];
             stream.Read(buffer, 0, length);
-            MsgText = Encoding.Unicode.GetString(buffer);
+            this.MsgText = Encoding.Unicode.GetString(buffer);
 
             length = stream.ReadByte() * 2;
             buffer = new byte[length];
             stream.Read(buffer, 0, length);
-            ServerName = Encoding.Unicode.GetString(buffer);
+            this.ServerName = Encoding.Unicode.GetString(buffer);
 
             length = stream.ReadByte() * 2;
             buffer = new byte[length];
             stream.Read(buffer, 0, length);
-            ProcName = Encoding.Unicode.GetString(buffer);
+            this.ProcName = Encoding.Unicode.GetString(buffer);
 
-            LineNumber = LittleEndianUtilities.ReadUInt(stream);
+            this.LineNumber = LittleEndianUtilities.ReadUInt(stream);
 
             return true;
         }
