@@ -1332,14 +1332,14 @@ function RunConnectivityPolicyTests($port) {
     }
 }
 
-function LookupDatabaseInSysDatabases($Server, $dbPort, $Database, $User, $Password) {
+function LookupDatabaseInSysDatabases($Server, $dbPort, $Database, $AuthenticationType, $User, $Password) {
     Write-Host
     [void]$summaryLog.AppendLine()
     Write-Host ([string]::Format("Testing connecting to {0} database (please wait):", $Database)) -ForegroundColor Green
     Try {
         Write-Host ' Checking if' $Database 'exist in sys.databases:' -ForegroundColor White
         $masterDbConnection = [System.Data.SqlClient.SQLConnection]::new()
-        $masterDbConnection.ConnectionString = GetConnectionString $Server $gatewayPort $Database $AuthenticationType $User $Password $UserAssignedIdentityClientId
+        $masterDbConnection.ConnectionString = GetConnectionString $Server $dbPort $Database $AuthenticationType $User $Password $UserAssignedIdentityClientId
         $masterDbConnection.Open()
 
         $masterDbCommand = New-Object System.Data.SQLClient.SQLCommand
@@ -1472,12 +1472,12 @@ try {
         Write-Host Warning: Cannot write log file -ForegroundColor Yellow
     }
 
-    TrackWarningAnonymously 'v2.00'
+    TrackWarningAnonymously 'v2.1'
     TrackWarningAnonymously ('PowerShell ' + $PSVersionTable.PSVersion + '|' + $PSVersionTable.Platform + '|' + $PSVersionTable.OS )
 
     try {
         Write-Host '******************************************' -ForegroundColor Green
-        Write-Host '  Azure SQL Connectivity Checker v2.00  ' -ForegroundColor Green
+        Write-Host '  Azure SQL Connectivity Checker v2.1  ' -ForegroundColor Green
         Write-Host '******************************************' -ForegroundColor Green
         Write-Host
         Write-Host 'Parameters' -ForegroundColor Yellow
