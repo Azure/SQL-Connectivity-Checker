@@ -180,8 +180,8 @@ $SQLDBGateways = @(
     New-Object PSObject -Property @{Region = "US DoD Central"; Gateways = ("52.182.88.34"); TRs = ('tr1', 'tr4', 'tr7'); Cluster = 'usdodcentral1-a.worker.database.usgovcloudapi.net'; }
     New-Object PSObject -Property @{Region = "US Gov Texas"; Gateways = ("52.127.33.32"); TRs = ('tr1', 'tr2', 'tr29'); Cluster = 'usgovsouthcentral1-a.worker.database.usgovcloudapi.net'; }
     New-Object PSObject -Property @{Region = "US Gov Arizona"; Gateways = ("52.127.0.14"); TRs = ('tr1', 'tr4', 'tr13'); Cluster = 'usgovsouthwest1-a.worker.database.usgovcloudapi.net'; }
-    New-Object PSObject -Property @{Region = "US Gov Virginia"; Gateways = ("13.72.48.140", "52.127.41.2", "20.140.88.2"); TRs = ('tr1', 'tr3', 'tr5'); Cluster = 'usgoveast1-a.worker.database.usgovcloudapi.net';
-}
+    New-Object PSObject -Property @{Region = "US Gov Virginia"; Gateways = ("13.72.48.140", "52.127.41.2", "20.140.88.2"); TRs = ('tr1', 'tr3', 'tr5'); Cluster = 'usgoveast1-a.worker.database.usgovcloudapi.net'; }
+)
 
 $TRPorts = @('11000', '11001', '11003', '11005', '11006')
 $summaryLog = New-Object -TypeName "System.Text.StringBuilder"
@@ -1802,4 +1802,4 @@ finally {
             Invoke-Item (Get-Location).Path
         }
     }
-})
+}
