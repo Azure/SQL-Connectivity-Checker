@@ -29,7 +29,7 @@ using namespace System.Data.SqlClient
 $AuthenticationType = ''
 # Set the authentication library you wish to use: 'ADAL' or 'MSAL'. Default is 'ADAL'.
 $AuthenticationLibrary = ''
-$Server = 'canarybiserver.database.windows.net' # or any other supported FQDN
+$Server = '.database.windows.net' # or any other supported FQDN
 $Database = ''  # Set the name of the database you wish to test, 'master' will be used by default if nothing is set
 $User = ''  # Set the login username you wish to use, 'AzSQLConnCheckerUser' will be used by default if nothing is set
 $Password = ''  # Set the login password you wish to use, 'AzSQLConnCheckerPassword' will be used by default if nothing is set
