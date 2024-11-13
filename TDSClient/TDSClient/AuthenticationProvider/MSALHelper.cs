@@ -17,6 +17,8 @@ namespace TDSClient.AuthenticationProvider
 {
     public class MSALHelper
     {
+        const LogLevel _logLevel = LogLevel.Verbose;
+
         /// <summary>
         /// Gets AAD access token to Azure SQL using user credentials (username and password).
         /// </summary>
@@ -31,7 +33,7 @@ namespace TDSClient.AuthenticationProvider
 
             var app = PublicClientApplicationBuilder.Create(clientId)
                 .WithAuthority(authority)
-                .WithLogging(LogCallback, LogLevel.Verbose, true)
+                .WithLogging(LogCallback, _logLevel, true)
                 .Build();
             string[] scopes = new[] { resource + "/.default" };
 
@@ -68,7 +70,7 @@ namespace TDSClient.AuthenticationProvider
 
             var app = PublicClientApplicationBuilder.Create(clientId)
                 .WithAuthority(authority)
-                .WithLogging(LogCallback, LogLevel.Verbose, true)
+                .WithLogging(LogCallback, _logLevel, true)
                 .Build();
 
             string[] scopes = new[] { resource + "/.default" };
@@ -109,7 +111,7 @@ namespace TDSClient.AuthenticationProvider
             var app = PublicClientApplicationBuilder.Create(clientId)
                 .WithAuthority(authority)
                 .WithRedirectUri(redirectUri)
-                .WithLogging(LogCallback, LogLevel.Verbose, true)
+                .WithLogging(LogCallback, _logLevel, true)
                 .Build();
 
             try
@@ -197,7 +199,7 @@ namespace TDSClient.AuthenticationProvider
         {
             return PublicClientApplicationBuilder.Create(clientId)
                 .WithAuthority(authority)
-                .WithLogging(LogCallback, LogLevel.Verbose, true)
+                .WithLogging(LogCallback, _logLevel, true)
                 .Build();
         }
 
@@ -209,7 +211,9 @@ namespace TDSClient.AuthenticationProvider
         /// <param name="containsPii"></param>
         private static void LogCallback(LogLevel level, string message, bool containsPii)
         {
-            LoggingUtilities.WriteLog($"[{level}] {(containsPii ? "[PII]" : "")} {message}");
+            //Temporarly disabling verbose logging
+            //LoggingUtilities.AddEmptyLine();
+            //LoggingUtilities.WriteLog($"[{level}] {(containsPii ? "[PII]" : "")} {message}");
         }
 
         /// <summary>
