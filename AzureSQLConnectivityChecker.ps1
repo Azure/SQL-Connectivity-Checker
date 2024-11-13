@@ -21,11 +21,11 @@ using namespace System.Data.SqlClient
 # Supports Public Cloud (*.database.windows.net), Azure China (*.database.chinacloudapi.cn), Azure Germany (*.database.cloudapi.de) and Azure Government (*.database.usgovcloudapi.net)
 
 # Set the type of authentication you wish to use:
-    # 'SQL Server Authentication' (default),
-    # 'Active Directory Password', (supported only with MSAL)
-    # 'Active Directory Integrated',
-    # 'Active Directory Interactive',
-    # 'Active Directory Managed Identity' ('Active Directory MSI') NOTE: Managed Identity authentication works only when your application is running as an Azure resource, not with your personal account
+# 'SQL Server Authentication' (default),
+# 'Active Directory Password', (supported only with MSAL)
+# 'Active Directory Integrated',
+# 'Active Directory Interactive',
+# 'Active Directory Managed Identity' ('Active Directory MSI') NOTE: Managed Identity authentication works only when your application is running as an Azure resource, not with your personal account
 $AuthenticationType = ''
 # Set the authentication library you wish to use: 'ADAL' or 'MSAL'. Default is 'ADAL'.
 $AuthenticationLibrary = ''
@@ -173,7 +173,7 @@ $SQLDBGateways = @(
     New-Object PSObject -Property @{Region = "UK West"; Gateways = ("51.140.208.96", "51.140.208.97", "51.140.208.99"); TRs = ('tr14', 'tr127', 'tr529', 'tr623'); Cluster = 'ukwest1-a.worker.database.windows.net'; }
     New-Object PSObject -Property @{Region = "West Central US"; Gateways = ("13.78.248.43", '13.71.193.32', '13.71.193.33'); TRs = ('tr11', 'tr359', 'tr409', 'tr1367'); Cluster = 'westcentralus1-a.worker.database.windows.net'; }
     New-Object PSObject -Property @{Region = "West Europe"; Gateways = ("104.40.168.105", "52.236.184.163", "20.61.99.192", "20.61.99.193"); TRs = ('tr29', 'tr30', 'tr33', 'tr34'); Cluster = 'westeurope1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "West US"; Gateways = ("104.42.238.205", "13.86.216.196","13.86.217.224","13.86.217.225","20.168.163.192","20.168.163.193"); TRs = ('tr37', 'tr38', 'tr41', 'tr47'); Cluster = 'westus1-a.worker.database.windows.net'; }
+    New-Object PSObject -Property @{Region = "West US"; Gateways = ("104.42.238.205", "13.86.216.196", "13.86.217.224", "13.86.217.225", "20.168.163.192", "20.168.163.193"); TRs = ('tr37', 'tr38', 'tr41', 'tr47'); Cluster = 'westus1-a.worker.database.windows.net'; }
     New-Object PSObject -Property @{Region = "West US 2"; Gateways = ("40.78.240.8", "40.78.248.10", "20.51.9.128", "20.51.9.129"); TRs = ('tr4709', 'tr6453', 'tr6469', 'tr7228'); Cluster = 'westus2-a.worker.database.windows.net'; }
     New-Object PSObject -Property @{Region = "West US 3"; Gateways = ("20.150.168.0", "20.150.184.2"); TRs = ('tr1', 'tr4', 'tr1235'); Cluster = 'westus3-a.worker.database.windows.net'; }
     New-Object PSObject -Property @{Region = "US DoD East"; Gateways = ("52.126.200.3"); TRs = ('tr3', 'tr4', 'tr5'); Cluster = 'usdodeast1-a.worker.database.usgovcloudapi.net'; }
@@ -617,11 +617,18 @@ function FilterTranscript() {
 
 function TestConnectionToDatabase($Server, $gatewayPort, $Database, $AuthenticationType, $AuthenticationLibrary, $User, $Password) {
     Write-Host
+
+    if ($AuthenticationType -ne "SQL Server Authentication") {
+        [void]$summaryLog.AppendLine()
+        Write-Host ([string]::Format("Skipping testing connecting to {0} database at this point since SQL Server Authentication is not being used, ensure you have advanced connectivity tests enabled.", $Database)) -ForegroundColor Green
+        return $false
+    }
+
     [void]$summaryLog.AppendLine()
     Write-Host ([string]::Format("Testing connecting to {0} database (please wait):", $Database)) -ForegroundColor Green
     Try {
         $DbConnection = [System.Data.SqlClient.SQLConnection]::new()
-        $DbConnection.ConnectionString = GetConnectionString $Server $gatewayPort $Database $AuthenticationType $User $Password $UserAssignedIdentityClientId
+        $DbConnection.ConnectionString = GetConnectionString $Server $gatewayPort $Database $User $Password
         $DbConnection.Open()
         Write-Host ([string]::Format(" The connection attempt succeeded", $Database))
         [void]$summaryLog.AppendLine([string]::Format(" The connection attempt to {0} database succeeded", $Database))
@@ -781,32 +788,9 @@ function TestConnectionToDatabase($Server, $gatewayPort, $Database, $Authenticat
     }
 }
 
-function GetConnectionString ($Server, $gatewayPort, $Database, $AuthenticationType, $User, $Password, $UserAssignedIdentityClientId) {
-    if ('Active Directory Password' -eq $AuthenticationType) { 
-        return [string]::Format("Server=tcp:{0},{1};Initial Catalog={2};Persist Security Info=False;User ID='{3}';Password='{4}';MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Application Name=Azure-SQL-Connectivity-Checker;Authentication='Active Directory Password'",
-            $Server, $gatewayPort, $Database, $User, $Password)
-    }
-    if ('Active Directory Interactive' -eq $AuthenticationType) { 
-        return [string]::Format("Server=tcp:{0},{1};Initial Catalog={2};Persist Security Info=False;User ID='{3}';MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Application Name=Azure-SQL-Connectivity-Checker;Authentication='Active Directory Interactive'",
-            $Server, $gatewayPort, $Database, $User)
-    }
-    if ('Active Directory Integrated' -eq $AuthenticationType) { 
-        return [string]::Format("Server=tcp:{0},{1};Initial Catalog={2};Persist Security Info=False;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Application Name=Azure-SQL-Connectivity-Checker;Authentication='Active Directory Integrated'",
-            $Server, $gatewayPort, $Database)
-    }
-    if ('Active Directory Managed Identity' -eq $AuthenticationType -or 'Active Directory MSI' -eq $AuthenticationType) {
-        if ($null -ne $UserAssignedIdentityClientId -and '' -ne $UserAssignedIdentityClientId) {
-            return [string]::Format("Server=tcp:{0},{1};Initial Catalog={2};Persist Security Info=False;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Application Name=Azure-SQL-Connectivity-Checker;Authentication='Active Directory MSI';User ID={3}",
-                $Server, $gatewayPort, $Database, $UserAssignedIdentityClientId)
-        }
-        else {
-            return [string]::Format("Server=tcp:{0},{1};Initial Catalog={2};Persist Security Info=False;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Application Name=Azure-SQL-Connectivity-Checker;Authentication='Active Directory MSI'",
-            $Server, $gatewayPort, $Database)
-        }
-    }
-
+function GetConnectionString ($Server, $gatewayPort, $Database, $User, $Password) {
     return [string]::Format("Server=tcp:{0},{1};Initial Catalog={2};Persist Security Info=False;User ID='{3}';Password='{4}';MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;Application Name=Azure-SQL-Connectivity-Checker;",
-            $Server, $gatewayPort, $Database, $User, $Password)
+        $Server, $gatewayPort, $Database, $User, $Password)
 }
 
 function PrintSupportedCiphers() {
@@ -889,6 +873,42 @@ function PrintLocalNetworkConfiguration() {
         Write-Host $('  ' + [String]::Join([Environment]::NewLine + '  ', $properties.DnsAddresses))
 
         Write-Host
+    }
+}
+
+function RunFabricConnectivityTests($resolvedAddress) {
+    Try {
+        $msg = 'Detected as Microsoft Fabric'
+        Write-Host $msg -ForegroundColor Yellow
+        [void]$summaryLog.AppendLine($msg)
+
+        Write-Host 'Microsoft Fabric connectivity test:' -ForegroundColor Green
+        $testResult = Test-NetConnection $resolvedAddress -Port 1433 -WarningAction SilentlyContinue
+
+        if ($testResult.TcpTestSucceeded) {
+            Write-Host ' -> TCP test succeed' -ForegroundColor Green
+            PrintAverageConnectionTime $resolvedAddress 1433
+            $msg = ' Connectivity to ' + $resolvedAddress + ':1433 succeed'
+            [void]$summaryLog.AppendLine($msg)
+            TrackWarningAnonymously 'Fabric|Endpoint|TestSucceeded'
+            RunConnectionToDatabaseTestsAndAdvancedTests $Server '1433' $Database $AuthenticationType $AuthenticationLibrary $User $Password
+        }
+        else {
+            Write-Host ' -> TCP test FAILED' -ForegroundColor Red
+            $msg = ' Connectivity to ' + $resolvedAddress + ':1433 FAILED'
+            Write-Host $msg -Foreground Red
+            [void]$summaryLog.AppendLine($msg)
+
+            $msg = ' Please make sure you fix the connectivity from this machine to ' + $resolvedAddress + ':1433'
+            Write-Host $msg -Foreground Red
+            [void]$summaryRecommendedAction.AppendLine($msg)
+            TrackWarningAnonymously 'Fabric|Endpoint|TestFailed'
+        }
+    }
+    Catch {
+        Write-Host "Error at RunFabricConnectivityTests" -Foreground Red
+        Write-Host $_.Exception.Message -ForegroundColor Red
+        TrackWarningAnonymously 'RunFabricConnectivityTests|Exception'
     }
 }
 
@@ -1131,83 +1151,83 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
             }
         }
 
-        if ($gateway.TRs -and $gateway.Cluster -and $gateway.Cluster.Length -gt 0 ) {
-            Write-Host
-            Write-Host 'Redirect Policy related tests:' -ForegroundColor Green
-            $redirectSucceeded = 0
-            $redirectTests = 0
-            foreach ($tr in $gateway.TRs | Where-Object { $_ -ne '' }) {
-                $addr = [string]::Format("{0}.{1}", $tr, $gateway.Cluster)
-                $trDNS = Resolve-DnsName -Name $addr -ErrorAction SilentlyContinue
-                if ($null -eq $trDNS -or $null -eq $trDNS.IPAddress) {
-                    Write-Host (' ' + $addr + ' DNS name could not be resolved, skipping tests on ' + $tr) -ForegroundColor Yellow
-                    TrackWarningAnonymously ('TR|DNS|' + $addr)
-                    continue
-                }
+        # if ($gateway.TRs -and $gateway.Cluster -and $gateway.Cluster.Length -gt 0 ) {
+        #     Write-Host
+        #     Write-Host 'Redirect Policy related tests:' -ForegroundColor Green
+        #     $redirectSucceeded = 0
+        #     $redirectTests = 0
+        #     foreach ($tr in $gateway.TRs | Where-Object { $_ -ne '' }) {
+        #         $addr = [string]::Format("{0}.{1}", $tr, $gateway.Cluster)
+        #         $trDNS = Resolve-DnsName -Name $addr -ErrorAction SilentlyContinue
+        #         if ($null -eq $trDNS -or $null -eq $trDNS.IPAddress) {
+        #             Write-Host (' ' + $addr + ' DNS name could not be resolved, skipping tests on ' + $tr) -ForegroundColor Yellow
+        #             TrackWarningAnonymously ('TR|DNS|' + $addr)
+        #             continue
+        #         }
 
-                foreach ($port in $TRPorts) {
-                    Write-Host ' Tested (redirect) connectivity to' $addr':'$port -ForegroundColor White -NoNewline
-                    $tcpClient = New-Object System.Net.Sockets.TcpClient
-                    $portOpen = $tcpClient.ConnectAsync($addr, $port).Wait(6000)
-                    if ($portOpen) {
-                        $redirectTests += 1
-                        $redirectSucceeded += 1
-                        Write-Host ' -> TCP test succeeded' -ForegroundColor Green
-                    }
-                    else {
-                        $redirectTests += 1
-                        Write-Host ' -> TCP test FAILED' -ForegroundColor Red
-                    }
-                }
-            }
+        #         foreach ($port in $TRPorts) {
+        #             Write-Host ' Tested (redirect) connectivity to' $addr':'$port -ForegroundColor White -NoNewline
+        #             $tcpClient = New-Object System.Net.Sockets.TcpClient
+        #             $portOpen = $tcpClient.ConnectAsync($addr, $port).Wait(6000)
+        #             if ($portOpen) {
+        #                 $redirectTests += 1
+        #                 $redirectSucceeded += 1
+        #                 Write-Host ' -> TCP test succeeded' -ForegroundColor Green
+        #             }
+        #             else {
+        #                 $redirectTests += 1
+        #                 Write-Host ' -> TCP test FAILED' -ForegroundColor Red
+        #             }
+        #         }
+        #     }
 
-            if ($redirectTests -gt 0) {
-                $redirectTestsResultMessage = [System.Text.StringBuilder]::new()
-                [void]$redirectTestsResultMessage.AppendLine()
-                $redirectTestsResultMessage.ToString()
+        #     if ($redirectTests -gt 0) {
+        #         $redirectTestsResultMessage = [System.Text.StringBuilder]::new()
+        #         [void]$redirectTestsResultMessage.AppendLine()
+        #         $redirectTestsResultMessage.ToString()
 
-                [void]$redirectTestsResultMessage.AppendLine(' Tested (redirect) connectivity ' + $redirectTests + ' times and ' + $redirectSucceeded + ' of them succeeded')
-                [void]$redirectTestsResultMessage.AppendLine(' Please note this was just some tests to check connectivity using the 11000-11999 port range, not your database')
+        #         [void]$redirectTestsResultMessage.AppendLine(' Tested (redirect) connectivity ' + $redirectTests + ' times and ' + $redirectSucceeded + ' of them succeeded')
+        #         [void]$redirectTestsResultMessage.AppendLine(' Please note this was just some tests to check connectivity using the 11000-11999 port range, not your database')
 
-                if (IsSqlOnDemand $Server) {
-                    [void]$redirectTestsResultMessage.Append(' Some tests may even fail and not be a problem since ports tested here are static and SQL on-demand is a dynamic serverless environment.')
-                }
-                else {
-                    [void]$redirectTestsResultMessage.Append(' Some tests may even fail and not be a problem since ports tested here are static and SQL DB is a dynamic environment.')
-                }
-                $msg = $redirectTestsResultMessage.ToString()
-                Write-Host $msg -Foreground Yellow
-                [void]$summaryLog.AppendLine($msg)
+        #         if (IsSqlOnDemand $Server) {
+        #             [void]$redirectTestsResultMessage.Append(' Some tests may even fail and not be a problem since ports tested here are static and SQL on-demand is a dynamic serverless environment.')
+        #         }
+        #         else {
+        #             [void]$redirectTestsResultMessage.Append(' Some tests may even fail and not be a problem since ports tested here are static and SQL DB is a dynamic environment.')
+        #         }
+        #         $msg = $redirectTestsResultMessage.ToString()
+        #         Write-Host $msg -Foreground Yellow
+        #         [void]$summaryLog.AppendLine($msg)
 
-                TrackWarningAnonymously ('SQLDB|Redirect|' + $gateway.Region + '|' + $redirectSucceeded + '/' + $redirectTests)
+        #         TrackWarningAnonymously ('SQLDB|Redirect|' + $gateway.Region + '|' + $redirectSucceeded + '/' + $redirectTests)
 
-                if ($redirectSucceeded / $redirectTests -ge 0.5 ) {
-                    $msg = ' Based on the result it is likely the Redirect Policy will work from this machine'
-                    Write-Host $msg -Foreground Green
-                    [void]$summaryLog.AppendLine($msg)
-                }
-                else {
+        #         if ($redirectSucceeded / $redirectTests -ge 0.5 ) {
+        #             $msg = ' Based on the result it is likely the Redirect Policy will work from this machine'
+        #             Write-Host $msg -Foreground Green
+        #             [void]$summaryLog.AppendLine($msg)
+        #         }
+        #         else {
 
-                    if ($redirectSucceeded / $redirectTests -eq 0.0 ) {
-                        $msg = ' Based on the result the Redirect Policy will NOT work from this machine'
-                        Write-Host $msg -Foreground Red
-                        [void]$summaryLog.AppendLine($msg)
-                        TrackWarningAnonymously 'SQLDB|Redirect|AllTestsFailed'
-                    }
-                    else {
-                        $msg = ' Based on the result the Redirect Policy MAY NOT work from this machine, this can be expected for connections from outside Azure'
-                        Write-Host $msg -Foreground Red
-                        [void]$summaryLog.AppendLine($msg)
-                        TrackWarningAnonymously ('SQLDB|Redirect|MoreThanHalfFailed|' + $redirectSucceeded + '/' + $redirectTests)
-                    }
+        #             if ($redirectSucceeded / $redirectTests -eq 0.0 ) {
+        #                 $msg = ' Based on the result the Redirect Policy will NOT work from this machine'
+        #                 Write-Host $msg -Foreground Red
+        #                 [void]$summaryLog.AppendLine($msg)
+        #                 TrackWarningAnonymously 'SQLDB|Redirect|AllTestsFailed'
+        #             }
+        #             else {
+        #                 $msg = ' Based on the result the Redirect Policy MAY NOT work from this machine, this can be expected for connections from outside Azure'
+        #                 Write-Host $msg -Foreground Red
+        #                 [void]$summaryLog.AppendLine($msg)
+        #                 TrackWarningAnonymously ('SQLDB|Redirect|MoreThanHalfFailed|' + $redirectSucceeded + '/' + $redirectTests)
+        #             }
 
-                    [void]$summaryRecommendedAction.AppendLine($msg)
-                    $msg = $SQLDB_Redirect
-                    Write-Host $msg -Foreground Red
-                    [void]$summaryRecommendedAction.AppendLine($msg)
-                }
-            }
-        }
+        #             [void]$summaryRecommendedAction.AppendLine($msg)
+        #             $msg = $SQLDB_Redirect
+        #             Write-Host $msg -Foreground Red
+        #             [void]$summaryRecommendedAction.AppendLine($msg)
+        #         }
+        #     }
+        # }
 
         if ($hasGatewayTestSuccess -eq $true) {
             RunConnectionToDatabaseTestsAndAdvancedTests $Server '1433' $Database $AuthenticationType $AuthenticationLibrary $User $Password
@@ -1234,24 +1254,24 @@ function RunConnectivityPolicyTests($port) {
         }
 
         $jobParameters = @{
-            Server                  = $Server
-            Database                = $Database
-            Port                    = $port
-            AuthenticationType      = $AuthenticationType
-            AuthenticationLibrary   = $AuthenticationLibrary
+            Server                       = $Server
+            Database                     = $Database
+            Port                         = $port
+            AuthenticationType           = $AuthenticationType
+            AuthenticationLibrary        = $AuthenticationLibrary
             UserAssignedIdentityClientId = $UserAssignedIdentityClientId
-            User                    = $User
-            Password                = $Password
-            EncryptionProtocol      = $EncryptionProtocol
-            RepositoryBranch        = $RepositoryBranch
-            Local                   = $Local
-            LocalPath               = $LocalPath
-            SendAnonymousUsageData  = $SendAnonymousUsageData
-            AnonymousRunId          = $AnonymousRunId
-            logsFolderName          = $logsFolderName
-            outFolderName           = $outFolderName
-            ConnectionAttempts      = $ConnectionAttempts
-            DelayBetweenConnections = $DelayBetweenConnections
+            User                         = $User
+            Password                     = $Password
+            EncryptionProtocol           = $EncryptionProtocol
+            RepositoryBranch             = $RepositoryBranch
+            Local                        = $Local
+            LocalPath                    = $LocalPath
+            SendAnonymousUsageData       = $SendAnonymousUsageData
+            AnonymousRunId               = $AnonymousRunId
+            logsFolderName               = $logsFolderName
+            outFolderName                = $outFolderName
+            ConnectionAttempts           = $ConnectionAttempts
+            DelayBetweenConnections      = $DelayBetweenConnections
         }
 
         if ($Local) {
@@ -1339,7 +1359,7 @@ function LookupDatabaseInSysDatabases($Server, $dbPort, $Database, $Authenticati
     Try {
         Write-Host ' Checking if' $Database 'exist in sys.databases:' -ForegroundColor White
         $masterDbConnection = [System.Data.SqlClient.SQLConnection]::new()
-        $masterDbConnection.ConnectionString = GetConnectionString $Server $dbPort $Database $AuthenticationType $User $Password $UserAssignedIdentityClientId
+        $masterDbConnection.ConnectionString = GetConnectionString $Server $gatewayPort $Database $User $Password
         $masterDbConnection.Open()
 
         $masterDbCommand = New-Object System.Data.SQLClient.SQLCommand
@@ -1400,7 +1420,7 @@ function RunConnectionToDatabaseTestsAndAdvancedTests($Server, $dbPort, $Databas
                     TestConnectionToDatabase $Server $dbPort $Database $AuthenticationType $AuthenticationLibrary $User $Password | Out-Null
                 }
             }
-        } 
+        }
 
         # Advanced Connectivity Tests
         if ($RunAdvancedConnectivityPolicyTests) {
@@ -1422,7 +1442,7 @@ function TrackWarningAnonymously ([String] $warningCode) {
             $body = New-Object PSObject `
             | Add-Member -PassThru NoteProperty name 'Microsoft.ApplicationInsights.Event' `
             | Add-Member -PassThru NoteProperty time $([System.dateTime]::UtcNow.ToString('o')) `
-            | Add-Member -PassThru NoteProperty iKey "a75c333b-14cb-4906-aab1-036b31f0ce8a" `
+            | Add-Member -PassThru NoteProperty iKey "26c1eb99-f1b2-4ad7-a601-bfe5775581ab" `
             | Add-Member -PassThru NoteProperty tags (New-Object PSObject | Add-Member -PassThru NoteProperty 'ai.user.id' $AnonymousRunId) `
             | Add-Member -PassThru NoteProperty data (New-Object PSObject `
                 | Add-Member -PassThru NoteProperty baseType 'EventData' `
@@ -1472,12 +1492,12 @@ try {
         Write-Host Warning: Cannot write log file -ForegroundColor Yellow
     }
 
-    TrackWarningAnonymously 'v2.2'
+    TrackWarningAnonymously 'v2.3'
     TrackWarningAnonymously ('PowerShell ' + $PSVersionTable.PSVersion + '|' + $PSVersionTable.Platform + '|' + $PSVersionTable.OS )
 
     try {
         Write-Host '******************************************' -ForegroundColor Green
-        Write-Host '  Azure SQL Connectivity Checker v2.2  ' -ForegroundColor Green
+        Write-Host '  Azure SQL Connectivity Checker v2.3  ' -ForegroundColor Green
         Write-Host '******************************************' -ForegroundColor Green
         Write-Host
         Write-Host 'Parameters' -ForegroundColor Yellow
@@ -1589,7 +1609,8 @@ try {
                 -and !$Server.EndsWith('.database.cloudapi.de') `
                 -and !$Server.EndsWith('.database.chinacloudapi.cn') `
                 -and !$Server.EndsWith('.database.usgovcloudapi.net') `
-                -and !$Server.EndsWith('.sql.azuresynapse.net')) {
+                -and !$Server.EndsWith('.sql.azuresynapse.net') `
+                -and !$Server.EndsWith('.fabric.microsoft.com')) {
             $msg = 'You seem to be using a custom domain, if not, please provide the FQDN like server1.database.windows.net'
             Write-Host $msg -Foreground Yellow
             [void]$summaryLog.AppendLine($msg)
@@ -1715,19 +1736,25 @@ try {
 
         #Run connectivity tests
         Write-Host
-        if ($isManagedInstance) {
-            if ($isManagedInstancePublicEndpoint) {
-                RunSqlMIPublicEndpointConnectivityTests $resolvedAddress
-                $dbPort = 3342
-            }
-            else {
-                if (!(RunSqlMIVNetConnectivityTests $resolvedAddress)) {
-                    throw
-                }
-            }
+
+        if ($Server -match '.fabric.microsoft.com') {
+            RunFabricConnectivityTests $resolvedAddress
         }
         else {
-            RunSqlDBConnectivityTests $resolvedAddress
+            if ($isManagedInstance) {
+                if ($isManagedInstancePublicEndpoint) {
+                    RunSqlMIPublicEndpointConnectivityTests $resolvedAddress
+                    $dbPort = 3342
+                }
+                else {
+                    if (!(RunSqlMIVNetConnectivityTests $resolvedAddress)) {
+                        throw
+                    }
+                }
+            }
+            else {
+                RunSqlDBConnectivityTests $resolvedAddress
+            }
         }
 
         Write-Host

@@ -169,7 +169,7 @@ function TrackWarningAnonymously ([String] $warningCode) {
             $body = New-Object PSObject `
             | Add-Member -PassThru NoteProperty name 'Microsoft.ApplicationInsights.Event' `
             | Add-Member -PassThru NoteProperty time $([System.dateTime]::UtcNow.ToString('o')) `
-            | Add-Member -PassThru NoteProperty iKey "a75c333b-14cb-4906-aab1-036b31f0ce8a" `
+            | Add-Member -PassThru NoteProperty iKey "26c1eb99-f1b2-4ad7-a601-bfe5775581ab" `
             | Add-Member -PassThru NoteProperty tags (New-Object PSObject | Add-Member -PassThru NoteProperty 'ai.user.id' $AnonymousRunId) `
             | Add-Member -PassThru NoteProperty data (New-Object PSObject `
                 | Add-Member -PassThru NoteProperty baseType 'EventData' `

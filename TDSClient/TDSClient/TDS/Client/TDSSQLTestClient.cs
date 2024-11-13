@@ -161,13 +161,14 @@ namespace TDSClient.TDS.Client
                 }
 
                 LoggingUtilities.AddEmptyLine();
-                LoggingUtilities.WriteLog($"Exception:");
-                LoggingUtilities.WriteLog($"{ex.Message}");
-
+                StringBuilder sb = new StringBuilder();
+                sb.AppendLine($"Error");
+                sb.AppendLine($"Exception:{ex.Message}");
                 if (ex.InnerException != null)
                 {
-                    LoggingUtilities.WriteLog($"InnerException: {ex.InnerException.Message}");
+                    sb.AppendLine($"InnerException: {ex.InnerException.Message}");
                 }
+                LoggingUtilities.WriteLog(sb.ToString());
             }
             finally
             {
