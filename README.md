@@ -1,9 +1,8 @@
 # Azure SQL Connectivity Checker
 
 This PowerShell script will run some connectivity checks from this machine to the server and database.  
-- Supports Single, Elastic Pools, Managed Instance and SQL Data Warehouse (please provide FQDN, MI public endpoint is supported).
-- Supports Public Cloud (\*.database.windows.net), Azure China (\*.database.chinacloudapi.cn), Azure Germany (\*.database.cloudapi.de) and Azure Government (\*.database.usgovcloudapi.net).   
-- Also supports SQL on-demand (\*.ondemand.sql.azuresynapse.net or \*.ondemand.database.windows.net).  
+- Supports Azure SQL Database, Azure SQL Managed Instance, and Azure Synapse Analytics (*.sql.azuresynapse.net / *.database.windows.net)  
+- Supports Public Cloud (*.database.windows.net), Azure China (*.database.chinacloudapi.cn), and Azure Government (*.database.usgovcloudapi.net)  
 
 **In order to run it you need to:**
 1. Open Windows PowerShell ISE (in Administrator mode if possible)
@@ -15,13 +14,22 @@ For a network trace to be collected along with the tests ('CollectNetworkTrace' 
 
 ```powershell
 $parameters = @{
-    # Supports Single, Elastic Pools and Managed Instance (please provide FQDN, MI public endpoint is supported)
-    # Supports Azure Synapse / Azure SQL Data Warehouse (*.sql.azuresynapse.net / *.database.windows.net)
-    # Supports Public Cloud (*.database.windows.net), Azure China (*.database.chinacloudapi.cn), Azure Germany (*.database.cloudapi.de) and Azure Government (*.database.usgovcloudapi.net)
+    # Supports Azure SQL Database, Azure SQL Managed Instance, and Azure Synapse Analytics (*.sql.azuresynapse.net / *.database.windows.net)  
+    # Supports Public Cloud (*.database.windows.net), Azure China (*.database.chinacloudapi.cn), and Azure Government (*.database.usgovcloudapi.net) 
     Server = '.database.windows.net' # or any other supported FQDN
-    Database = ''  # Set the name of the database you wish to test, 'master' will be used by default if nothing is set
+    Database = ''  # Set the name of the database you wish to test, 'master' will be used by default if nothing is set    
+
+    # Set the type of authentication you wish to use:
+    # 'SQL Server Authentication' (default),
+    # 'Microsoft Entra Password', (supported only with MSAL)
+    # 'Microsoft Entra Integrated',
+    # 'Microsoft Entra Interactive',
+    # 'Microsoft Entra Managed Identity' ('Microsoft Entra MSI') NOTE: Managed Identity authentication works only when your application is running as an Azure resource, not with your personal account
+    AuthenticationType = 'SQL Server Authentication'
     User = ''  # Set the login username you wish to use, 'AzSQLConnCheckerUser' will be used by default if nothing is set
-    Password = ''  # Set the login password you wish to use, 'AzSQLConnCheckerPassword' will be used by default if nothing is set
+    Password = ''  # for SQL Server Auth and Entra Password, set the login password you wish to use, 'AzSQLConnCheckerPassword' will be used by default if nothing is set
+    # To be used with Microsoft Entra, set the authentication library you wish to use: 'ADAL' or 'MSAL'. Default is 'ADAL'.
+    AuthenticationLibrary = 'MSAL'
 
     ## Optional parameters (default values will be used if omitted)
     SendAnonymousUsageData = $true  # Set as $true (default) or $false
@@ -30,6 +38,7 @@ $parameters = @{
     DelayBetweenConnections = 1 # Number of seconds to wait between connection attempts while running advanced connectivity tests
     CollectNetworkTrace = $true  # Set as $true (default) or $false
     #EncryptionProtocol = '' # Supported values: 'Tls 1.0', 'Tls 1.1', 'Tls 1.2'; Without this parameter operating system will choose the best protocol to use
+    #UserAssignedIdentityClientId = '' # To be used with Microsoft Entra Managed Identity, set the Client ID of the User Assigned Identity you wish to use, if nothing is set, the script will use the system-assigned identity
 }
 
 $ProgressPreference = "SilentlyContinue";
@@ -73,13 +82,22 @@ With the current release, PowerShell uses .NET 5.0 as its runtime. PowerShell ru
 
 ```powershell
 $parameters = @{
-    # Supports Single, Elastic Pools and Managed Instance (please provide FQDN, MI public endpoint is supported)
-    # Supports Azure Synapse / Azure SQL Data Warehouse (*.sql.azuresynapse.net / *.database.windows.net)
-    # Supports Public Cloud (*.database.windows.net), Azure China (*.database.chinacloudapi.cn), Azure Germany (*.database.cloudapi.de) and Azure Government (*.database.usgovcloudapi.net)
+    # Supports Azure SQL Database, Azure SQL Managed Instance, and Azure Synapse Analytics (*.sql.azuresynapse.net / *.database.windows.net)  
+    # Supports Public Cloud (*.database.windows.net), Azure China (*.database.chinacloudapi.cn), and Azure Government (*.database.usgovcloudapi.net) 
     Server = '.database.windows.net' # or any other supported FQDN
-    Database = ''  # Set the name of the database you wish to test, 'master' will be used by default if nothing is set
+    Database = ''  # Set the name of the database you wish to test, 'master' will be used by default if nothing is set    
+
+    # Set the type of authentication you wish to use:
+    # 'SQL Server Authentication' (default),
+    # 'Microsoft Entra Password', (supported only with MSAL)
+    # 'Microsoft Entra Integrated',
+    # 'Microsoft Entra Interactive',
+    # 'Microsoft Entra Managed Identity' ('Microsoft Entra MSI') NOTE: Managed Identity authentication works only when your application is running as an Azure resource, not with your personal account
+    AuthenticationType = 'SQL Server Authentication'
     User = ''  # Set the login username you wish to use, 'AzSQLConnCheckerUser' will be used by default if nothing is set
-    Password = ''  # Set the login password you wish to use, 'AzSQLConnCheckerPassword' will be used by default if nothing is set
+    Password = ''  # for SQL Server Auth and Entra Password, set the login password you wish to use, 'AzSQLConnCheckerPassword' will be used by default if nothing is set
+    # To be used with Microsoft Entra, set the authentication library you wish to use: 'ADAL' or 'MSAL'. Default is 'ADAL'.
+    AuthenticationLibrary = 'MSAL'
 
     ## Optional parameters (default values will be used if omitted)
     SendAnonymousUsageData = $true  # Set as $true (default) or $false
@@ -88,6 +106,7 @@ $parameters = @{
     DelayBetweenConnections = 1 # Number of seconds to wait between connection attempts while running advanced connectivity tests
     CollectNetworkTrace = $true  # Set as $true (default) or $false
     #EncryptionProtocol = '' # Supported values: 'Tls 1.0', 'Tls 1.1', 'Tls 1.2'; Without this parameter operating system will choose the best protocol to use
+    #UserAssignedIdentityClientId = '' # To be used with Microsoft Entra Managed Identity, set the Client ID of the User Assigned Identity you wish to use, if nothing is set, the script will use the system-assigned identity
 }
 
 $ProgressPreference = "SilentlyContinue";

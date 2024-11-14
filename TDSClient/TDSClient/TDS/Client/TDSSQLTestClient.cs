@@ -114,7 +114,7 @@ namespace TDSClient.TDS.Client
             {
                 throw new ArgumentNullException();
             }
-            if (authenticationType.Contains("Active Directory Password") || authenticationType.Contains("SQL Server Authentication"))
+            if (authenticationType.Contains("Microsoft Entra Password") || authenticationType.Contains("SQL Server Authentication"))
             {
                 if (string.IsNullOrEmpty(userID) || string.IsNullOrEmpty(password))
                 {
@@ -278,7 +278,7 @@ namespace TDSClient.TDS.Client
             }
             else
             {
-                LoggingUtilities.WriteLog($"  Adding AAD Authentication options");
+                LoggingUtilities.WriteLog($"  Adding Entra Authentication options");
                 tdsMessageBody.AddLogin7AADAuthenticationOptions(AuthenticationType);
             }
 
@@ -345,6 +345,7 @@ namespace TDSClient.TDS.Client
             LoggingUtilities.WriteLog($" Waiting for PreLogin response.");
 
             ITDSPacketData preLoginResponse = TdsCommunicator.ReceiveTDSMessage();
+
             if (preLoginResponse is TDSPreLoginPacketData response)
             {
                 if (response.Options.Exists(opt => opt.Type == TDSPreLoginOptionTokenType.Encryption) &&
@@ -360,7 +361,7 @@ namespace TDSClient.TDS.Client
                 throw new InvalidOperationException();
             }
 
-            LoggingUtilities.WriteLog($" PreLogin response received.");
+            LoggingUtilities.WriteLog($" PreLogin response processed.");
 
             return preLoginResponse;
         }
@@ -400,6 +401,25 @@ namespace TDSClient.TDS.Client
                             {
                                 accessToken = task.GetAwaiter().GetResult(); // Task completed within timeout
                                 SendFedAuthMessage(accessToken);
+
+                                LoggingUtilities.AddEmptyLine();
+                                LoggingUtilities.WriteLog($"  Waiting for the response from the server.");
+
+                                if (TdsCommunicator.ReceiveTDSMessage() is TDSTokenStreamPacketData accessTokenResponse)
+                                {
+                                    foreach (var responseToken in accessTokenResponse.Tokens)
+                                    {
+                                        if (responseToken is TDSEnvChangeToken)
+                                        {
+                                            ProcessEnvChangeToken(responseToken as TDSEnvChangeToken);
+                                        }
+                                        else
+                                        {
+                                            responseToken.ProcessToken();
+                                        }
+                                    }
+                                }
+                                LoggingUtilities.WriteLog($" Response processed.");
                             }
                             else
                             {
@@ -419,7 +439,7 @@ namespace TDSClient.TDS.Client
                 throw new InvalidOperationException();
             }
 
-            LoggingUtilities.WriteLog($" Login7 response received.");
+            LoggingUtilities.WriteLog($" Login7 response processed.");
         }
 
         /// <summary>

@@ -33,11 +33,11 @@ namespace TDSClient.AuthenticationProvider
         public static readonly Dictionary<string, TDSAuthenticationType> AuthTypeStringToEnum = new Dictionary<string, TDSAuthenticationType>
         {
             { "SQL Server Authentication", TDSAuthenticationType.SQLServerAuthentication },
-            { "Active Directory Password", TDSAuthenticationType.ADPassword },
-            { "Active Directory Integrated", TDSAuthenticationType.ADIntegrated },
-            { "Active Directory Interactive", TDSAuthenticationType.ADInteractive },
-            { "Active Directory Managed Identity", TDSAuthenticationType.ADManagedIdentity },
-            { "Active Directory MSI", TDSAuthenticationType.ADManagedIdentity }
+            { "Microsoft Entra Password", TDSAuthenticationType.ADPassword },
+            { "Microsoft Entra Integrated", TDSAuthenticationType.ADIntegrated },
+            { "Microsoft Entra Interactive", TDSAuthenticationType.ADInteractive },
+            { "Microsoft Entra Managed Identity", TDSAuthenticationType.ADManagedIdentity },
+            { "Microsoft Entra MSI", TDSAuthenticationType.ADManagedIdentity }
         };
 
         /// <summary>

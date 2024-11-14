@@ -210,6 +210,9 @@ namespace TDSClient.TDS.Comms
         /// <returns>Returns received TDS Message.</returns>
         public ITDSPacketData ReceiveTDSMessage()
         {
+            LoggingUtilities.AddEmptyLine();
+            LoggingUtilities.WriteLog($" Receiving response:");
+
             byte[] resultBuffer = null;
             var curOffset = 0;
 
