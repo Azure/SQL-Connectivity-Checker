@@ -1521,9 +1521,11 @@ try {
         }
 
         Write-Host ' Authentication type:' $AuthenticationType -ForegroundColor Yellow
+        TrackWarningAnonymously ('Authentication type:' + $AuthenticationType)
 
         if ($AuthenticationType -like "*Active Directory*") {
             Write-Host ' Authentication library:' $AuthenticationLibrary -ForegroundColor Yellow
+            TrackWarningAnonymously ('Authentication library:' + $AuthenticationLibrary)
         }
 
         Write-Host ' Server:' $Server -ForegroundColor Yellow
