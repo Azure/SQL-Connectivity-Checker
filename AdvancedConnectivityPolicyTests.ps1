@@ -288,7 +288,7 @@ try {
             $log = [System.IO.File]::CreateText($logPath)
             [TDSClient.TDS.Utilities.LoggingUtilities]::SetVerboseLog($log)
 
-            $result = $tdsClient.Connect().GetAwaiter().GetResult()
+            $result = $tdsClient.Connect()
             Write-Host 
             $tdsClient.Disconnect()
 
