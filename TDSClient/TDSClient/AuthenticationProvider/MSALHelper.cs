@@ -5,6 +5,7 @@
 //  ---------------------------------------------------------------------------
 
 using System;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -48,7 +49,7 @@ namespace TDSClient.AuthenticationProvider
                 LoggingUtilities.WriteLog("Successfully acquired access token.");
                 return result.AccessToken;
             }
-            catch (MsalServiceException ex)
+            catch (Exception ex)
             {
                 HandleException(ex);
                 throw;
@@ -224,9 +225,12 @@ namespace TDSClient.AuthenticationProvider
         {
             if (ex is MsalServiceException serviceException)
             {
-                LoggingUtilities.WriteLog($"Service exception: {serviceException.Message}");
-                LoggingUtilities.WriteLog($"Error code: {serviceException.ErrorCode}");
-                LoggingUtilities.WriteLog($"HTTP status code: {serviceException.StatusCode}");
+                StringBuilder sb = new StringBuilder();
+                sb.AppendLine();
+                sb.AppendLine($"Service exception: {serviceException.Message}");
+                sb.AppendLine($"Error code: {serviceException.ErrorCode}");
+                sb.AppendLine($"HTTP status code: {serviceException.StatusCode}");
+                LoggingUtilities.WriteLog(sb.ToString());
             }
             else if (ex is MsalClientException clientException)
             {

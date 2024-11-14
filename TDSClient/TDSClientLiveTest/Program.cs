@@ -22,7 +22,7 @@ namespace TDSClientLiveTest
 
             for (int i = 0; i < 1; i++)
             {
-                tdsClient.Connect().GetAwaiter().GetResult();
+                tdsClient.Connect();
                 tdsClient.Disconnect();
                 Console.WriteLine();
                 Thread.Sleep(1000);
