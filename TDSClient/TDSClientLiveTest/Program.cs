@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.ConstrainedExecution;
 using System.Threading;
 using TDSClient.TDS.Client;
 
@@ -7,10 +8,10 @@ namespace TDSClientLiveTest
     class Program
     {
         public static string Server = ".database.windows.net";
-        public static int Port = 1433;
-        public static string Username = "";
-        public static string Password = "";
         public static string Database = "";
+        public static int Port = 1433;
+        public static string Username = "AzSQLConnCheckerUser";
+        public static string Password = "AzSQLConnCheckerPassword";
         public static string AuthenticationType = "SQL Server Authentication";
         public static string AuthenticationLibrary = "MSAL";
 
