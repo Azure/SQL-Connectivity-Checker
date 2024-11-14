@@ -28,6 +28,7 @@ namespace TDSClient.TDS.Client
     using TDSClient.TDS.Tokens.FedAuthInfoToken;
 
     using static TDSClient.AuthenticationProvider.AuthenticationProvider;
+    using System.Threading;
 
     /// <summary>
     /// SQL Test Client used to run diagnostics on SQL Server using TDS protocol.
@@ -125,7 +126,7 @@ namespace TDSClient.TDS.Client
         /// <summary>
         /// Connect to the server.
         /// </summary>
-        public async Task Connect()
+        public void Connect()
         {
             DateTime connectStartTime = DateTime.UtcNow;
             bool preLoginDone = false;
@@ -141,7 +142,7 @@ namespace TDSClient.TDS.Client
                     preLoginDone = false;
                     Reconnect = false;
                     var preLoginResponse = PerformPreLogin(ref preLoginDone);
-                    await PerformLogin(preLoginResponse);
+                    PerformLogin(preLoginResponse);
 
                     if (Reconnect)
                     {
@@ -226,33 +227,12 @@ namespace TDSClient.TDS.Client
         /// Execute the login phase.
         /// </summary>
         /// <param name="preLoginResponse"></param>
-        private async Task PerformLogin(TDSPreLoginPacketData preLoginResponse)
+        private void PerformLogin(TDSPreLoginPacketData preLoginResponse)
         {
             LoggingUtilities.AddEmptyLine();
             LoggingUtilities.WriteLog($" Starting Login phase.", writeToSummaryLog: true);
             DateTime connectStartTime = DateTime.UtcNow;
-
             SendLogin7();
-
-            // 1. If AAD authentication is used, client should receive a fed auth message from the server.
-            //    After that, the client tries to acquire an access token from AAD using ADAL/MSAL.
-            //    If it acquires it, it sends it to the server, and receives a Login response.
-            // 2. Else if SQL authentication is used, the client should receive a Login response.
-            //
-            if (preLoginResponse.Options.Exists(opt => opt.Type == TDSPreLoginOptionTokenType.FedAuthRequired) &&
-                preLoginResponse.FedAuthRequired == TdsPreLoginFedAuthRequiredOption.FedAuthRequired &&
-                IsAADAuthRequired())
-            {
-                Tuple<string, string> fedAuthInfoMessage = ReceiveFedAuthInfoMessage();
-                string authority = fedAuthInfoMessage.Item1;
-                string resource = fedAuthInfoMessage.Item2;
-
-                AuthenticationProvider authenticationProvider = new AuthenticationProvider(AuthenticationLibrary, AuthenticationType, UserID, Password, authority, resource, IdentityClientId);
-                string accessToken = await authenticationProvider.GetJWTAccessToken();
-
-                SendFedAuthMessage(accessToken);
-            }
-
             ReceiveLogin7Response();
             LoggingUtilities.WriteLog($" Login phase took {(int)(DateTime.UtcNow - connectStartTime).TotalMilliseconds} milliseconds.");
         }
@@ -403,7 +383,34 @@ namespace TDSClient.TDS.Client
                     }
                     else
                     {
-                        token.ProcessToken();
+                        if (token is TDSFedAuthInfoToken)
+                        {
+                            Tuple<string, string> fedAuthInfoMessage = ProcessFedAuthInfoToken((TDSFedAuthInfoToken)token);
+                            string authority = fedAuthInfoMessage.Item1;
+                            string resource = fedAuthInfoMessage.Item2;
+
+                            AuthenticationProvider authenticationProvider = new AuthenticationProvider(AuthenticationLibrary, AuthenticationType, UserID, Password, authority, resource, IdentityClientId);
+                            var cts = new CancellationTokenSource(TimeSpan.FromMinutes(2));
+                            string accessToken = null;
+
+                            var task = Task.Run(async () => { return await authenticationProvider.GetJWTAccessToken(); }, cts.Token);
+                            var completedTask = Task.WhenAny(task, Task.Delay(Timeout.Infinite, cts.Token)).GetAwaiter().GetResult();
+
+                            if (completedTask == task)
+                            {
+                                accessToken = task.GetAwaiter().GetResult(); // Task completed within timeout
+                                SendFedAuthMessage(accessToken);
+                            }
+                            else
+                            {
+                                cts.Cancel();
+                                throw new Exception("Operation timed out afer 2 minutes.");
+                            }
+                        }
+                        else
+                        {
+                            token.ProcessToken();
+                        }
                     }
                 }
             }
