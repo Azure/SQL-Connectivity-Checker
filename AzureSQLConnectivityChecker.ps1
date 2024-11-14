@@ -16,24 +16,23 @@ using namespace System.Diagnostics.Tracing
 using namespace System.Data.SqlClient
 
 # Parameter region for when script is run directly
-# Supports Single, Elastic Pools and Managed Instance (please provide FQDN, MI public endpoint is supported)
-# Supports Azure Synapse / Azure SQL Data Warehouse (*.sql.azuresynapse.net / *.database.windows.net)
-# Supports Public Cloud (*.database.windows.net), Azure China (*.database.chinacloudapi.cn), Azure Germany (*.database.cloudapi.de) and Azure Government (*.database.usgovcloudapi.net)
+# Supports Azure SQL Database, Azure SQL Managed Instance, and Azure Synapse Analytics (*.sql.azuresynapse.net / *.database.windows.net)
+# Supports Public Cloud (*.database.windows.net), Azure China (*.database.chinacloudapi.cn), and Azure Government (*.database.usgovcloudapi.net)
 
 # Set the type of authentication you wish to use:
 # 'SQL Server Authentication' (default),
-# 'Active Directory Password', (supported only with MSAL)
-# 'Active Directory Integrated',
-# 'Active Directory Interactive',
-# 'Active Directory Managed Identity' ('Active Directory MSI') NOTE: Managed Identity authentication works only when your application is running as an Azure resource, not with your personal account
-$AuthenticationType = ''
-# Set the authentication library you wish to use: 'ADAL' or 'MSAL'. Default is 'ADAL'.
-$AuthenticationLibrary = ''
-$Server = '.database.windows.net' # or any other supported FQDN
-$Database = ''  # Set the name of the database you wish to test, 'master' will be used by default if nothing is set
+# 'Microsoft Entra Password', (supported only with MSAL)
+# 'Microsoft Entra Integrated',
+# 'Microsoft Entra Interactive',
+# 'Microsoft Entra Managed Identity' ('Microsoft Entra MSI') NOTE: Managed Identity authentication works only when your application is running as an Azure resource, not with your personal account
+$AuthenticationType = 'Microsoft Entra Interactive'
+# To be used with Microsoft Entra, set the authentication library you wish to use: 'ADAL' or 'MSAL'. Default is 'ADAL'.
+$AuthenticationLibrary = 'MSAL'
+$Server = 'vitomazsqldbserver1.database.windows.net' # or any other supported FQDN
+$Database = 'vitomazdb1'  # Set the name of the database you wish to test, 'master' will be used by default if nothing is set
 $User = ''  # Set the login username you wish to use, 'AzSQLConnCheckerUser' will be used by default if nothing is set
 $Password = ''  # Set the login password you wish to use, 'AzSQLConnCheckerPassword' will be used by default if nothing is set
-$UserAssignedIdentityClientId = '' # Set the Client ID of the User Assigned Identity you wish to use, if nothing is set, the script will use the system-assigned identity
+$UserAssignedIdentityClientId = '' # To be used with Microsoft Entra Managed Identity, set the Client ID of the User Assigned Identity you wish to use, if nothing is set, the script will use the system-assigned identity
 
 # In case you want to hide the password (like during a remote session), uncomment the 2 lines below (by removing leading #) and password will be asked during execution
 # $Credentials = Get-Credential -Message "Credentials to test connections to the database (optional)" -User $User
@@ -97,7 +96,7 @@ if ($null -eq $AuthenticationLibrary -or '' -eq $AuthenticationLibrary) {
     $AuthenticationLibrary = 'MSAL'
 }
 
-if (($null -eq $User -or '' -eq $User) -and $AuthenticationType -ne "Active Directory Integrated") {
+if (($null -eq $User -or '' -eq $User) -and $AuthenticationType -ne "Microsoft Entra Integrated") {
     $User = 'AzSQLConnCheckerUser'
 }
 
@@ -1492,29 +1491,29 @@ try {
         Write-Host Warning: Cannot write log file -ForegroundColor Yellow
     }
 
-    TrackWarningAnonymously 'v2.4'
+    TrackWarningAnonymously 'v2.5'
     TrackWarningAnonymously ('PowerShell ' + $PSVersionTable.PSVersion + '|' + $PSVersionTable.Platform + '|' + $PSVersionTable.OS )
 
     try {
         Write-Host '******************************************' -ForegroundColor Green
-        Write-Host '  Azure SQL Connectivity Checker v2.4  ' -ForegroundColor Green
+        Write-Host '  Azure SQL Connectivity Checker v2.5  ' -ForegroundColor Green
         Write-Host '******************************************' -ForegroundColor Green
         Write-Host
         Write-Host 'Parameters' -ForegroundColor Yellow
 
-        if ($AuthenticationType -NotIn "Active Directory Password", "Active Directory Integrated", "Active Directory Interactive", "Active Directory Managed Identity", "Active Directory MSI", "SQL Server Authentication") {
+        if ($AuthenticationType -NotIn "Microsoft Entra Password", "Microsoft Entra Integrated", "Microsoft Entra Interactive", "Microsoft Entra Managed Identity", "Microsoft Entra MSI", "SQL Server Authentication") {
             $msg = "Authentication type " + $AuthenticationType + " is not supported, switching to SQL Server Authentication"
             Write-Host $msg -ForegroundColor Green
             $AuthenticationType = "SQL Server Authentication"
         }
 
-        if ($AuthenticationType -in ("Active Directory Password", "Active Directory Interactive", "Active Directory Managed Identity", "Active Directory MSI") -and $AuthenticationLibrary -NotIn ("ADAL", "MSAL")) {
+        if ($AuthenticationType -in ("Microsoft Entra Password", "Microsoft Entra Interactive", "Microsoft Entra Managed Identity", "Microsoft Entra MSI") -and $AuthenticationLibrary -NotIn ("ADAL", "MSAL")) {
             $msg = $AuthenticationLibrary + "authentication library is not supported with " + $AuthenticationType + " authentication, switching to MSAL library"
             Write-Host $msg -ForegroundColor Green
             $AuthenticationLibrary = "MSAL"
         }
 
-        if (($AuthenticationType -eq "Active Directory Password" -or $AuthenticationType -eq "Active Directory Interactive" -or $AuthenticationType -eq "Active Directory Managed Identity" -or $AuthenticationType -eq "Active Directory MSI") -and $AuthenticationLibrary -eq "ADAL") {
+        if (($AuthenticationType -eq "Microsoft Entra Password" -or $AuthenticationType -eq "Microsoft Entra Interactive" -or $AuthenticationType -eq "Microsoft Entra Managed Identity" -or $AuthenticationType -eq "Microsoft Entra MSI") -and $AuthenticationLibrary -eq "ADAL") {
             $msg = $AuthenticationType + " authentication is not supported with ADAL library, switching to MSAL library"
             Write-Host $msg -ForegroundColor Green
             $AuthenticationLibrary = "MSAL"
@@ -1523,7 +1522,7 @@ try {
         Write-Host ' Authentication type:' $AuthenticationType -ForegroundColor Yellow
         TrackWarningAnonymously ('Authentication type:' + $AuthenticationType)
 
-        if ($AuthenticationType -like "*Active Directory*") {
+        if ($AuthenticationType -like "*Microsoft Entra*") {
             Write-Host ' Authentication library:' $AuthenticationLibrary -ForegroundColor Yellow
             TrackWarningAnonymously ('Authentication library:' + $AuthenticationLibrary)
         }
