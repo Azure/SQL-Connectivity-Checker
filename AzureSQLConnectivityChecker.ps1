@@ -25,11 +25,11 @@ using namespace System.Data.SqlClient
 # 'Microsoft Entra Integrated',
 # 'Microsoft Entra Interactive',
 # 'Microsoft Entra Managed Identity' ('Microsoft Entra MSI') NOTE: Managed Identity authentication works only when your application is running as an Azure resource, not with your personal account
-$AuthenticationType = 'Microsoft Entra Interactive'
+$AuthenticationType = 'SQL Server Authentication'
 # To be used with Microsoft Entra, set the authentication library you wish to use: 'ADAL' or 'MSAL'. Default is 'ADAL'.
 $AuthenticationLibrary = 'MSAL'
-$Server = 'vitomazsqldbserver1.database.windows.net' # or any other supported FQDN
-$Database = 'vitomazdb1'  # Set the name of the database you wish to test, 'master' will be used by default if nothing is set
+$Server = '.database.windows.net' # or any other supported FQDN
+$Database = ''  # Set the name of the database you wish to test, 'master' will be used by default if nothing is set
 $User = ''  # Set the login username you wish to use, 'AzSQLConnCheckerUser' will be used by default if nothing is set
 $Password = ''  # Set the login password you wish to use, 'AzSQLConnCheckerPassword' will be used by default if nothing is set
 $UserAssignedIdentityClientId = '' # To be used with Microsoft Entra Managed Identity, set the Client ID of the User Assigned Identity you wish to use, if nothing is set, the script will use the system-assigned identity
