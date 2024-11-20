@@ -97,6 +97,20 @@ namespace TDSClient.TDS.Comms
         }
 
         /// <summary>
+        /// Trust Server Certificate
+        /// </summary>
+        /// <param name="sender">Sender object</param>
+        /// <param name="certificate">X509 Certificate</param>
+        /// <param name="chain">X509 Chain</param>
+        /// <param name="sslPolicyErrors">SSL Policy Errors</param>
+        /// <returns>Returns true if no errors occurred.</returns>
+        public static bool TrustServerCertificate(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
+        {
+            LoggingUtilities.WriteLog($"   Skipping certification validation");
+            return true;
+        }
+
+        /// <summary>
         /// Print Certificate Chain.
         /// </summary>
         /// <param name="chain"></param>
@@ -155,11 +169,16 @@ namespace TDSClient.TDS.Comms
         /// </summary>
         /// <param name="server">Server FQDN</param>
         /// <param name="encryptionProtocol">Encryption Protocol</param>
-        public void EnableEncryption(string server, SslProtocols encryptionProtocol)
+        public void EnableEncryption(string server, SslProtocols encryptionProtocol, bool trustServerCertificate)
         {
             var tempStream0 = new TDSTemporaryStream(InnerTdsStream);
             LoggingUtilities.WriteLog($"  Opening a new SslStream.");
-            var tempStream1 = new SslStream(tempStream0, true, ValidateServerCertificate);
+            LoggingUtilities.WriteLog($"   Trust Server Certificate:{trustServerCertificate}");
+
+            SslStream tempStream1 = trustServerCertificate
+                ? new SslStream(tempStream0, true, new RemoteCertificateValidationCallback(TrustServerCertificate))
+                : new SslStream(tempStream0, true, new RemoteCertificateValidationCallback(ValidateServerCertificate));
+
             LoggingUtilities.WriteLog($"  Trying to authenticate using {encryptionProtocol}:");
             tempStream1.AuthenticateAsClient(server, new X509CertificateCollection(), encryptionProtocol, true);
             tempStream0.InnerStream = InnerTdsStream.InnerStream;
@@ -264,7 +283,7 @@ namespace TDSClient.TDS.Comms
             MemoryStream ms = new MemoryStream(buffer);
             data.Pack(ms);
             InnerStream.Write(buffer, 0, buffer.Length);
-            
+
             UpdateCommunicatorState();
         }
 
@@ -333,7 +352,7 @@ namespace TDSClient.TDS.Comms
         /// <returns></returns>
         private bool IsAADAuth(TDSAuthenticationType authenticationType)
         {
-            var aadAuthTypes = new TDSAuthenticationType[] { 
+            var aadAuthTypes = new TDSAuthenticationType[] {
                 TDSAuthenticationType.ADPassword,
                 TDSAuthenticationType.ADIntegrated,
                 TDSAuthenticationType.ADInteractive,

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Runtime.ConstrainedExecution;
 using System.Threading;
 using TDSClient.TDS.Client;
 

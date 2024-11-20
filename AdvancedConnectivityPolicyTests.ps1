@@ -214,6 +214,10 @@ if ($null -ne $parameters['DelayBetweenConnections']) {
     $DelayBetweenConnections = $parameters['DelayBetweenConnections']
 }
 
+$TrustServerCertificate = $false
+if ($null -ne $parameters['TrustServerCertificate']) {
+    $TrustServerCertificate = $parameters['TrustServerCertificate']
+}
 
 if ([string]::IsNullOrEmpty($env:TEMP)) {
     $env:TEMP = '/tmp';
@@ -282,7 +286,7 @@ try {
                 $encryption = [System.Security.Authentication.SslProtocols]::Tls12 -bor [System.Security.Authentication.SslProtocols]::Tls11 -bor [System.Security.Authentication.SslProtocols]::Default
             }
         }
-        $tdsClient = [TDSClient.TDS.Client.TDSSQLTestClient]::new($Server, $Port, $AuthenticationType, $User, $Password, $Database, $encryption, $AuthenticationLibrary, $UserAssignedIdentityClientId)
+        $tdsClient = [TDSClient.TDS.Client.TDSSQLTestClient]::new($Server, $Port, $AuthenticationType, $User, $Password, $Database, $encryption, $AuthenticationLibrary, $UserAssignedIdentityClientI, $TrustServerCertificate)
 
         for ($i = 1; $i -le $ConnectionAttempts; ++$i) {
             $log = [System.IO.File]::CreateText($logPath)
