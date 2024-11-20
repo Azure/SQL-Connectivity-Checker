@@ -618,7 +618,7 @@ function FilterTranscript() {
     }
 }
 
-function TestConnectionToDatabase($Server, $gatewayPort, $Database, $AuthenticationType, $AuthenticationLibrary, $User, $Password) {
+function TestConnectionToDatabase($Server, $gatewayPort, $Database, $AuthenticationType, $AuthenticationLibrary, $User, $Password, $TrustServerCertificate) {
     Write-Host
 
     if ($AuthenticationType -ne "SQL Server Authentication") {
@@ -792,8 +792,8 @@ function TestConnectionToDatabase($Server, $gatewayPort, $Database, $Authenticat
 }
 
 function GetConnectionString ($Server, $gatewayPort, $Database, $User, $Password, $TrustServerCertificate) {
-    return [string]::Format("Server=tcp:{0},{1};Initial Catalog={2};Persist Security Info=False;User ID='{3}';Password='{4}';MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate={5}};Connection Timeout=30;Application Name=Azure-SQL-Connectivity-Checker;",
-        $Server, $gatewayPort, $Database, $User, $Password, $TrustServerCertificate)
+    return [string]::Format("Server=tcp:{0},{1};Initial Catalog={2};Persist Security Info=False;User ID='{3}';Password='{4}';MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate={5};Connection Timeout=30;Application Name=Azure-SQL-Connectivity-Checker;",
+        $Server, $gatewayPort, $Database, $User, $Password, $TrustServerCertificate.ToString())
 }
 
 function PrintSupportedCiphers() {
@@ -1388,7 +1388,7 @@ function RunConnectionToDatabaseTestsAndAdvancedTests($Server, $dbPort, $Databas
         $customDatabaseNameWasSet = $Database -and $Database.Length -gt 0 -and $Database -ne 'master'
 
         #Test master database
-        $canConnectToMaster = TestConnectionToDatabase $Server $dbPort 'master' $AuthenticationType $AuthenticationLibrary $User $Password
+        $canConnectToMaster = TestConnectionToDatabase $Server $dbPort 'master' $AuthenticationType $AuthenticationLibrary $User $Password $TrustServerCertificate
 
         if ($customDatabaseNameWasSet) {
             if ($canConnectToMaster) {
@@ -1401,7 +1401,7 @@ function RunConnectionToDatabaseTestsAndAdvancedTests($Server, $dbPort, $Databas
 
                     #Test database from parameter
                     if ($customDatabaseNameWasSet) {
-                        TestConnectionToDatabase $Server $dbPort $Database $AuthenticationType $AuthenticationLibrary $User $Password | Out-Null
+                        TestConnectionToDatabase $Server $dbPort $Database $AuthenticationType $AuthenticationLibrary $User $Password $TrustServerCertificate | Out-Null
                     }
                 }
                 else {
@@ -1421,7 +1421,7 @@ function RunConnectionToDatabaseTestsAndAdvancedTests($Server, $dbPort, $Databas
             else {
                 #Test database from parameter anyway
                 if ($customDatabaseNameWasSet) {
-                    TestConnectionToDatabase $Server $dbPort $Database $AuthenticationType $AuthenticationLibrary $User $Password | Out-Null
+                    TestConnectionToDatabase $Server $dbPort $Database $AuthenticationType $AuthenticationLibrary $User $Password $TrustServerCertificate | Out-Null
                 }
             }
         }
