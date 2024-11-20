@@ -72,7 +72,7 @@ namespace TDSClient.TDS.Client
             SslProtocols encryptionProtocol = SslProtocols.Tls12,
             string authenticationLibrary = null,
             string identityClientId = null,
-            bool trustServerCertificate = false)
+            bool trustServerCertificate = true)
         {
             ValidateInputParameters(server, userID, password, database, authenticationType);
 
