@@ -631,7 +631,7 @@ function TestConnectionToDatabase($Server, $gatewayPort, $Database, $Authenticat
     Write-Host ([string]::Format("Testing connecting to {0} database (please wait):", $Database)) -ForegroundColor Green
     Try {
         $DbConnection = [System.Data.SqlClient.SQLConnection]::new()
-        $DbConnection.ConnectionString = GetConnectionString $Server $gatewayPort $Database $User $Password
+        $DbConnection.ConnectionString = GetConnectionString $Server $gatewayPort $Database $User $Password $TrustServerCertificate
         $DbConnection.Open()
         Write-Host ([string]::Format(" The connection attempt succeeded", $Database))
         [void]$summaryLog.AppendLine([string]::Format(" The connection attempt to {0} database succeeded", $Database))
@@ -791,9 +791,9 @@ function TestConnectionToDatabase($Server, $gatewayPort, $Database, $Authenticat
     }
 }
 
-function GetConnectionString ($Server, $gatewayPort, $Database, $User, $Password) {
-    return [string]::Format("Server=tcp:{0},{1};Initial Catalog={2};Persist Security Info=False;User ID='{3}';Password='{4}';MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;Application Name=Azure-SQL-Connectivity-Checker;",
-        $Server, $gatewayPort, $Database, $User, $Password)
+function GetConnectionString ($Server, $gatewayPort, $Database, $User, $Password, $TrustServerCertificate) {
+    return [string]::Format("Server=tcp:{0},{1};Initial Catalog={2};Persist Security Info=False;User ID='{3}';Password='{4}';MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate={5}};Connection Timeout=30;Application Name=Azure-SQL-Connectivity-Checker;",
+        $Server, $gatewayPort, $Database, $User, $Password, $TrustServerCertificate)
 }
 
 function PrintSupportedCiphers() {
@@ -894,7 +894,7 @@ function RunFabricConnectivityTests($resolvedAddress) {
             $msg = ' Connectivity to ' + $resolvedAddress + ':1433 succeed'
             [void]$summaryLog.AppendLine($msg)
             TrackWarningAnonymously 'Fabric|Endpoint|TestSucceeded'
-            RunConnectionToDatabaseTestsAndAdvancedTests $Server '1433' $Database $AuthenticationType $AuthenticationLibrary $User $Password
+            RunConnectionToDatabaseTestsAndAdvancedTests $Server '1433' $Database $AuthenticationType $AuthenticationLibrary $User $Password $TrustServerCertificate
         }
         else {
             Write-Host ' -> TCP test FAILED' -ForegroundColor Red
@@ -930,7 +930,7 @@ function RunSqlMIPublicEndpointConnectivityTests($resolvedAddress) {
             $msg = ' Gateway connectivity to ' + $resolvedAddress + ':3342 succeed'
             [void]$summaryLog.AppendLine($msg)
             TrackWarningAnonymously 'SQLMI|PublicEndpoint|GatewayTestSucceeded'
-            RunConnectionToDatabaseTestsAndAdvancedTests $Server '3342' $Database $AuthenticationType $AuthenticationLibrary $User $Password
+            RunConnectionToDatabaseTestsAndAdvancedTests $Server '3342' $Database $AuthenticationType $AuthenticationLibrary $User $Password $TrustServerCertificate
         }
         else {
             Write-Host ' -> TCP test FAILED' -ForegroundColor Red
@@ -972,7 +972,7 @@ function RunSqlMIVNetConnectivityTests($resolvedAddress) {
             Write-Host ' -> TCP test succeed' -ForegroundColor Green
             PrintAverageConnectionTime $resolvedAddress 1433
             TrackWarningAnonymously 'SQLMI|PrivateEndpoint|GatewayTestSucceeded'
-            RunConnectionToDatabaseTestsAndAdvancedTests $Server '1433' $Database $AuthenticationType $AuthenticationLibrary $User $Password
+            RunConnectionToDatabaseTestsAndAdvancedTests $Server '1433' $Database $AuthenticationType $AuthenticationLibrary $User $Password $TrustServerCertificate
             return $true
         }
         else {
@@ -1090,7 +1090,7 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
             TrackWarningAnonymously 'SQLDB|InvalidGatewayIPAddressWarning'
         }
 
-        RunConnectionToDatabaseTestsAndAdvancedTests $Server '1433' $Database $AuthenticationType $AuthenticationLibrary $User $Password
+        RunConnectionToDatabaseTestsAndAdvancedTests $Server '1433' $Database $AuthenticationType $AuthenticationLibrary $User $Password $TrustServerCertificate
     }
     else {
         if ($hasPrivateLinkAlias) {
@@ -1233,7 +1233,7 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
         # }
 
         if ($hasGatewayTestSuccess -eq $true) {
-            RunConnectionToDatabaseTestsAndAdvancedTests $Server '1433' $Database $AuthenticationType $AuthenticationLibrary $User $Password
+            RunConnectionToDatabaseTestsAndAdvancedTests $Server '1433' $Database $AuthenticationType $AuthenticationLibrary $User $Password $TrustServerCertificate
         }
     }
 }
@@ -1363,7 +1363,7 @@ function LookupDatabaseInSysDatabases($Server, $dbPort, $Database, $Authenticati
     Try {
         Write-Host ' Checking if' $Database 'exist in sys.databases:' -ForegroundColor White
         $masterDbConnection = [System.Data.SqlClient.SQLConnection]::new()
-        $masterDbConnection.ConnectionString = GetConnectionString $Server $gatewayPort $Database $User $Password
+        $masterDbConnection.ConnectionString = GetConnectionString $Server $gatewayPort $Database $User $Password $TrustServerCertificate
         $masterDbConnection.Open()
 
         $masterDbCommand = New-Object System.Data.SQLClient.SQLCommand
