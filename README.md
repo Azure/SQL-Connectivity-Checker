@@ -39,6 +39,7 @@ $parameters = @{
     CollectNetworkTrace = $true  # Set as $true (default) or $false
     #EncryptionProtocol = '' # Supported values: 'Tls 1.0', 'Tls 1.1', 'Tls 1.2'; Without this parameter operating system will choose the best protocol to use
     #UserAssignedIdentityClientId = '' # To be used with Microsoft Entra Managed Identity, set the Client ID of the User Assigned Identity you wish to use, if nothing is set, the script will use the system-assigned identity
+    TrustServerCertificate = $false  # Set as $true or $false (default)
 }
 
 $ProgressPreference = "SilentlyContinue";
