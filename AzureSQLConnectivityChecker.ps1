@@ -45,6 +45,7 @@ $ConnectionAttempts = 1
 $DelayBetweenConnections = 1
 $CollectNetworkTrace = $true  # Set as $true (default) or $false
 $EncryptionProtocol = 'Tls 1.2'  # Supported values: 'Tls 1.0', 'Tls 1.1', 'Tls 1.2'; Without this parameter operating system will choose the best protocol to use
+$TrustServerCertificate = $false  # Set as $true or $false (default)
 
 # Parameter region when Invoke-Command -ScriptBlock is used
 $parameters = $args[0]
@@ -82,6 +83,9 @@ if ($null -ne $parameters) {
     }
     if ($null -ne $parameters['DelayBetweenConnections']) {
         $DelayBetweenConnections = $parameters['DelayBetweenConnections']
+    }
+    if ($null -ne $parameters['TrustServerCertificate']) {
+        $TrustServerCertificate = $parameters['TrustServerCertificate']
     }
 }
 
@@ -1271,6 +1275,7 @@ function RunConnectivityPolicyTests($port) {
             outFolderName                = $outFolderName
             ConnectionAttempts           = $ConnectionAttempts
             DelayBetweenConnections      = $DelayBetweenConnections
+            TrustServerCertificate       = $TrustServerCertificate
         }
 
         if ($Local) {
@@ -1378,7 +1383,7 @@ function LookupDatabaseInSysDatabases($Server, $dbPort, $Database, $Authenticati
     }
 }
 
-function RunConnectionToDatabaseTestsAndAdvancedTests($Server, $dbPort, $Database, $AuthenticationType, $AuthenticationLibrary, $User, $Password) {
+function RunConnectionToDatabaseTestsAndAdvancedTests($Server, $dbPort, $Database, $AuthenticationType, $AuthenticationLibrary, $User, $Password, $TrustServerCertificate) {
     try {
         $customDatabaseNameWasSet = $Database -and $Database.Length -gt 0 -and $Database -ne 'master'
 
@@ -1491,12 +1496,12 @@ try {
         Write-Host Warning: Cannot write log file -ForegroundColor Yellow
     }
 
-    TrackWarningAnonymously 'v2.5'
+    TrackWarningAnonymously 'v2.6'
     TrackWarningAnonymously ('PowerShell ' + $PSVersionTable.PSVersion + '|' + $PSVersionTable.Platform + '|' + $PSVersionTable.OS )
 
     try {
         Write-Host '******************************************' -ForegroundColor Green
-        Write-Host '  Azure SQL Connectivity Checker v2.5  ' -ForegroundColor Green
+        Write-Host '  Azure SQL Connectivity Checker v2.6  ' -ForegroundColor Green
         Write-Host '******************************************' -ForegroundColor Green
         Write-Host
         Write-Host 'Parameters' -ForegroundColor Yellow

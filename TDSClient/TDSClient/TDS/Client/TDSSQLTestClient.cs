@@ -49,6 +49,7 @@ namespace TDSClient.TDS.Client
         private TcpClient Client;
         private readonly TDSClientVersion Version;
         private readonly SslProtocols EncryptionProtocol;
+        private readonly bool TrustServerCertificate;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TDSSQLTestClient"/> class.
@@ -70,7 +71,8 @@ namespace TDSClient.TDS.Client
             string database,
             SslProtocols encryptionProtocol = SslProtocols.Tls12,
             string authenticationLibrary = null,
-            string identityClientId = null)
+            string identityClientId = null,
+            bool trustServerCertificate = false)
         {
             ValidateInputParameters(server, userID, password, database, authenticationType);
 
@@ -85,6 +87,7 @@ namespace TDSClient.TDS.Client
             EncryptionProtocol = encryptionProtocol;
             ConnectionAttempt = 0;
             AuthenticationType = AuthTypeStringToEnum[authenticationType];
+            TrustServerCertificate = trustServerCertificate;
 
             if (authenticationLibrary != null)
             {
@@ -287,43 +290,6 @@ namespace TDSClient.TDS.Client
         }
 
         /// <summary>
-        /// Receives and handles a federated authentication info response from server.
-        /// </summary>
-        /// <returns></returns>
-        /// <exception cref="Exception"></exception>
-        /// <exception cref="InvalidOperationException"></exception>
-        private Tuple<string, string> ReceiveFedAuthInfoMessage()
-        {
-            LoggingUtilities.AddEmptyLine();
-            LoggingUtilities.WriteLog($" Waiting for FedAuthInfoMessage response.");
-
-            if (TdsCommunicator.ReceiveTDSMessage() is TDSTokenStreamPacketData response)
-            {
-                foreach (var token in response.Tokens)
-                {
-                    if (token is TDSEnvChangeToken)
-                    {
-                        ProcessEnvChangeToken(token as TDSEnvChangeToken);
-                    }
-                    else if (token is TDSFedAuthInfoToken)
-                    {
-                        return ProcessFedAuthInfoToken(token as TDSFedAuthInfoToken);
-                    }
-                    else if (token is TDSErrorToken)
-                    {
-                        token.ProcessToken();
-                    }
-                }
-
-                throw new Exception("Server couldn't return a proper Fed Auth Info message.");
-            }
-            else
-            {
-                throw new InvalidOperationException();
-            }
-        }
-
-        /// <summary>
         /// Send Fedauth message containing access token to the server
         /// </summary>
         /// <param name="accessToken"></param>
@@ -352,7 +318,7 @@ namespace TDSClient.TDS.Client
                     response.Encryption == TDSEncryptionOption.EncryptReq)
                 {
                     LoggingUtilities.WriteLog($"  Server requires encryption, enabling encryption.");
-                    TdsCommunicator.EnableEncryption(Server, EncryptionProtocol);
+                    TdsCommunicator.EnableEncryption(Server, EncryptionProtocol, TrustServerCertificate);
                     LoggingUtilities.WriteLog($"  Encryption enabled.");
                 }
             }
