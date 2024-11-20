@@ -215,7 +215,8 @@ if ($null -ne $parameters['DelayBetweenConnections']) {
 }
 
 $TrustServerCertificate = $false
-if ($null -ne $parameters['TrustServerCertificate']) {
+if ($null -ne $parameters['TrustServerCertificate']) {    
+    Write-Host 'Setting TrustServerCertificate to :' + $parameters['TrustServerCertificate'] -ForegroundColor Green
     $TrustServerCertificate = $parameters['TrustServerCertificate']
 }
 
