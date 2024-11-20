@@ -100,6 +100,7 @@ namespace TDSClient.TDS.Client
             LoggingUtilities.WriteLog($"     UserID: {userID}.");
             LoggingUtilities.WriteLog($"     Database: {database}.");
             LoggingUtilities.WriteLog($"     Authentication type: {authenticationType}.");
+            LoggingUtilities.WriteLog($"     TrustServerCertificate: {trustServerCertificate}.");
         }
 
         /// <summary>
