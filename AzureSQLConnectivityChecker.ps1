@@ -1363,7 +1363,7 @@ function LookupDatabaseInSysDatabases($Server, $dbPort, $Database, $Authenticati
     Try {
         Write-Host ' Checking if' $Database 'exist in sys.databases:' -ForegroundColor White
         $masterDbConnection = [System.Data.SqlClient.SQLConnection]::new()
-        $masterDbConnection.ConnectionString = GetConnectionString $Server $gatewayPort $Database $User $Password $TrustServerCertificate
+        $masterDbConnection.ConnectionString = GetConnectionString $Server $dbPort $Database $User $Password $TrustServerCertificate
         $masterDbConnection.Open()
 
         $masterDbCommand = New-Object System.Data.SQLClient.SQLCommand
