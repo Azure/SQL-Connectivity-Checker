@@ -152,7 +152,8 @@ namespace TDSClient.TDS.Client
                     {
                         Disconnect();
                         LoggingUtilities.AddEmptyLine();
-                        LoggingUtilities.WriteLog($" Routing to: {Server}:{Port}.");
+                        LoggingUtilities.WriteLog($"Routing to: {Server}:{Port}.");
+                        LoggingUtilities.AddEmptyLine();
                     }
                 }
                 while (Reconnect);
@@ -195,6 +196,8 @@ namespace TDSClient.TDS.Client
             }
 
             Reconnect = false;
+
+            LoggingUtilities.WriteLog($"PreLogin phase starting", writeToSummaryLog: true);
             EstablishTCPConnection();
 
             DateTime connectStartTime = DateTime.UtcNow;
@@ -203,8 +206,7 @@ namespace TDSClient.TDS.Client
             TDSPreLoginPacketData preLoginResponse = (TDSPreLoginPacketData)ReceivePreLoginResponse();
 
             preLoginDone = true;
-            LoggingUtilities.AddEmptyLine();
-            LoggingUtilities.WriteLog($" PreLogin phase took {(int)(DateTime.UtcNow - connectStartTime).TotalMilliseconds} milliseconds.", writeToSummaryLog: true);
+            LoggingUtilities.WriteLog($"PreLogin phase ended (took {(int)(DateTime.UtcNow - connectStartTime).TotalMilliseconds} ms)", writeToSummaryLog: true);
 
             return preLoginResponse;
         }
@@ -234,11 +236,11 @@ namespace TDSClient.TDS.Client
         private void PerformLogin(TDSPreLoginPacketData preLoginResponse)
         {
             LoggingUtilities.AddEmptyLine();
-            LoggingUtilities.WriteLog($" Starting Login phase.", writeToSummaryLog: true);
+            LoggingUtilities.WriteLog($"Starting Login phase.", writeToSummaryLog: true);
             DateTime connectStartTime = DateTime.UtcNow;
             SendLogin7();
             ReceiveLogin7Response();
-            LoggingUtilities.WriteLog($" Login phase took {(int)(DateTime.UtcNow - connectStartTime).TotalMilliseconds} milliseconds.");
+            LoggingUtilities.WriteLog($"Login phase ended (took {(int)(DateTime.UtcNow - connectStartTime).TotalMilliseconds} ms)", writeToSummaryLog: true);
         }
 
         /// <summary>
@@ -268,7 +270,6 @@ namespace TDSClient.TDS.Client
         /// </summary>
         private void SendLogin7()
         {
-            LoggingUtilities.AddEmptyLine();
             LoggingUtilities.WriteLog($" Building Login7 message.");
 
             var tdsMessageBody = new TDSLogin7PacketData(Environment.MachineName, "TDSSQLTestClient", Server, Database);
@@ -308,7 +309,6 @@ namespace TDSClient.TDS.Client
         /// </summary>
         private ITDSPacketData ReceivePreLoginResponse()
         {
-            LoggingUtilities.AddEmptyLine();
             LoggingUtilities.WriteLog($" Waiting for PreLogin response.");
 
             ITDSPacketData preLoginResponse = TdsCommunicator.ReceiveTDSMessage();
@@ -318,9 +318,7 @@ namespace TDSClient.TDS.Client
                 if (response.Options.Exists(opt => opt.Type == TDSPreLoginOptionTokenType.Encryption) &&
                     response.Encryption == TDSEncryptionOption.EncryptReq)
                 {
-                    LoggingUtilities.WriteLog($"  Server requires encryption, enabling encryption.");
                     TdsCommunicator.EnableEncryption(Server, EncryptionProtocol, TrustServerCertificate);
-                    LoggingUtilities.WriteLog($"  Encryption enabled.");
                 }
             }
             else
