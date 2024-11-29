@@ -85,11 +85,13 @@ namespace TDSClient.TDS.Utilities
             if (writeToSummaryLog && SummaryLog.TryGetTarget(out TextWriter temp) && temp != null)
             {
                 temp.WriteLine($"[{timestamp}] {message}");
+                temp.Flush();
             }
 
             if (writeToVerboseLog && VerboseLog.TryGetTarget(out temp) && temp != null)
             {
                 temp.WriteLine($"[{timestamp}] {message}");
+                temp.Flush();
             }
         }
 
@@ -154,7 +156,6 @@ namespace TDSClient.TDS.Utilities
             if (instance == null)
             {
                 SerializedWriteLineToLog(log, string.Format("{0}: <null>", prefix));
-
                 return;
             }
 
@@ -178,7 +179,6 @@ namespace TDSClient.TDS.Utilities
                 || instance is Version)
             {
                 SerializedWriteLineToLog(log, string.Format("{0}: {1}", prefix, instance));
-
                 return;
             }
 
@@ -245,7 +245,7 @@ namespace TDSClient.TDS.Utilities
         /// Serialized write line to destination
         /// </summary>
         /// <param name="log">Destination</param>
-        /// <param name="text">Text to log</param>        
+        /// <param name="text">Text to log</param>
         public static void SerializedWriteLineToLog(TextWriter log, string text)
         {
             lock (logWriterLock)

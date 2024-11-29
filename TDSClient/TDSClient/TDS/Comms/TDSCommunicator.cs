@@ -78,9 +78,12 @@ namespace TDSClient.TDS.Comms
         /// <returns>Returns true if no errors occurred.</returns>
         public static bool ValidateServerCertificate(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
+            Thread.Sleep(6000);
+
+            LoggingUtilities.WriteLog($"    Checking certificate validation results:");
             if (sslPolicyErrors == SslPolicyErrors.None)
             {
-                LoggingUtilities.WriteLog($"    Server certificate: {certificate.Subject}");
+                LoggingUtilities.WriteLog($"    No errors, server certificate: {certificate.Subject}");
                 //PrintCertificateChain(chain);
                 return true;
             }
@@ -108,7 +111,7 @@ namespace TDSClient.TDS.Comms
         /// <returns>Returns true if no errors occurred.</returns>
         public static bool TrustServerCertificate(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
-            LoggingUtilities.WriteLog($"   Skipping certification validation");
+            LoggingUtilities.WriteLog($"   Ignoring certificate validation results (due to trust certificate)");
             return true;
         }
 
@@ -173,11 +176,11 @@ namespace TDSClient.TDS.Comms
         /// <param name="encryptionProtocol">Encryption Protocol</param>
         public void EnableEncryption(string server, SslProtocols encryptionProtocol, bool trustServerCertificate)
         {
-            LoggingUtilities.WriteLog($"  Server requires encryption, enabling encryption:");
             Stopwatch authTimer = Stopwatch.StartNew();
+            LoggingUtilities.WriteLog($"  Server requires encryption, enabling encryption:");
+            LoggingUtilities.WriteLog($"   Trust Server Certificate is set to {trustServerCertificate}");
 
             var tempStream0 = new TDSTemporaryStream(InnerTdsStream);
-            LoggingUtilities.WriteLog($"   Trust Server Certificate is set to {trustServerCertificate}");
             SslStream tempStream1 = trustServerCertificate
                 ? new SslStream(tempStream0, true, new RemoteCertificateValidationCallback(TrustServerCertificate))
                 : new SslStream(tempStream0, true, new RemoteCertificateValidationCallback(ValidateServerCertificate));
@@ -187,6 +190,8 @@ namespace TDSClient.TDS.Comms
             tempStream0.InnerStream = InnerTdsStream.InnerStream;
             InnerTdsStream.InnerStream = tempStream1;
 
+            LoggingUtilities.WriteLog($"   Is authenticated: {tempStream1.IsAuthenticated}");
+            LoggingUtilities.WriteLog($"   Protocol: {tempStream1.SslProtocol}");
             LoggingUtilities.WriteLog($"   Cipher: {tempStream1.CipherAlgorithm} strength {tempStream1.CipherStrength}");
             LoggingUtilities.WriteLog($"   Hash: {tempStream1.HashAlgorithm} strength {tempStream1.HashStrength}");
 
@@ -199,9 +204,6 @@ namespace TDSClient.TDS.Comms
                 LoggingUtilities.WriteLog($"   Key exchange: {tempStream1.KeyExchangeAlgorithm} strength {tempStream1.KeyExchangeStrength}");
             }
 
-            LoggingUtilities.WriteLog($"   Protocol: {tempStream1.SslProtocol}");
-
-            LoggingUtilities.WriteLog($"   Is authenticated: {tempStream1.IsAuthenticated}");
             LoggingUtilities.WriteLog($"   IsSigned: {tempStream1.IsSigned}");
             LoggingUtilities.WriteLog($"   Is Encrypted: {tempStream1.IsEncrypted}");
 
