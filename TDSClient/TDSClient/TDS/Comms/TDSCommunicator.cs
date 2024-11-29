@@ -78,8 +78,6 @@ namespace TDSClient.TDS.Comms
         /// <returns>Returns true if no errors occurred.</returns>
         public static bool ValidateServerCertificate(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
-            Thread.Sleep(6000);
-
             LoggingUtilities.WriteLog($"    Checking certificate validation results:");
             if (sslPolicyErrors == SslPolicyErrors.None)
             {
