@@ -1496,12 +1496,12 @@ try {
         Write-Host Warning: Cannot write log file -ForegroundColor Yellow
     }
 
-    TrackWarningAnonymously 'v2.6'
+    TrackWarningAnonymously 'v2.7'
     TrackWarningAnonymously ('PowerShell ' + $PSVersionTable.PSVersion + '|' + $PSVersionTable.Platform + '|' + $PSVersionTable.OS )
 
     try {
         Write-Host '******************************************' -ForegroundColor Green
-        Write-Host '  Azure SQL Connectivity Checker v2.6  ' -ForegroundColor Green
+        Write-Host '  Azure SQL Connectivity Checker v2.7  ' -ForegroundColor Green
         Write-Host '******************************************' -ForegroundColor Green
         Write-Host
         Write-Host 'Parameters' -ForegroundColor Yellow

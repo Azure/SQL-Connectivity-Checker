@@ -206,7 +206,12 @@ namespace TDSClient.TDS.Client
             TDSPreLoginPacketData preLoginResponse = (TDSPreLoginPacketData)ReceivePreLoginResponse();
 
             preLoginDone = true;
-            LoggingUtilities.WriteLog($"PreLogin phase ended (took {(int)(DateTime.UtcNow - connectStartTime).TotalMilliseconds} ms)", writeToSummaryLog: true);
+            int preLoginDurationMs = (int)(DateTime.UtcNow - connectStartTime).TotalMilliseconds;
+            LoggingUtilities.WriteLog($"PreLogin phase ended (took {preLoginDurationMs} ms)", writeToSummaryLog: true);
+            if (preLoginDurationMs > 5000)
+            {
+                LoggingUtilities.WriteLog($"WARNING: PreLogin phase should take less than 5 seconds", writeToSummaryLog: true);
+            }
 
             return preLoginResponse;
         }
@@ -261,6 +266,7 @@ namespace TDSClient.TDS.Client
 
             tdsMessageBody.Terminate();
 
+            LoggingUtilities.WriteLog($" Trying to send PreLogin.");
             TdsCommunicator.SendTDSMessage(tdsMessageBody);
             LoggingUtilities.WriteLog($" PreLogin message sent.");
         }
@@ -287,6 +293,7 @@ namespace TDSClient.TDS.Client
                 tdsMessageBody.AddLogin7AADAuthenticationOptions(AuthenticationType);
             }
 
+            LoggingUtilities.WriteLog($" Trying to send Login7.");
             TdsCommunicator.SendTDSMessage(tdsMessageBody);
             LoggingUtilities.WriteLog($" Login7 message sent.");
         }
@@ -318,7 +325,25 @@ namespace TDSClient.TDS.Client
                 if (response.Options.Exists(opt => opt.Type == TDSPreLoginOptionTokenType.Encryption) &&
                     response.Encryption == TDSEncryptionOption.EncryptReq)
                 {
-                    TdsCommunicator.EnableEncryption(Server, EncryptionProtocol, TrustServerCertificate);
+                    int secondsToEnableEncryptionTimeout = 30;
+                    var cts = new CancellationTokenSource(TimeSpan.FromSeconds(secondsToEnableEncryptionTimeout));
+                    var task = Task.Run(() => TdsCommunicator.EnableEncryption(Server, EncryptionProtocol, TrustServerCertificate), cts.Token);
+
+                    try
+                    {
+                        task.Wait(cts.Token);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        cts.Cancel();
+                        string message = $"Enabling encryption operation was not completed and cancelled at client side after {secondsToEnableEncryptionTimeout} seconds, it should be done under 5 seconds.";
+                        LoggingUtilities.WriteLog(message);
+                        throw new TimeoutException(message);
+                    }
+                    finally
+                    {
+                        cts.Dispose();
+                    }
                 }
             }
             else
@@ -389,7 +414,7 @@ namespace TDSClient.TDS.Client
                             else
                             {
                                 cts.Cancel();
-                                throw new Exception("Operation timed out afer 2 minutes.");
+                                throw new Exception("Operation timed out after 2 minutes.");
                             }
                         }
                         else
