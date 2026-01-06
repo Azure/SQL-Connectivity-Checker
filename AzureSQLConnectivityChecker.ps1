@@ -134,59 +134,87 @@ else {
 }
 
 $SQLDBGateways = @(
-    New-Object PSObject -Property @{Region = "Australia Central"; Gateways = ("20.36.104.6", "20.36.104.7", "20.36.105.33", "20.36.105.34"); TRs = ('tr1', 'tr3', 'tr27', 'tr136'); Cluster = 'australiacentral1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "Australia Central2"; Gateways = ("20.36.112.6", "20.36.113.33", "20.36.113.34"); TRs = ('tr21', 'tr51'); Cluster = 'australiacentral2-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "Australia East"; Gateways = ("40.79.161.1", "13.70.112.9", "20.53.46.128", "20.53.46.129", "20.53.46.130"); TRs = ('tr39', 'tr2000', 'tr2215', 'tr3259'); Cluster = 'australiaeast1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "Australia South East"; Gateways = ("13.77.48.10", "13.77.49.32", "13.77.49.34", "13.77.49.35"); TRs = ('tr3', 'tr4', 'tr70', 'tr373'); Cluster = 'australiasoutheast1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "Brazil South"; Gateways = ("191.233.200.14", "191.234.144.16", "191.234.152.3"); TRs = ('tr85', 'tr272', 'tr323', 'tr435'); Cluster = 'brazilsouth1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "Canada Central"; Gateways = ("52.246.152.0", "20.38.144.1", "13.71.168.33", "20.48.196.32", "20.48.196.33"); TRs = ('tr1044', 'tr2061', 'tr2099', 'tr2320'); Cluster = 'canadacentral1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "Canada East"; Gateways = ("40.69.105.9", "40.69.105.10", "40.69.105.33", "40.69.105.34"); TRs = ('tr11', 'tr210', 'tr211', 'tr290'); Cluster = 'canadaeast1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "Central US"; Gateways = ("104.208.21.1", "13.89.169.20", "20.40.228.128", "20.40.228.129", "20.40.228.130", "20.40.228.131"); TRs = ('tr8', 'tr9', 'tr11', 'tr15'); Cluster = 'centralus1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "China East"; Gateways = ("52.130.112.139", "52.130.112.141", "52.130.112.142"); TRs = ('tr2', 'tr3'); Cluster = 'chinaeast1-a.worker.database.chinacloudapi.cn'; }
-    New-Object PSObject -Property @{Region = "China East 2"; Gateways = ("40.73.82.1"); TRs = ('tr1', 'tr5', 'tr11'); Cluster = 'chinaeast2-a.worker.database.chinacloudapi.cn'; }
-    New-Object PSObject -Property @{Region = "China North"; Gateways = ("52.130.128.89"); TRs = ('tr2', 'tr3'); Cluster = 'chinanorth1-a.worker.database.chinacloudapi.cn'; }
-    New-Object PSObject -Property @{Region = "China North 2"; Gateways = ("40.73.50.0", "52.130.128.89"); TRs = ('tr1', 'tr67', 'tr119'); Cluster = 'chinanorth2-a.worker.database.chinacloudapi.cn'; }
-    New-Object PSObject -Property @{Region = "East Asia"; Gateways = ("13.75.32.4", "13.75.32.14", "20.205.77.200", "20.205.83.224"); TRs = ('tr220', 'tr832', 'tr850', 'tr1038'); Cluster = 'eastasia1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "East US"; Gateways = ("40.121.158.30", "40.79.153.12", "40.78.225.32", "20.62.132.160", "20.62.132.161", "20.62.132.162", "20.62.132.163", "20.62.132.164", "20.62.132.165", "20.62.132.166"); TRs = ('tr20', 'tr21', 'tr22', 'tr29'); Cluster = 'eastus1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "East US 2"; Gateways = ("104.208.150.3", "40.70.144.193", "20.62.58.128", "20.62.58.129", "20.62.58.130", "20.62.58.131", "20.62.58.133", "20.62.58.135", "20.62.58.136"); TRs = ('tr12332', 'tr12219', 'tr5548', 'tr12110'); Cluster = 'eastus2-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "France Central"; Gateways = ("40.79.129.1", "40.79.137.8", "40.79.145.12"); TRs = ('tr1', 'tr4', 'tr307', 'tr390'); Cluster = 'francecentral1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "France South"; Gateways = ("40.79.177.10", "40.79.177.12", "40.79.176.41", "40.79.176.42"); TRs = ('tr3', 'tr4', 'tr35', 'tr37'); Cluster = 'francesouth1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "Germany North"; Gateways = ("51.116.56.0", "51.116.57.32", "51.116.57.33", "51.116.57.34"); TRs = ('tr1', 'tr3', 'tr79', 'tr84'); Cluster = 'germanynorth1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "Germany West Central"; Gateways = ("51.116.152.0", "51.116.240.0", "51.116.248.0", "51.116.149.32", "51.116.149.33", "51.116.149.34"); TRs = ('tr206', 'tr188', 'tr495', 'tr669'); Cluster = 'germanywestcentral1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "India Central"; Gateways = ("104.211.86.30", "104.211.86.31", "40.80.48.32", "20.192.96.32", "20.192.43.160", "20.192.43.161"); TRs = ('tr755', 'tr3', 'tr724', 'tr104'); Cluster = 'indiacentral1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "India South"; Gateways = ("104.211.224.146", "40.78.192.33", "40.78.192.34"); TRs = ('tr3', 'tr464', 'tr490', 'tr474'); Cluster = 'indiasouth1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "India West"; Gateways = ("104.211.144.4"); TRs = ('tr7', 'tr99', 'tr214', 'tr227'); Cluster = 'indiawest1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "Japan East"; Gateways = ("40.79.184.8", "40.79.192.5", "13.78.104.32", "40.79.184.32", "20.191.165.160", "20.191.165.161", "20.191.165.162"); TRs = ('tr1945', 'tr2260', 'tr2004', 'tr1944'); Cluster = 'japaneast1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "Japan West"; Gateways = ("104.214.148.156", "40.74.97.10", "20.18.179.192", "20.18.179.193"); TRs = ('tr11', 'tr12', 'tr13'); Cluster = 'japanwest1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "Korea Central"; Gateways = ("52.231.17.22", "52.231.17.23", "20.44.24.32", "20.194.64.33", "20.194.73.64", "20.194.73.65", "20.194.73.67", "20.194.73.68"); TRs = ('tr760', 'tr10', 'tr118', 'tr698'); Cluster = 'koreacentral1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "Korea South"; Gateways = ("52.231.151.96"); TRs = ('tr149', 'tr3', 'tr75', 'tr77'); Cluster = 'koreasouth1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "North Central US"; Gateways = ("52.162.104.33", "52.162.105.9", "52.162.105.200", "20.125.171.192"); TRs = ('tr13', 'tr15', 'tr16', 'tr1871'); Cluster = 'northcentralus1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "North Europe"; Gateways = ("52.138.224.1", "13.74.104.113", "52.146.133.130", "52.146.133.131", "52.146.133.132", "52.146.133.133", "52.146.133.134"); TRs = ('tr24', 'tr31', 'tr1579', 'tr3180'); Cluster = 'northeurope1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "Norway East"; Gateways = ("51.120.96.0", "51.120.96.33", "51.120.104.32", "51.120.208.32"); TRs = ('tr1', 'tr45', 'tr14'); Cluster = 'norwayeast1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "Norway West"; Gateways = ("51.120.216.0"); TRs = ('tr1', 'tr17', 'tr14'); Cluster = 'norwaywest1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "South Africa North"; Gateways = ("102.133.152.0", "102.133.120.2", "102.133.152.32", "102.133.221.224", "102.133.221.225", "102.133.221.226", "102.133.221.227"); TRs = ('tr544', 'tr299', 'tr445', 'tr480'); Cluster = 'southafricanorth1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "South Africa West"; Gateways = ("102.133.24.0", "102.133.25.32"); TRs = ('tr1', 'tr18', 'tr22'); Cluster = 'southafricawest1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "South Central US"; Gateways = ("104.214.16.32", "20.45.121.1", "20.49.88.1"); TRs = ('tr22', 'tr24', 'tr2465', 'tr2554'); Cluster = 'southcentralus1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "South East Asia"; Gateways = ("40.78.232.3", "13.67.16.193", "20.195.65.33", "20.195.65.33", "20.195.65.34", "20.195.65.35", "20.195.65.36", "20.195.65.37", "20.195.65.39"); TRs = ('tr3335', 'tr2135', 'tr3866', 'tr3572'); Cluster = 'southeastasia1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "Switzerland North"; Gateways = ("51.107.56.0", "20.208.19.192", "51.103.203.192", "51.107.242.32", "51.107.242.33", "51.107.242.34"); TRs = ('tr1', 'tr2', 'tr54'); Cluster = 'switzerlandnorth1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "Switzerland West"; Gateways = ("51.107.152.0"); TRs = ('tr1', 'tr2', 'tr52'); Cluster = 'switzerlandwest1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "UAE Central"; Gateways = ("20.37.72.64", "20.37.72.96"); TRs = ('tr4', 'tr23', 'tr49'); Cluster = 'uaecentral1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "UAE North"; Gateways = ("65.52.248.0", "65.52.248.32", "20.38.152.24"); TRs = ('tr1', 'tr4', 'tr76', 'tr410'); Cluster = 'uaenorth1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "UK South"; Gateways = ("51.105.64.0", '51.140.144.36', '51.105.72.32', "51.143.209.224"); TRs = ('tr5', 'tr6', 'tr1666', 'tr2811'); Cluster = 'uksouth1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "UK West"; Gateways = ("51.140.208.96", "51.140.208.97", "51.140.208.99"); TRs = ('tr14', 'tr127', 'tr529', 'tr623'); Cluster = 'ukwest1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "West Central US"; Gateways = ("13.78.248.43", '13.71.193.32', '13.71.193.33'); TRs = ('tr11', 'tr359', 'tr409', 'tr1367'); Cluster = 'westcentralus1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "West Europe"; Gateways = ("104.40.168.105", "52.236.184.163", "20.61.99.192", "20.61.99.193"); TRs = ('tr29', 'tr30', 'tr33', 'tr34'); Cluster = 'westeurope1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "West US"; Gateways = ("104.42.238.205", "13.86.216.196", "13.86.217.224", "13.86.217.225", "20.168.163.192", "20.168.163.193"); TRs = ('tr37', 'tr38', 'tr41', 'tr47'); Cluster = 'westus1-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "West US 2"; Gateways = ("40.78.240.8", "40.78.248.10", "20.51.9.128", "20.51.9.129"); TRs = ('tr4709', 'tr6453', 'tr6469', 'tr7228'); Cluster = 'westus2-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "West US 3"; Gateways = ("20.150.168.0", "20.150.184.2"); TRs = ('tr1', 'tr4', 'tr1235'); Cluster = 'westus3-a.worker.database.windows.net'; }
-    New-Object PSObject -Property @{Region = "US DoD East"; Gateways = ("52.126.200.3"); TRs = ('tr3', 'tr4', 'tr5'); Cluster = 'usdodeast1-a.worker.database.usgovcloudapi.net'; }
-    New-Object PSObject -Property @{Region = "US DoD Central"; Gateways = ("52.182.88.34"); TRs = ('tr1', 'tr4', 'tr7'); Cluster = 'usdodcentral1-a.worker.database.usgovcloudapi.net'; }
-    New-Object PSObject -Property @{Region = "US Gov Texas"; Gateways = ("52.127.33.32"); TRs = ('tr1', 'tr2', 'tr29'); Cluster = 'usgovsouthcentral1-a.worker.database.usgovcloudapi.net'; }
-    New-Object PSObject -Property @{Region = "US Gov Arizona"; Gateways = ("52.127.0.14"); TRs = ('tr1', 'tr4', 'tr13'); Cluster = 'usgovsouthwest1-a.worker.database.usgovcloudapi.net'; }
-    New-Object PSObject -Property @{Region = "US Gov Virginia"; Gateways = ("13.72.48.140", "52.127.41.2", "20.140.88.2"); TRs = ('tr1', 'tr3', 'tr5'); Cluster = 'usgoveast1-a.worker.database.usgovcloudapi.net'; }
+    New-Object PSObject -Property @{Region = "Australia Central"; Gateways = ("20.36.105.33", "20.36.105.34"); }
+    New-Object PSObject -Property @{Region = "Australia Central2"; Gateways = ("20.36.113.33", "20.36.113.34"); }
+    New-Object PSObject -Property @{Region = "Australia East"; Gateways = ("20.53.46.128", "20.53.46.129", "20.53.46.130"); }
+    New-Object PSObject -Property @{Region = "Australia South East"; Gateways = ("13.77.49.33", "13.77.49.34", "13.77.49.35", "13.77.49.37"); }
+    New-Object PSObject -Property @{Region = "Austria East"; Gateways = ("68.210.175.32", "68.210.175.33"); }
+    New-Object PSObject -Property @{Region = "Belgium Central"; Gateways = ("9.160.56.96"); }
+    New-Object PSObject -Property @{Region = "Brazil South"; Gateways = ("191.234.142.160", "191.234.142.161"); }
+    New-Object PSObject -Property @{Region = "Brazil Southeast"; Gateways = ("191.233.48.32", "191.233.48.33"); }
+    New-Object PSObject -Property @{Region = "Canada Central"; Gateways = ("20.48.196.32", "20.48.196.33"); }
+    New-Object PSObject -Property @{Region = "Canada East"; Gateways = ("40.69.105.33", "40.69.105.34"); }
+    New-Object PSObject -Property @{Region = "Central US"; Gateways = ("20.40.228.128", "20.40.228.129", "20.40.228.130", "20.40.228.131", "20.40.228.133", "20.40.228.135", "20.40.228.136"); }
+    New-Object PSObject -Property @{Region = "Central US EUAP"; Gateways = ("40.78.200.131", "40.78.200.133", "40.78.200.134"); }
+    New-Object PSObject -Property @{Region = "Chile Central"; Gateways = ("68.211.15.128", "68.211.15.129"); }
+    New-Object PSObject -Property @{Region = "China East"; Gateways = ("52.130.112.137", "52.130.112.141"); }
+    New-Object PSObject -Property @{Region = "China East 2"; Gateways = ("52.130.120.89", "52.130.120.90", "52.130.120.92"); }
+    New-Object PSObject -Property @{Region = "China East 3"; Gateways = ("52.131.155.194", "52.131.155.196"); }
+    New-Object PSObject -Property @{Region = "China North"; Gateways = ("52.130.128.91", "52.130.128.92"); }
+    New-Object PSObject -Property @{Region = "China North 2"; Gateways = ("52.130.40.65", "52.130.40.66"); }
+    New-Object PSObject -Property @{Region = "China North 3"; Gateways = ("159.27.21.32", "159.27.21.33"); }
+    New-Object PSObject -Property @{Region = "East Asia"; Gateways = ("20.195.72.32", "20.195.72.33"); }
+    New-Object PSObject -Property @{Region = "East US"; Gateways = ("20.62.132.160", "20.62.132.161", "20.62.132.162", "20.62.132.163", "20.62.132.164", "20.62.132.165", "20.62.132.166", "20.62.132.169"); }
+    New-Object PSObject -Property @{Region = "East US 2"; Gateways = ("20.62.58.128", "20.62.58.129", "20.62.58.130", "20.62.58.131", "20.62.58.133", "20.62.58.135", "20.62.58.136"); }
+    New-Object PSObject -Property @{Region = "East US 2 EUAP"; Gateways = ("20.51.17.168", "20.51.17.169", "40.75.32.40"); }
+    New-Object PSObject -Property @{Region = "France Central"; Gateways = ("20.43.47.192", "20.43.47.193", "20.43.47.194"); }
+    New-Object PSObject -Property @{Region = "France South"; Gateways = ("40.79.176.41", "40.79.176.42"); }
+    New-Object PSObject -Property @{Region = "Germany North"; Gateways = ("51.116.57.32", "51.116.57.33"); }
+    New-Object PSObject -Property @{Region = "Germany West Central"; Gateways = ("51.116.149.32", "51.116.149.33", "51.116.149.34"); }
+    New-Object PSObject -Property @{Region = "India Central"; Gateways = ("20.192.43.160", "20.192.43.161"); }
+    New-Object PSObject -Property @{Region = "India South"; Gateways = ("40.78.192.33", "40.78.192.34"); }
+    New-Object PSObject -Property @{Region = "India West"; Gateways = ("104.211.144.34", "104.211.144.35"); }
+    New-Object PSObject -Property @{Region = "Indonesia Central"; Gateways = ("70.153.167.65", "70.153.167.66"); }
+    New-Object PSObject -Property @{Region = "Israel Central"; Gateways = ("20.217.53.0", "20.217.53.1"); }
+    New-Object PSObject -Property @{Region = "Israel Northwest"; Gateways = ("51.4.162.136"); }
+    New-Object PSObject -Property @{Region = "Italy North"; Gateways = ("4.232.101.160", "4.232.101.161"); }
+    New-Object PSObject -Property @{Region = "Japan East"; Gateways = ("20.191.165.161", "20.191.165.162"); }
+    New-Object PSObject -Property @{Region = "Japan West"; Gateways = ("20.189.225.160", "20.189.225.161"); }
+    New-Object PSObject -Property @{Region = "Jio India Central"; Gateways = ("20.192.233.33", "20.192.233.34"); }
+    New-Object PSObject -Property @{Region = "Jio India West"; Gateways = ("20.193.200.34", "20.193.200.35"); }
+    New-Object PSObject -Property @{Region = "Korea Central"; Gateways = ("20.194.73.67", "20.194.73.68"); }
+    New-Object PSObject -Property @{Region = "Korea South"; Gateways = ("52.231.151.98", "52.231.151.99", "52.231.151.100"); }
+    New-Object PSObject -Property @{Region = "Malaysia South"; Gateways = ("20.17.67.248"); }
+    New-Object PSObject -Property @{Region = "Malaysia West"; Gateways = ("20.17.127.96", "20.17.127.97"); }
+    New-Object PSObject -Property @{Region = "Mexico Central"; Gateways = ("158.23.112.160", "158.23.112.161"); }
+    New-Object PSObject -Property @{Region = "New Zealand North"; Gateways = ("172.204.167.64", "172.204.167.65"); }
+    New-Object PSObject -Property @{Region = "North Central US"; Gateways = ("20.125.171.192", "52.162.105.200"); }
+    New-Object PSObject -Property @{Region = "North Europe"; Gateways = ("52.146.133.130", "52.146.133.131", "52.146.133.132", "52.146.133.133", "52.146.133.134"); }
+    New-Object PSObject -Property @{Region = "Norway East"; Gateways = ("51.120.232.195", "51.120.232.196"); }
+    New-Object PSObject -Property @{Region = "Norway West"; Gateways = ("51.120.217.32", "51.120.217.33"); }
+    New-Object PSObject -Property @{Region = "Poland Central"; Gateways = ("20.215.13.1", "20.215.13.2"); }
+    New-Object PSObject -Property @{Region = "Qatar Central"; Gateways = ("20.21.53.32", "20.21.53.33"); }
+    New-Object PSObject -Property @{Region = "South Africa North"; Gateways = ("102.133.221.224", "102.133.221.225", "102.133.221.226", "102.133.221.227"); }
+    New-Object PSObject -Property @{Region = "South Africa West"; Gateways = ("102.133.25.32", "102.133.25.33"); }
+    New-Object PSObject -Property @{Region = "South Central US"; Gateways = ("20.65.132.160", "20.65.132.161", "20.65.132.163", "20.65.132.164"); }
+    New-Object PSObject -Property @{Region = "South Central US 2"; Gateways = ("48.216.10.160"); }
+    New-Object PSObject -Property @{Region = "South East Asia"; Gateways = ("20.195.65.33", "20.195.65.34", "20.195.65.35", "20.195.65.36", "20.195.65.37", "20.195.65.39"); }
+    New-Object PSObject -Property @{Region = "Southeast US"; Gateways = ("68.154.137.64"); }
+    New-Object PSObject -Property @{Region = "Southeast US 3"; Gateways = ("74.7.82.136"); }
+    New-Object PSObject -Property @{Region = "Spain Central"; Gateways = ("68.221.40.160", "68.221.40.161"); }
+    New-Object PSObject -Property @{Region = "Sweden Central"; Gateways = ("51.12.46.32", "51.12.46.33"); }
+    New-Object PSObject -Property @{Region = "Sweden South"; Gateways = ("51.12.200.33", "51.12.200.34"); }
+    New-Object PSObject -Property @{Region = "Switzerland North"; Gateways = ("51.107.242.32", "51.107.242.33", "51.107.242.34"); }
+    New-Object PSObject -Property @{Region = "Switzerland West"; Gateways = ("51.107.153.32", "51.107.153.33"); }
+    New-Object PSObject -Property @{Region = "Taiwan North"; Gateways = ("51.53.107.248", "51.53.107.249", "51.53.107.250"); }
+    New-Object PSObject -Property @{Region = "Taiwan Northwest"; Gateways = ("51.53.187.248", "51.53.187.249"); }
+    New-Object PSObject -Property @{Region = "UAE Central"; Gateways = ("20.37.72.96", "20.37.72.97"); }
+    New-Object PSObject -Property @{Region = "UAE North"; Gateways = ("20.38.143.64", "20.38.143.65", "20.38.143.67", "20.38.143.68"); }
+    New-Object PSObject -Property @{Region = "UK South"; Gateways = ("51.143.209.224", "51.143.209.226"); }
+    New-Object PSObject -Property @{Region = "UK West"; Gateways = ("51.140.208.99", "51.140.208.100"); }
+    New-Object PSObject -Property @{Region = "West Central US"; Gateways = ("57.151.152.24", "172.215.203.64"); }
+    New-Object PSObject -Property @{Region = "West Europe"; Gateways = ("20.61.99.192", "20.61.99.193", "20.61.99.194", "20.61.99.197", "20.61.99.198"); }
+    New-Object PSObject -Property @{Region = "West US"; Gateways = ("13.86.217.224", "13.86.217.225", "20.168.163.193", "20.168.163.194"); }
+    New-Object PSObject -Property @{Region = "West US 2"; Gateways = ("20.51.9.128", "20.51.9.129", "20.51.9.130", "20.51.9.131"); }
+    New-Object PSObject -Property @{Region = "West US 3"; Gateways = ("20.150.241.128", "20.150.241.129"); }
+    New-Object PSObject -Property @{Region = "US DoD East"; Gateways = ("52.126.200.3"); }
+    New-Object PSObject -Property @{Region = "US DoD Central"; Gateways = ("52.182.88.34"); }
+    New-Object PSObject -Property @{Region = "US Gov Texas"; Gateways = ("52.127.33.32"); }
+    New-Object PSObject -Property @{Region = "US Gov Arizona"; Gateways = ("52.127.0.14"); }
+    New-Object PSObject -Property @{Region = "US Gov Virginia"; Gateways = ("13.72.48.140", "52.127.41.2", "20.140.88.2"); }
 )
 
-$TRPorts = @('11000', '11001', '11003', '11005', '11006')
+
 $summaryLog = New-Object -TypeName "System.Text.StringBuilder"
 $summaryRecommendedAction = New-Object -TypeName "System.Text.StringBuilder"
 $AnonymousRunId = ([guid]::NewGuid()).Guid
@@ -1022,7 +1050,7 @@ function PrintAverageConnectionTime($addressList, $port) {
         [int]$numSuccessful = 0
         Write-Host '   IP Address:'$ipAddress'  Port:'$port
 
-        for ($i = 0; $i -lt 10; $i++) {
+        for ($i = 0; $i -lt 5; $i++) {
             $client = [TcpClient]::new()
             try {
                 $stopwatch.Restart()
@@ -1153,84 +1181,6 @@ function RunSqlDBConnectivityTests($resolvedAddress) {
                 TrackWarningAnonymously ('SQLDB|GatewayTestFailed|' + $gatewayAddress)
             }
         }
-
-        # if ($gateway.TRs -and $gateway.Cluster -and $gateway.Cluster.Length -gt 0 ) {
-        #     Write-Host
-        #     Write-Host 'Redirect Policy related tests:' -ForegroundColor Green
-        #     $redirectSucceeded = 0
-        #     $redirectTests = 0
-        #     foreach ($tr in $gateway.TRs | Where-Object { $_ -ne '' }) {
-        #         $addr = [string]::Format("{0}.{1}", $tr, $gateway.Cluster)
-        #         $trDNS = Resolve-DnsName -Name $addr -ErrorAction SilentlyContinue
-        #         if ($null -eq $trDNS -or $null -eq $trDNS.IPAddress) {
-        #             Write-Host (' ' + $addr + ' DNS name could not be resolved, skipping tests on ' + $tr) -ForegroundColor Yellow
-        #             TrackWarningAnonymously ('TR|DNS|' + $addr)
-        #             continue
-        #         }
-
-        #         foreach ($port in $TRPorts) {
-        #             Write-Host ' Tested (redirect) connectivity to' $addr':'$port -ForegroundColor White -NoNewline
-        #             $tcpClient = New-Object System.Net.Sockets.TcpClient
-        #             $portOpen = $tcpClient.ConnectAsync($addr, $port).Wait(6000)
-        #             if ($portOpen) {
-        #                 $redirectTests += 1
-        #                 $redirectSucceeded += 1
-        #                 Write-Host ' -> TCP test succeeded' -ForegroundColor Green
-        #             }
-        #             else {
-        #                 $redirectTests += 1
-        #                 Write-Host ' -> TCP test FAILED' -ForegroundColor Red
-        #             }
-        #         }
-        #     }
-
-        #     if ($redirectTests -gt 0) {
-        #         $redirectTestsResultMessage = [System.Text.StringBuilder]::new()
-        #         [void]$redirectTestsResultMessage.AppendLine()
-        #         $redirectTestsResultMessage.ToString()
-
-        #         [void]$redirectTestsResultMessage.AppendLine(' Tested (redirect) connectivity ' + $redirectTests + ' times and ' + $redirectSucceeded + ' of them succeeded')
-        #         [void]$redirectTestsResultMessage.AppendLine(' Please note this was just some tests to check connectivity using the 11000-11999 port range, not your database')
-
-        #         if (IsSqlOnDemand $Server) {
-        #             [void]$redirectTestsResultMessage.Append(' Some tests may even fail and not be a problem since ports tested here are static and SQL on-demand is a dynamic serverless environment.')
-        #         }
-        #         else {
-        #             [void]$redirectTestsResultMessage.Append(' Some tests may even fail and not be a problem since ports tested here are static and SQL DB is a dynamic environment.')
-        #         }
-        #         $msg = $redirectTestsResultMessage.ToString()
-        #         Write-Host $msg -Foreground Yellow
-        #         [void]$summaryLog.AppendLine($msg)
-
-        #         TrackWarningAnonymously ('SQLDB|Redirect|' + $gateway.Region + '|' + $redirectSucceeded + '/' + $redirectTests)
-
-        #         if ($redirectSucceeded / $redirectTests -ge 0.5 ) {
-        #             $msg = ' Based on the result it is likely the Redirect Policy will work from this machine'
-        #             Write-Host $msg -Foreground Green
-        #             [void]$summaryLog.AppendLine($msg)
-        #         }
-        #         else {
-
-        #             if ($redirectSucceeded / $redirectTests -eq 0.0 ) {
-        #                 $msg = ' Based on the result the Redirect Policy will NOT work from this machine'
-        #                 Write-Host $msg -Foreground Red
-        #                 [void]$summaryLog.AppendLine($msg)
-        #                 TrackWarningAnonymously 'SQLDB|Redirect|AllTestsFailed'
-        #             }
-        #             else {
-        #                 $msg = ' Based on the result the Redirect Policy MAY NOT work from this machine, this can be expected for connections from outside Azure'
-        #                 Write-Host $msg -Foreground Red
-        #                 [void]$summaryLog.AppendLine($msg)
-        #                 TrackWarningAnonymously ('SQLDB|Redirect|MoreThanHalfFailed|' + $redirectSucceeded + '/' + $redirectTests)
-        #             }
-
-        #             [void]$summaryRecommendedAction.AppendLine($msg)
-        #             $msg = $SQLDB_Redirect
-        #             Write-Host $msg -Foreground Red
-        #             [void]$summaryRecommendedAction.AppendLine($msg)
-        #         }
-        #     }
-        # }
 
         if ($hasGatewayTestSuccess -eq $true) {
             RunConnectionToDatabaseTestsAndAdvancedTests $Server '1433' $Database $AuthenticationType $AuthenticationLibrary $User $Password $TrustServerCertificate
@@ -1496,12 +1446,12 @@ try {
         Write-Host Warning: Cannot write log file -ForegroundColor Yellow
     }
 
-    TrackWarningAnonymously 'v2.7'
+    TrackWarningAnonymously 'v2.8'
     TrackWarningAnonymously ('PowerShell ' + $PSVersionTable.PSVersion + '|' + $PSVersionTable.Platform + '|' + $PSVersionTable.OS )
 
     try {
         Write-Host '******************************************' -ForegroundColor Green
-        Write-Host '  Azure SQL Connectivity Checker v2.7  ' -ForegroundColor Green
+        Write-Host '  Azure SQL Connectivity Checker v2.8  ' -ForegroundColor Green
         Write-Host '******************************************' -ForegroundColor Green
         Write-Host
         Write-Host 'Parameters' -ForegroundColor Yellow
