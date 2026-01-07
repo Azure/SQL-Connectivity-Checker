@@ -169,7 +169,7 @@ function TrackWarningAnonymously ([String] $warningCode) {
             $body = New-Object PSObject `
             | Add-Member -PassThru NoteProperty name 'Microsoft.ApplicationInsights.Event' `
             | Add-Member -PassThru NoteProperty time $([System.dateTime]::UtcNow.ToString('o')) `
-            | Add-Member -PassThru NoteProperty iKey "26c1eb99-f1b2-4ad7-a601-bfe5775581ab" `
+            | Add-Member -PassThru NoteProperty iKey "4790161c-998c-483c-be4c-5dac3a91c258" `
             | Add-Member -PassThru NoteProperty tags (New-Object PSObject | Add-Member -PassThru NoteProperty 'ai.user.id' $AnonymousRunId) `
             | Add-Member -PassThru NoteProperty data (New-Object PSObject `
                 | Add-Member -PassThru NoteProperty baseType 'EventData' `
@@ -177,12 +177,12 @@ function TrackWarningAnonymously ([String] $warningCode) {
                     | Add-Member -PassThru NoteProperty ver 2 `
                     | Add-Member -PassThru NoteProperty name $warningCode));
             $body = $body | ConvertTo-JSON -depth 5;
-            Invoke-WebRequest -Uri 'https://dc.services.visualstudio.com/v2/track' -Method 'POST' -UseBasicParsing -body $body > $null
+            Invoke-WebRequest -Uri 'https://dc.services.visualstudio.com/v2/track' -ErrorAction SilentlyContinue -Method 'POST' -UseBasicParsing -body $body > $null
         }
     }
     Catch {
-        Write-Host 'TrackWarningAnonymously exception:'
-        Write-Host $_.Exception.Message -ForegroundColor Red
+        #Write-Host 'TrackWarningAnonymously exception:'
+        #Write-Host $_.Exception.Message -ForegroundColor Red
     }
 }
 
@@ -287,7 +287,7 @@ try {
                 $encryption = [System.Security.Authentication.SslProtocols]::Tls12 -bor [System.Security.Authentication.SslProtocols]::Tls11 -bor [System.Security.Authentication.SslProtocols]::Default
             }
         }
-        $tdsClient = [TDSClient.TDS.Client.TDSSQLTestClient]::new($Server, $Port, $AuthenticationType, $User, $Password, $Database, $encryption, $AuthenticationLibrary, $UserAssignedIdentityClientI, [bool]$TrustServerCertificate)
+        $tdsClient = [TDSClient.TDS.Client.TDSSQLTestClient]::new($Server, $Port, $AuthenticationType, $User, $Password, $Database, $encryption, $AuthenticationLibrary, $UserAssignedIdentityClientId, [bool]$TrustServerCertificate)
 
         for ($i = 1; $i -le $ConnectionAttempts; ++$i) {
             $log = [System.IO.File]::CreateText($logPath)
