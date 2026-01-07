@@ -4,12 +4,12 @@ $Path = Join-Path $LocalPath 'AzureSQLConnectivityChecker.ps1'
 
 # Script parameters
 $parameters = @{
-    Server   = '.database.windows.net'
-    Database = ''  # Set the name of the database you wish to test, 'master' will be used by default if nothing is set
-    User     = ''  # Set the login username you wish to use, 'AzSQLConnCheckerUser' will be used by default if nothing is set
-    Password = ''  # Set the login password you wish to use, 'AzSQLConnCheckerPassword' will be used by default if nothing is set
+    Server                             = '.database.windows.net'
+    Database                           = ''  # Set the name of the database you wish to test, 'master' will be used by default if nothing is set
+    User                               = ''  # Set the login username you wish to use, 'AzSQLConnCheckerUser' will be used by default if nothing is set
+    Password                           = ''  # Set the login password you wish to use, 'AzSQLConnCheckerPassword' will be used by default if nothing is set
 
-    ## Optional parameters (default values will be used if ommited)
+    ## Optional parameters (default values will be used if omitted)
     SendAnonymousUsageData             = $true  # Set as $true (default) or $false
     RunAdvancedConnectivityPolicyTests = $true  # Set as $true (default) or $false, this will download the library needed for running advanced connectivity tests
     CollectNetworkTrace                = $true  # Set as $true (default) or $false
@@ -24,7 +24,8 @@ $parameters = @{
 
 Write-Host 'Please wait...'
 Write-Host '(The tests are being run inside a PowerShell job and output will be updated only once the job completes all the tests)'
-$ProgressPreference = "SilentlyContinue";
+$ProgressPreference = "SilentlyContinue"
 $job = Start-Job -ArgumentList $parameters -FilePath $Path
 Wait-Job $job | Out-Null
 Receive-Job -Job $job
+Remove-Job $job
