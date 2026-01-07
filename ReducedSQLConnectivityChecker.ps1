@@ -1,3 +1,6 @@
+$Server = 'dw-srvr-01.database.windows.net' # or any other supported FQDN
+$AuthenticationType = 'SQL Server Authentication'
+
 # Optional parameters (default values will be used if omitted)
 $SendAnonymousUsageData = $true  # Set as $true (default) or $false
 $CollectNetworkTrace = $true  # Set as $true (default) or $false
@@ -277,7 +280,8 @@ try {
             $Port = 3342
         }
     
-        $tdsClient = [TDSClient.TDS.Client.TDSSQLTestClient]::new($Server, $Port, $User, $Password, $Database, $encryption)
+        # $tdsClient = [TDSClient.TDS.Client.TDSSQLTestClient]::new($Server, $Port, $User, $Password, $Database, $encryption)
+        $tdsClient = [TDSClient.TDS.Client.TDSSQLTestClient]::new($Server, $Port, $AuthenticationType, $User, $Password, $Database, $encryption, $AuthenticationLibrary, $UserAssignedIdentityClientI, [bool]$TrustServerCertificate)
         $tdsClient.Connect()
         $tdsClient.Disconnect()
     }
