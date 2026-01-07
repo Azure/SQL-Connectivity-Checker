@@ -1,3 +1,7 @@
+# Optional parameters (default values will be used if omitted)
+$SendAnonymousUsageData = $true  # Set as $true (default) or $false
+$CollectNetworkTrace = $true  # Set as $true (default) or $false
+
 # Parameter region when Invoke-Command -ScriptBlock is used
 $parameters = $args[0]
 if ($null -ne $parameters) {
@@ -8,6 +12,12 @@ if ($null -ne $parameters) {
     $EncryptionProtocol = $parameters['EncryptionProtocol']
     if ($null -ne $parameters['RepositoryBranch']) {
         $RepositoryBranch = $parameters['RepositoryBranch']
+    }
+    if ($null -ne $parameters['SendAnonymousUsageData']) {
+        $SendAnonymousUsageData = $parameters['SendAnonymousUsageData']
+    }
+    if ($null -ne $parameters['CollectNetworkTrace']) {
+        $CollectNetworkTrace = $parameters['CollectNetworkTrace']
     }
 }
 
@@ -29,13 +39,11 @@ if ($null -eq $Database -or '' -eq $Database) {
     $Database = 'master'
 }
 
-if ($null -eq $Local) {
-    $Local = $false
-}
-
 if ($null -eq $RepositoryBranch) {
     $RepositoryBranch = 'master'
 }
+
+$AnonymousRunId = ([guid]::NewGuid()).Guid
 
 # PowerShell Container Image Support Start
 
@@ -107,37 +115,26 @@ function IsManagedInstancePublicEndpoint([String] $Server) {
     return [bool]((IsManagedInstance $Server) -and ($Server -match '.public.'))
 }
 
-function SendAnonymousUsageData {
-    try {
-        #Despite computername and username will be used to calculate a hash string, this will keep you anonymous but allow us to identify multiple runs from the same user
-        $StringBuilderHash = [System.Text.StringBuilder]::new()
-        
-        $text = $env:computername + $env:username
-        if ([string]::IsNullOrEmpty($text)) {
-            $text = $Host.InstanceId
+function TrackWarningAnonymously ([String] $warningCode) {
+    Try {
+        if ($SendAnonymousUsageData) {
+            $body = New-Object PSObject `
+            | Add-Member -PassThru NoteProperty name 'Microsoft.ApplicationInsights.Event' `
+            | Add-Member -PassThru NoteProperty time $([System.dateTime]::UtcNow.ToString('o')) `
+            | Add-Member -PassThru NoteProperty iKey "4790161c-998c-483c-be4c-5dac3a91c258" `
+            | Add-Member -PassThru NoteProperty tags (New-Object PSObject | Add-Member -PassThru NoteProperty 'ai.user.id' $AnonymousRunId) `
+            | Add-Member -PassThru NoteProperty data (New-Object PSObject `
+                | Add-Member -PassThru NoteProperty baseType 'EventData' `
+                | Add-Member -PassThru NoteProperty baseData (New-Object PSObject `
+                    | Add-Member -PassThru NoteProperty ver 2 `
+                    | Add-Member -PassThru NoteProperty name $warningCode));
+            $body = $body | ConvertTo-JSON -depth 5;
+            Invoke-WebRequest -Uri 'https://dc.services.visualstudio.com/v2/track' -ErrorAction SilentlyContinue -Method 'POST' -UseBasicParsing -body $body > $null
         }
-        
-        [System.Security.Cryptography.HashAlgorithm]::Create("MD5").ComputeHash([System.Text.Encoding]::UTF8.GetBytes($text)) | ForEach-Object {
-            [Void]$StringBuilderHash.Append($_.ToString("x2"))
-        }
-
-        $body = New-Object PSObject `
-        | Add-Member -PassThru NoteProperty name 'Microsoft.ApplicationInsights.Event' `
-        | Add-Member -PassThru NoteProperty time $([System.dateTime]::UtcNow.ToString('o')) `
-        | Add-Member -PassThru NoteProperty iKey "a75c333b-14cb-4906-aab1-036b31f0ce8a" `
-        | Add-Member -PassThru NoteProperty tags (New-Object PSObject | Add-Member -PassThru NoteProperty 'ai.user.id' $StringBuilderHash.ToString()) `
-        | Add-Member -PassThru NoteProperty data (New-Object PSObject `
-            | Add-Member -PassThru NoteProperty baseType 'EventData' `
-            | Add-Member -PassThru NoteProperty baseData (New-Object PSObject `
-                | Add-Member -PassThru NoteProperty ver 2 `
-                | Add-Member -PassThru NoteProperty name '1.4'));
-
-        $body = $body | ConvertTo-JSON -depth 5;
-        Invoke-WebRequest -Uri 'https://dc.services.visualstudio.com/v2/track' -Method 'POST' -UseBasicParsing -body $body > $null
     }
-    catch {
-        #Write-Output 'Error sending anonymous usage data:'
-        #Write-Output $_.Exception.Message
+    Catch {
+        #Write-Host 'TrackWarningAnonymously exception:'
+        #Write-Host $_.Exception.Message -ForegroundColor Red
     }
 }
 
@@ -150,7 +147,7 @@ function PrintLocalNetworkConfiguration() {
     $computerProperties = [System.Net.NetworkInformation.IPGlobalProperties]::GetIPGlobalProperties()
     $networkInterfaces = [System.Net.NetworkInformation.NetworkInterface]::GetAllNetworkInterfaces()
 
-    Write-Output $('Interface information for ' + $computerProperties.HostName + '.' + $networkInterfaces.DomainName)
+    Write-Output $('Interface information for ' + $computerProperties.HostName + '.' + $computerProperties.DomainName)
 
     foreach ($networkInterface in $networkInterfaces) {
         if ($networkInterface.NetworkInterfaceType -eq 'Loopback') {
@@ -176,7 +173,7 @@ function PrintLocalNetworkConfiguration() {
 
 function PrintDNSResults($dnsResult, [string] $dnsSource) {
     if ($dnsResult) {
-        Write-Output $(' Found DNS record in ' + $dnsSource + '(IP Address:' + $dnsResult.IPAddress + ')')
+        Write-Output $(' Found DNS record in ' + $dnsSource + ' (IP Address:' + $dnsResult.IPAddress + ')')
     }
     else {
         Write-Output $(' Could not find DNS record in ' + $dnsSource)
@@ -210,9 +207,12 @@ if ([string]::IsNullOrEmpty($env:TEMP)) {
 }
 
 try {
-    Write-Output '******************************************'
-    Write-Output '      Azure SQL Connectivity Checker      '
-    Write-Output '******************************************'
+    TrackWarningAnonymously 'v2.9-reduced'
+    TrackWarningAnonymously ('PowerShell ' + $PSVersionTable.PSVersion + '|' + $PSVersionTable.Platform + '|' + $PSVersionTable.OS )
+
+    Write-Output '****************************************'
+    Write-Output 'Azure SQL Connectivity Checker (Reduced)'
+    Write-Output '****************************************'
     Write-Output "WARNING: Reduced version of Azure SQL Connectivity Checker is running due to current environment's nature/limitations."
     Write-Output 'WARNING: This version does not create any output files, please copy the output directly from the console.'
     
@@ -228,10 +228,6 @@ try {
             -and !$Server.EndsWith('.database.chinacloudapi.cn') `
             -and !$Server.EndsWith('.sql.azuresynapse.net')) {
         $Server = $Server + '.database.windows.net'
-    }
-
-    if ($SendAnonymousUsageData) {
-        SendAnonymousUsageData
     }
 
     PrintLocalNetworkConfiguration
@@ -291,6 +287,7 @@ try {
     finally {
         [TDSClient.TDS.Utilities.LoggingUtilities]::ClearVerboseLog()
     }
-} catch {
+}
+catch {
     Write-Output $_.Exception.Message
 }
