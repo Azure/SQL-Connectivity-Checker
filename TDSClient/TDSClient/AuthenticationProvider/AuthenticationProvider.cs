@@ -151,9 +151,9 @@ namespace TDSClient.AuthenticationProvider
         /// <returns></returns>
         private async Task<string> GetAccessTokenForMSIAuth()
         {
-            return IdentityClientId != null ?
-                await MSALHelper.GetSQLAccessTokenFromMSALUsingUserAssignedManagedIdentity(Authority, IdentityClientId) :
-                await MSALHelper.GetSQLAccessTokenFromMSALUsingSystemAssignedManagedIdentity(Authority);
+            return string.IsNullOrEmpty(IdentityClientId) ?
+                await MSALHelper.GetSQLAccessTokenFromMSALUsingSystemAssignedManagedIdentity(Resource) :
+                await MSALHelper.GetSQLAccessTokenFromMSALUsingUserAssignedManagedIdentity(Resource, IdentityClientId);
         }
     }
 }
