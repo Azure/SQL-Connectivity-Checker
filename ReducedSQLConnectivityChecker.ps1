@@ -210,7 +210,7 @@ if ([string]::IsNullOrEmpty($env:TEMP)) {
 }
 
 try {
-    TrackWarningAnonymously 'v2.9-reduced'
+    TrackWarningAnonymously 'v2.10-reduced'
     TrackWarningAnonymously ('PowerShell ' + $PSVersionTable.PSVersion + '|' + $PSVersionTable.Platform + '|' + $PSVersionTable.OS )
 
     Write-Output '****************************************'
