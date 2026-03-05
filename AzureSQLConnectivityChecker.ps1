@@ -41,7 +41,7 @@ $UserAssignedIdentityClientId = '' # To be used with Microsoft Entra Managed Ide
 # Optional parameters (default values will be used if omitted)
 $SendAnonymousUsageData = $true  # Set as $true (default) or $false
 $RunAdvancedConnectivityPolicyTests = $true  # Set as $true (default) or $false, this will download library needed for running advanced connectivity policy tests
-$ConnectionAttempts = 1
+$ConnectionAttempts = 10
 $DelayBetweenConnections = 1
 $CollectNetworkTrace = $true  # Set as $true (default) or $false
 $EncryptionProtocol = 'Tls 1.2'  # Supported values: 'Tls 1.0', 'Tls 1.1', 'Tls 1.2'; Without this parameter operating system will choose the best protocol to use
@@ -1446,12 +1446,12 @@ try {
         Write-Host Warning: Cannot write log file -ForegroundColor Yellow
     }
 
-    TrackWarningAnonymously 'v2.9'
+    TrackWarningAnonymously 'v2.10'
     TrackWarningAnonymously ('PowerShell ' + $PSVersionTable.PSVersion + '|' + $PSVersionTable.Platform + '|' + $PSVersionTable.OS )
 
     try {
         Write-Host '******************************************' -ForegroundColor Green
-        Write-Host '  Azure SQL Connectivity Checker v2.9  ' -ForegroundColor Green
+        Write-Host '  Azure SQL Connectivity Checker v2.10  ' -ForegroundColor Green
         Write-Host '******************************************' -ForegroundColor Green
         Write-Host
         Write-Host 'Parameters' -ForegroundColor Yellow
