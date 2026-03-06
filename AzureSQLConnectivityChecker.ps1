@@ -84,6 +84,9 @@ if ($null -ne $parameters) {
     if ($null -ne $parameters['DelayBetweenConnections']) {
         $DelayBetweenConnections = $parameters['DelayBetweenConnections']
     }
+    if ($null -ne $parameters['UserAssignedIdentityClientId']) {
+        $UserAssignedIdentityClientId = $parameters['UserAssignedIdentityClientId']
+    }
     if ($null -ne $parameters['TrustServerCertificate']) {
         $TrustServerCertificate = $parameters['TrustServerCertificate']
     }
@@ -1480,6 +1483,10 @@ try {
         if ($AuthenticationType -like "*Microsoft Entra*") {
             Write-Host ' Authentication library:' $AuthenticationLibrary -ForegroundColor Yellow
             TrackWarningAnonymously ('Authentication library:' + $AuthenticationLibrary)
+        }
+
+        if ($null -ne $UserAssignedIdentityClientId -and $UserAssignedIdentityClientId -ne '') {
+            Write-Host ' UserAssignedIdentityClientId:' $UserAssignedIdentityClientId -ForegroundColor Yellow
         }
 
         Write-Host ' Server:' $Server -ForegroundColor Yellow
